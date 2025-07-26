@@ -7,13 +7,15 @@ interface DynamicFormRendererProps {
   onSubmit: (data: Record<string, any>) => void;
   isPreview?: boolean;
   initialData?: Record<string, any>;
+  onSuccess?: () => void;
 }
 
-export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ 
-  template, 
-  onSubmit, 
+export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
+  template,
+  onSubmit,
   isPreview = false,
-  initialData = {}
+  initialData = {},
+  onSuccess
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -57,11 +59,8 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (isPreview) return;
-
     const newErrors: Record<string, string> = {};
-    
     // Validate all fields
     template.fields.forEach(field => {
       const value = formData[field.name];
@@ -70,11 +69,11 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
         newErrors[field.name] = error;
       }
     });
-
     setErrors(newErrors);
-
     if (Object.keys(newErrors).length === 0) {
       onSubmit(formData);
+      setFormData({}); // Clear form after submit
+      if (onSuccess) onSuccess();
     }
   };
 

@@ -1,4 +1,9 @@
-// ...ES module imports above...
+// ...existing code...
+
+// ...existing code...
+
+// ...existing code...
+
 
 import express from 'express';
 import cors from 'cors';
@@ -9,11 +14,58 @@ import formTemplatesRouter from './routes/formTemplates.js';
 
 dotenv.config();
 
+// Initialize pool BEFORE any route/database usage
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/isbar_db',
+});
+
 const app = express();
 const port = process.env.PORT || 5000;
 
+// --- ISBAR Dynamic Records API ---
+// Place this after app and pool are initialized
+const isbarRecordsRouter = express.Router();
+
+// Save a dynamic ISBAR record (entire form as JSONB)
+isbarRecordsRouter.post('/', async (req, res) => {
+  try {
+    const { department } = req.body;
+    // Save the entire record as JSONB for flexibility
+    const result = await pool.query(
+      'INSERT INTO isbar_records (department, form_data, created_at) VALUES ($1, $2, NOW()) RETURNING *',
+      [department || 'General', req.body]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error saving ISBAR record:', err);
+    console.error('Request body:', req.body);
+    res.status(500).json({ error: err.message, details: err });
+  }
+});
+
+// Get ISBAR records (optionally filter by department)
+isbarRecordsRouter.get('/', async (req, res) => {
+  try {
+    const { department } = req.query;
+    let query = 'SELECT * FROM isbar_records';
+    let params = [];
+    if (department) {
+      query += ' WHERE department = $1';
+      params.push(department);
+    }
+    query += ' ORDER BY created_at DESC';
+    const result = await pool.query(query, params);
+    // Return the form_data field as the record
+    res.json(result.rows.map(row => row.form_data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.use(cors());
 app.use(express.json());
+app.use('/api/isbar-records', isbarRecordsRouter);
 app.use('/api/inventory-reports', inventoryReportsRouter);
 app.use('/api/form-templates', formTemplatesRouter);
 
@@ -156,9 +208,7 @@ app.delete('/api/records/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/isbar_db',
-});
+
 
 app.get('/', (req, res) => {
   res.send('ISBAR Backend Server Running');

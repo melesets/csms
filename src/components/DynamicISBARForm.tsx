@@ -65,38 +65,33 @@ export const DynamicISBARForm = () => {
     setCurrentView('form');
   };
 
-  const handleFormSubmit = (formData: Record<string, any>) => {
-    // Convert dynamic form data to ISBARRecord format
-    const newRecord: ISBARRecord = {
-      id: Date.now().toString(),
-      patientName: formData.patientName || formData.patient_name || selectedPatient?.patientName || '',
-      age: parseInt(formData.age) || selectedPatient?.age || 0,
-      mrn: formData.mrn || formData.medical_record_number || selectedPatient?.mrn || '',
-      bedNumber: formData.bedNumber || formData.bed_number || selectedPatient?.bedNumber || '',
+  const handleFormSubmit = async (formData: Record<string, any>) => {
+    // Attach department and timestamp to the dynamic form data
+    const dynamicRecord = {
+      ...formData,
       department: user?.department || selectedTemplate?.department || 'General',
-      nurseName: formData.nurseName || formData.nurse_name || user?.name || '',
-      shift: formData.shift || 'Day',
       timestamp: new Date().toISOString(),
-      situation: formData.situation || '',
-      background: formData.background || '',
-      assessment: formData.assessment || '',
-      recommendation: formData.recommendation || '',
-      vitalSigns: {
-        temperature: parseFloat(formData.temperature) || 0,
-        heartRate: parseInt(formData.heartRate || formData.heart_rate) || 0,
-        bloodPressure: formData.bloodPressure || formData.blood_pressure || '',
-        respiratoryRate: parseInt(formData.respiratoryRate || formData.respiratory_rate) || 0,
-        oxygenSaturation: parseInt(formData.oxygenSaturation || formData.o2_saturation) || 0
-      },
-      stability: formData.stability || selectedPatient?.stability || 'Stable'
     };
 
-    setRecords(prev => [newRecord, ...prev]);
-    setSelectedTemplate(null);
-    setSelectedPatient(null);
-    setCurrentView('list');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    try {
+      const response = await fetch('/api/isbar-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dynamicRecord)
+      });
+      if (!response.ok) throw new Error('Failed to save record');
+      const saved = await response.json();
+      setRecords(prev => [saved, ...prev]);
+      setSelectedTemplate(null);
+      setSelectedPatient(null);
+      setCurrentView('list');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      // Notify other components to refresh records
+      window.dispatchEvent(new Event('records-updated'));
+    } catch (err) {
+      alert('Failed to save record. Please try again.');
+    }
   };
 
   const getStabilityIcon = (stability: string) => {
@@ -178,6 +173,10 @@ export const DynamicISBARForm = () => {
                   bedNumber: selectedPatient.bedNumber,
                   stability: selectedPatient.stability
                 } : undefined}
+                onSuccess={() => {
+                  setShowSuccess(true);
+                  setTimeout(() => setShowSuccess(false), 3000);
+                }}
               />
             </div>
           </div>
@@ -207,6 +206,10 @@ export const DynamicISBARForm = () => {
               <DynamicFormRenderer
                 template={departmentTemplate}
                 onSubmit={handleFormSubmit}
+                onSuccess={() => {
+                  setShowSuccess(true);
+                  setTimeout(() => setShowSuccess(false), 3000);
+                }}
               />
             ) : (
               <div className="text-red-500">No ISBAR form template found for your department.</div>
