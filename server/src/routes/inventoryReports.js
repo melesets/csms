@@ -1,7 +1,8 @@
 // server/src/routes/inventoryReports.js
-const express = require('express');
+
+import express from 'express';
+import InventoryReport from '../models/inventoryReport.js';
 const router = express.Router();
-const InventoryReport = require('../models/inventoryReport');
 
 // Get all reports (admin) or by department
 router.get('/', async (req, res) => {
@@ -30,4 +31,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

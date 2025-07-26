@@ -1,14 +1,11 @@
-const inventoryReportsRouter = require('./routes/inventoryReports');
-
-// ...existing code...
-app.use('/api/inventory-reports', inventoryReportsRouter);
-
-// ...existing code...
+// ...ES module imports above...
 
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
+import inventoryReportsRouter from './routes/inventoryReports.js';
+import formTemplatesRouter from './routes/formTemplates.js';
 
 dotenv.config();
 
@@ -17,8 +14,7 @@ const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-// Mount formTemplates router (ESM import)
-import formTemplatesRouter from './routes/formTemplates.js';
+app.use('/api/inventory-reports', inventoryReportsRouter);
 app.use('/api/form-templates', formTemplatesRouter);
 
 // PostgreSQL connection
