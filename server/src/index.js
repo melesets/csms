@@ -1,3 +1,9 @@
+const inventoryReportsRouter = require('./routes/inventoryReports');
+
+// ...existing code...
+app.use('/api/inventory-reports', inventoryReportsRouter);
+
+// ...existing code...
 
 import express from 'express';
 import cors from 'cors';

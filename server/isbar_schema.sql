@@ -1,3 +1,13 @@
+-- Inventory Reports Table
+CREATE TABLE IF NOT EXISTS inventory_reports (
+    id SERIAL PRIMARY KEY,
+    shift VARCHAR(16) NOT NULL CHECK (shift IN ('Morning', 'Evening', 'Night')),
+    staffName VARCHAR(100) NOT NULL,
+    staffId INTEGER NOT NULL,
+    department VARCHAR(100) NOT NULL,
+    date TIMESTAMP NOT NULL,
+    resources JSONB NOT NULL
+);
 -- ISBAR Database Schema
 
 CREATE TABLE IF NOT EXISTS users (

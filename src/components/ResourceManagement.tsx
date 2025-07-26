@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiPost, apiGet } from '../api';
 import { Package, Pen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Resource } from '../types';
@@ -219,30 +220,29 @@ function ResourceManagement() {
                 </select>
                 <button
                   className="ml-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow"
-                  onClick={() => {
+                  onClick={async () => {
                     if (!selectedStaff) return;
                     if (!resources || resources.length === 0) {
                       alert('No resources to save in the report.');
                       return;
                     }
                     const now = new Date();
-                    const today = now.toISOString().split('T')[0];
-                    // Save a read-only snapshot of the table in Dashboard-compatible format
+                    // Save report to backend
                     const report = {
                       shift: selectedShift,
                       staffName: selectedStaff,
+                      staffId: staff.find(s => s.name === selectedStaff)?.id || null,
+                      department: user?.department || '',
                       date: now.toISOString(),
                       resources: resources.map(r => ({ ...r }))
                     };
-                    let reports = [];
-                    const saved = localStorage.getItem('inventory_reports');
-                    if (saved) reports = JSON.parse(saved);
-                    // Remove any report for this shift+date
-                    reports = reports.filter((r) => !(r.shift === selectedShift && r.date.split('T')[0] === today));
-                    reports.push(report);
-                    localStorage.setItem('inventory_reports', JSON.stringify(reports));
-                    window.dispatchEvent(new Event('inventory_report_saved'));
-                    alert('Report saved successfully!');
+                    try {
+                      await apiPost('/inventory-reports', report);
+                      window.dispatchEvent(new Event('inventory_report_saved'));
+                      alert('Report saved successfully!');
+                    } catch (err: any) {
+                      alert('Failed to save report: ' + (err?.message || err));
+                    }
                   }}
                   disabled={!selectedStaff}
                   type="button"
