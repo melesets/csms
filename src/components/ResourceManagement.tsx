@@ -7,6 +7,7 @@ import { Resource } from '../types';
 function ResourceManagement() {
   const { user } = useAuth();
   const [resources, setResources] = useState<Resource[]>([]);
+  // (removed duplicate filteredResources, see below for correct version)
   const [staff, setStaff] = useState<{ id: string; name: string; department?: string; role?: string }[]>([]);
   const [selectedShift, setSelectedShift] = useState('Morning');
   const [selectedStaff, setSelectedStaff] = useState('');
@@ -145,16 +146,18 @@ function ResourceManagement() {
     }
   };
 
-  // Filtered and searched resources
-  const filteredResources = resources.filter(resource => {
-    const matchesType = filterType === 'All' || resource.type === filterType;
-    const searchLower = search.toLowerCase();
-    const matchesSearch =
-      resource.name?.toLowerCase().includes(searchLower) ||
-      resource.unit?.toLowerCase().includes(searchLower) ||
-      (resource.batch_number ? resource.batch_number.toLowerCase().includes(searchLower) : false);
-    return matchesType && matchesSearch;
-  });
+  // Filtered and searched resources, and by department for non-admin users
+  const filteredResources = resources
+    .filter(resource => user?.role === 'admin' || resource.department === user?.department)
+    .filter(resource => {
+      const matchesType = filterType === 'All' || resource.type === filterType;
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        resource.name?.toLowerCase().includes(searchLower) ||
+        resource.unit?.toLowerCase().includes(searchLower) ||
+        (resource.batch_number ? resource.batch_number.toLowerCase().includes(searchLower) : false);
+      return matchesType && matchesSearch;
+    });
 
   // Inline quantity save handler
   const handleQuantityEdit = (resource: Resource) => {
@@ -542,7 +545,7 @@ function ResourceManagement() {
               </tbody>
             </table>
           </div>
-          {resources.length === 0 && (
+          {filteredResources.length === 0 && (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No resources found</h3>

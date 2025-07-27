@@ -1,4 +1,5 @@
 // ...existing code...
+// ...existing code...
 
 // ...existing code...
 
@@ -256,20 +257,74 @@ app.post('/api/department-staff', async (req, res) => {
   }
 });
 
-app.post('/api/users', async (req, res) => {
-  const { username, password, email, role } = req.body;
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  console.log('Login attempt:', { username, password });
   try {
     const result = await pool.query(
-      'INSERT INTO users (username, password, email, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role, created_at',
-      [username, password, email, role || 'user']
+      'SELECT id, username, role, name, created_at, isActive FROM users WHERE username = $1 AND password = $2',
+      [username, password]
     );
-    res.status(201).json(result.rows[0]);
+    console.log('Login query result:', result.rows);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    const user = result.rows[0];
+    if (user.isactive === false) {
+      return res.status(403).json({ error: 'User is not active' });
+    }
+    // Remove password and isActive from response
+    const { password: _pw, isactive, ...userData } = user;
+    // Ensure role is present and lowercased for consistency
+    const role = (user.role || '').toLowerCase();
+    // Add default permissions based on role (customize as needed)
+    let permissions = [];
+    switch (role) {
+      case 'admin':
+        permissions = [
+          { module: 'dashboard', actions: ['view'] },
+          { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
+          { module: 'staff', actions: ['view', 'create', 'edit', 'delete'] },
+          { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
+          { module: 'database', actions: ['view', 'export'] },
+          { module: 'trends', actions: ['view'] },
+          { module: 'form-builder', actions: ['view', 'create', 'edit', 'delete'] },
+          { module: 'user-management', actions: ['view', 'create', 'edit', 'delete'] }
+        ];
+        break;
+      case 'staff':
+        permissions = [
+          { module: 'dashboard', actions: ['view'] },
+          { module: 'forms', actions: ['edit'] }
+        ];
+        break;
+      case 'viewer':
+        permissions = [
+          { module: 'dashboard', actions: ['view'] }
+        ];
+        break;
+      case 'user':
+        permissions = [
+          { module: 'dashboard', actions: ['view'] },
+          { module: 'isbar', actions: ['view'] },
+          { module: 'staff', actions: ['view'] },
+          { module: 'resources', actions: ['view'] },
+          { module: 'database', actions: ['view'] },
+          { module: 'trends', actions: ['view'] },
+          { module: 'form-builder', actions: ['view'] },
+          { module: 'user-management', actions: [] }
+        ];
+        break;
+      default:
+        permissions = [];
+    }
+    const finalUser = { ...userData, role, permissions };
+    console.log('Login response user object:', finalUser);
+    res.json(finalUser);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-// Form Management
 app.get('/api/forms', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM forms');
@@ -317,4 +372,25 @@ app.post('/api/records', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+
+  // Ensure admin user exists (username: quality, password: isbar1954)
+  (async () => {
+    try {
+      const adminCheck = await pool.query(
+        "SELECT id FROM users WHERE username = 'quality'"
+      );
+      if (adminCheck.rows.length === 0) {
+        await pool.query(
+          `INSERT INTO users (username, password, role, name, isActive, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())`,
+          ['quality', 'isbar1954', 'admin', 'Quality Admin', true]
+        );
+        console.log('Admin user "quality" created with password "isbar1954"');
+      } else {
+        console.log('Admin user "quality" already exists.');
+      }
+    } catch (err) {
+      console.error('Error ensuring admin user exists:', err);
+    }
+  })();
 });

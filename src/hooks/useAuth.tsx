@@ -30,19 +30,23 @@ export const useAuthProvider = (): AuthContextType => {
     }
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    const foundUser = users.find(u => u.username === username && u.password === password && u.isActive);
-    
-    if (foundUser) {
-      const updatedUser = { ...foundUser, lastLogin: new Date().toISOString() };
-      setUser(updatedUser);
-      localStorage.setItem('isbar_current_user', JSON.stringify(updatedUser));
-      
-      // Update last login in users array
-      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+  const login = async (username: string, password: string) => {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!response.ok) return false;
+      const user = await response.json();
+      console.log('User object after login:', user);
+      const userWithPermissions = { ...user, permissions: user.permissions || [] };
+      setUser(userWithPermissions);
+      localStorage.setItem('isbar_current_user', JSON.stringify(userWithPermissions));
       return true;
+    } catch {
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -52,10 +56,9 @@ export const useAuthProvider = (): AuthContextType => {
 
   const hasPermission = (module: string, action?: string): boolean => {
     if (!user) return false;
-    
-    const permission = user.permissions.find(p => p.module === module);
+    const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+    const permission = permissions.find(p => p.module === module);
     if (!permission) return false;
-    
     if (!action) return true;
     return permission.actions.includes(action);
   };

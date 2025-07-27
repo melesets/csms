@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS inventory_reports (
     date TIMESTAMP NOT NULL,
     resources JSONB NOT NULL
 );
--- ISBAR Database Schema
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -28,10 +27,16 @@ CREATE TABLE IF NOT EXISTS forms (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS records (
-    id SERIAL PRIMARY KEY,
-    form_id INTEGER REFERENCES forms(id),
-    user_id INTEGER REFERENCES users(id),
-    data JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Reset ISBAR dynamic records table for dynamic form storage only
+DROP TABLE IF EXISTS isbar_records;
+
+CREATE TABLE isbar_records (
+  id SERIAL PRIMARY KEY,
+  department VARCHAR(100),
+  form_data JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- (Optional) Add indexes for department or created_at if you need fast filtering
+-- CREATE INDEX idx_isbar_department ON isbar_records(department);
+-- CREATE INDEX idx_isbar_created_at ON isbar_records(created_at);
