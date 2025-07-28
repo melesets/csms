@@ -5,6 +5,17 @@ import { User } from '../../types/auth';
 import { defaultUsers } from '../../data/defaultUsers';
 import { UserForm } from './UserForm';
 import { UserList } from './UserList';
+  const handleDeleteUser = (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    fetch(`/api/users/${userId}`, { method: 'DELETE' })
+      .then(res => res.ok ? res.json() : null)
+      .then(result => {
+        if (result && result.success) {
+          setUsers((prev: User[]) => prev.filter((u: User) => u.id !== userId));
+          showSuccessMessage('User deleted successfully!');
+        }
+      });
+  };
 
 export const UserManagement = () => {
   const { user: currentUser, hasPermission } = useAuth();
@@ -163,6 +174,7 @@ export const UserManagement = () => {
         currentUser={currentUser}
         onEdit={handleEditUser}
         onToggleStatus={handleToggleUserStatus}
+        onDelete={handleDeleteUser}
         hasEditPermission={hasPermission('user-management', 'edit')}
       />
     </div>

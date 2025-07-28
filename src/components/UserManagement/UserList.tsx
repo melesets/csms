@@ -7,6 +7,7 @@ interface UserListProps {
   currentUser: UserType | null;
   onEdit: (user: UserType) => void;
   onToggleStatus: (userId: string) => void;
+  onDelete: (userId: string) => void;
   hasEditPermission: boolean;
 }
 
@@ -15,6 +16,7 @@ export const UserList: React.FC<UserListProps> = ({
   currentUser,
   onEdit,
   onToggleStatus,
+  onDelete,
   hasEditPermission
 }) => {
   const getRoleColor = (role: string) => {
@@ -125,19 +127,28 @@ export const UserList: React.FC<UserListProps> = ({
                       <Edit2 className="w-4 h-4" />
                     </button>
                     {user.id !== currentUser?.id && (
-                      <button
-                        onClick={() => onToggleStatus(user.id)}
-                        className={`${
-                          user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                        }`}
-                        title={user.isActive ? 'Deactivate user' : 'Activate user'}
-                      >
-                        {user.isActive ? (
-                          <ToggleLeft className="w-4 h-4" />
-                        ) : (
-                          <ToggleRight className="w-4 h-4" />
-                        )}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => onToggleStatus(user.id)}
+                          className={`${
+                            user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                          } mr-3`}
+                          title={user.isActive ? 'Deactivate user' : 'Activate user'}
+                        >
+                          {user.isActive ? (
+                            <ToggleLeft className="w-4 h-4" />
+                          ) : (
+                            <ToggleRight className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => onDelete(user.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete user"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </>
                     )}
                   </td>
                 )}

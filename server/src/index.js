@@ -226,10 +226,38 @@ app.get('/api/test-db', async (req, res) => {
 });
 
 // User Management
+// Create user
+app.post('/api/users', async (req, res) => {
+  const { username, password, name, role, department, isActive, permissions } = req.body;
+  if (!username || !password || !name || !role || !department) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  try {
+    const result = await pool.query(
+      'INSERT INTO users (username, password, name, role, department, isActive, permissions, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id, username, name, role, department, isActive, permissions, created_at',
+      [username, password, name, role, department, isActive ?? true, permissions ? JSON.stringify(permissions) : null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get('/api/users', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, username, email, role, created_at FROM users');
+    const result = await pool.query('SELECT id, username, email, role, department, created_at FROM users');
     res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete user by id
+app.delete('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM users WHERE id=$1 RETURNING id', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -262,7 +290,7 @@ app.post('/api/login', async (req, res) => {
   console.log('Login attempt:', { username, password });
   try {
     const result = await pool.query(
-      'SELECT id, username, role, name, created_at, isActive FROM users WHERE username = $1 AND password = $2',
+      'SELECT id, username, role, name, department, created_at, isActive FROM users WHERE username = $1 AND password = $2',
       [username, password]
     );
     console.log('Login query result:', result.rows);
@@ -318,7 +346,7 @@ app.post('/api/login', async (req, res) => {
       default:
         permissions = [];
     }
-    const finalUser = { ...userData, role, permissions };
+    const finalUser = { ...userData, role, department: user.department, permissions };
     console.log('Login response user object:', finalUser);
     res.json(finalUser);
   } catch (err) {
