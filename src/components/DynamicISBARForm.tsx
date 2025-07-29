@@ -8,10 +8,27 @@ import { DynamicFormRenderer } from './FormBuilder/DynamicFormRenderer';
 import { ISBARForm } from './ISBARForm';
 
 export const DynamicISBARForm = () => {
+  const [selectedMRN, setSelectedMRN] = useState<string>('');
+  const [previousRecord, setPreviousRecord] = useState<Record<string, any> | null>(null);
   const { user } = useAuth();
-  const [departmentTemplate, setDepartmentTemplate] = useState<FormTemplate | null>(null);
+  const [departmentTemplates, setDepartmentTemplates] = useState<FormTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [records, setRecords] = useState<ISBARRecord[]>([]);
   // Fetch ISBAR records from backend on mount or when user/department changes
+  // Fetch previous record for selected MRN
+  useEffect(() => {
+    if (selectedMRN) {
+      fetch(`/api/isbar-records?mrn=${encodeURIComponent(selectedMRN)}`)
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          // Use the most recent record for autofill
+          setPreviousRecord(data && data.length > 0 ? data[0] : null);
+        });
+    } else {
+      setPreviousRecord(null);
+    }
+  }, [selectedMRN]);
+
   useEffect(() => {
     if (user?.department) {
       // Admins get all records, others get only their department
@@ -24,18 +41,21 @@ export const DynamicISBARForm = () => {
     }
   }, [user?.department, user?.role]);
   const [staff] = useState<Staff[]>(mockStaff); // TODO: Replace with backend fetch
-  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<ISBARRecord | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [currentView, setCurrentView] = useState<'list' | 'form'>('list');
 
-  // Fetch active template for user's department from backend
+  // Fetch all templates for user's department from backend
   useEffect(() => {
     if (user?.department) {
-      fetch(`/api/form-templates/department/${user.department}/active-template`)
-        .then(res => res.ok ? res.json() : null)
+      fetch(`/api/form-templates/department/${user.department}`)
+        .then(res => res.ok ? res.json() : [])
         .then(data => {
-          setDepartmentTemplate(data || null);
+          // Convert id to string for dropdown compatibility
+          const templates = (data || []).map((t: any) => ({ ...t, id: t.id.toString() }));
+          setDepartmentTemplates(templates);
+          // Auto-select first template if available
+          if (templates.length > 0) setSelectedTemplate(templates[0]);
         });
     }
   }, [user?.department]);
@@ -154,25 +174,23 @@ export const DynamicISBARForm = () => {
                 </div>
               </div>
             </div>
-            
             <div className="p-6">
               {showSuccess && (
                 <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
                   <ClipboardList className="w-5 h-5 text-green-600 mr-3" />
-                  <p className="text-green-800">ISBAR handover record saved successfully!</p>
+                  <p className="text-green-800">Report saved successfully!</p>
                 </div>
               )}
-              
               <DynamicFormRenderer
                 template={selectedTemplate}
                 onSubmit={handleFormSubmit}
-                initialData={selectedPatient ? {
+                initialData={previousRecord || (selectedPatient ? {
                   patientName: selectedPatient.patientName,
                   age: selectedPatient.age,
                   mrn: selectedPatient.mrn,
                   bedNumber: selectedPatient.bedNumber,
                   stability: selectedPatient.stability
-                } : undefined}
+                } : undefined)}
                 onSuccess={() => {
                   setShowSuccess(true);
                   setTimeout(() => setShowSuccess(false), 3000);
@@ -194,25 +212,54 @@ export const DynamicISBARForm = () => {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {departmentTemplate ? departmentTemplate.name : 'ISBAR Handover'}
-            </h2>
-            <p className="text-gray-600 mt-1">
-              {departmentTemplate ? departmentTemplate.description : `Standard ISBAR form for ${user?.department} patients`}
-            </p>
+            <h2 className="text-2xl font-bold text-gray-900">Report</h2>
+            <p className="text-gray-600 mt-1">Select a template and enter MRN for {user?.department}:</p>
+            <div className="mt-4 flex gap-2">
+              <select
+                className="w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={selectedTemplate?.id || ''}
+                onChange={e => {
+                  const t = departmentTemplates.find(t => t.id === e.target.value);
+                  setSelectedTemplate(t || null);
+                  // If MRN is already entered, open the form view automatically
+                  if (t && selectedMRN) {
+                    setCurrentView('form');
+                  }
+                }}
+              >
+                {departmentTemplates.length === 0 && <option value="">No templates available</option>}
+                {departmentTemplates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <input
+                className="w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="text"
+                placeholder="Enter MRN"
+                value={selectedMRN}
+                onChange={e => {
+                  setSelectedMRN(e.target.value);
+                  // If a template is already selected and MRN is entered, open the form view automatically
+                  if (selectedTemplate && e.target.value) {
+                    setCurrentView('form');
+                  }
+                }}
+              />
+            </div>
           </div>
           <div className="p-6">
-            {departmentTemplate ? (
+            {selectedTemplate && selectedMRN ? (
               <DynamicFormRenderer
-                template={departmentTemplate}
+                template={selectedTemplate}
                 onSubmit={handleFormSubmit}
+                initialData={previousRecord || { mrn: selectedMRN }}
                 onSuccess={() => {
                   setShowSuccess(true);
                   setTimeout(() => setShowSuccess(false), 3000);
                 }}
               />
             ) : (
-              <div className="text-red-500">No ISBAR form template found for your department.</div>
+              <div className="text-red-500">Select a template and enter MRN to start the form.</div>
             )}
           </div>
         </div>
@@ -225,7 +272,7 @@ export const DynamicISBARForm = () => {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">ISBAR Handover</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Report</h2>
           <p className="text-gray-600 mt-1">
             Manage patient handovers for {user?.role === 'admin' ? 'all departments' : user?.department}
           </p>
@@ -244,7 +291,7 @@ export const DynamicISBARForm = () => {
       {showSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
           <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-          <p className="text-green-800">ISBAR handover record saved successfully!</p>
+          <p className="text-green-800">Report saved successfully!</p>
         </div>
       )}
 
@@ -278,21 +325,12 @@ export const DynamicISBARForm = () => {
                 </span>
               </div>
               <div className="flex space-x-2">
-                {departmentTemplate ? (
-                  <button
-                    onClick={() => handleCreateHandover(departmentTemplate, patient)}
-                    className={`flex-1 text-white text-xs font-medium py-2 px-3 rounded transition-colors ${patient.stability === 'Critical' ? 'bg-red-600 hover:bg-red-700' : patient.stability === 'Unstable' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}
-                  >
-                    {departmentTemplate.name}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleCreateHandover(undefined, patient)}
-                    className={`flex-1 text-white text-xs font-medium py-2 px-3 rounded transition-colors ${patient.stability === 'Critical' ? 'bg-red-600 hover:bg-red-700' : patient.stability === 'Unstable' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}
-                  >
-                    Standard Form
-                  </button>
-                )}
+                <button
+                  onClick={() => handleCreateHandover(selectedTemplate || undefined, patient)}
+                  className={`flex-1 text-white text-xs font-medium py-2 px-3 rounded transition-colors ${patient.stability === 'Critical' ? 'bg-red-600 hover:bg-red-700' : patient.stability === 'Unstable' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}
+                >
+                  {selectedTemplate ? selectedTemplate.name : 'Standard Form'}
+                </button>
               </div>
             </div>
           ))

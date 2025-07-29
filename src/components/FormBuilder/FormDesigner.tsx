@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
+import { DEPARTMENTS } from '../../types/auth';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Save, ArrowLeft, Eye, Plus, Settings } from 'lucide-react';
-import { FormTemplate, FormField, FormSection } from '../../types/formBuilder';
+import { Save, ArrowLeft, Eye, Plus } from 'lucide-react';
+import { FormTemplate, FormField } from '../../types/formBuilder';
 import { FieldLibrary } from './FieldLibrary';
 import { FieldEditor } from './FieldEditor';
 import { FormPreview } from './FormPreview';
@@ -175,13 +176,9 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
                   onChange={(e) => handleTemplateChange({ department: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="NICU">NICU</option>
-                  <option value="Surgery">Surgery</option>
-                  <option value="Pediatrics">Pediatrics</option>
-                  <option value="ICU">ICU</option>
-                  <option value="Emergency">Emergency</option>
-                  <option value="Cardiology">Cardiology</option>
-                  <option value="Oncology">Oncology</option>
+                  {DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
                 </select>
               </div>
 

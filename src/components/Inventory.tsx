@@ -29,12 +29,23 @@ const Inventory: React.FC = () => {
       date: now.toISOString(),
       resources: resources // You can add actual resource data here
     };
-    let reports: InventoryReport[] = [];
-    const saved = localStorage.getItem('inventory_reports');
-    if (saved) reports = JSON.parse(saved);
-    reports.push(report);
-    localStorage.setItem('inventory_reports', JSON.stringify(reports));
-    setLastReport(report);
+    // POST the report to the backend
+    fetch('/api/resources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report)
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to save resource report');
+        return res.json();
+      })
+      .then(data => {
+        setLastReport(report);
+        alert('Resource report saved to database!');
+      })
+      .catch(err => {
+        alert('Error saving resource report: ' + err.message);
+      });
   };
 
   return (

@@ -1,3 +1,13 @@
+-- Form Templates Table for dynamic forms
+CREATE TABLE IF NOT EXISTS form_templates (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  department VARCHAR(100) NOT NULL,
+  description TEXT,
+  fields JSONB NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
 -- Inventory Reports Table
 CREATE TABLE IF NOT EXISTS inventory_reports (
     id SERIAL PRIMARY KEY,

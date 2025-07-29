@@ -102,7 +102,8 @@ function ResourceManagement() {
         type: newResource.type,
         quantity: Number(newResource.quantity),
         standard_quantity: Number(newResource.standardQuantity),
-        unit: newResource.unit
+        unit: newResource.unit,
+        department: user?.department // Add department from logged-in user
       };
       if (newResource.type === 'Drug') {
         body.expiry_date = newResource.expiredDate;

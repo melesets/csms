@@ -8,6 +8,7 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   server: {
+    host: '0.0.0.0', // Allow access from LAN
     proxy: {
       '/api': 'http://localhost:4000',
     },

@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
-    { id: 'isbar', label: 'ISBAR Handover', icon: ClipboardList, module: 'isbar' },
+    { id: 'isbar', label: 'Report', icon: ClipboardList, module: 'isbar' },
     { id: 'staff', label: 'Department Staff', icon: Users, module: 'staff' },
     { id: 'resources', label: 'Resources', icon: Package, module: 'resources' },
     { id: 'database', label: 'All Records', icon: Database, module: 'database' },
@@ -124,7 +124,28 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
             
             <div className="flex items-center">
               <h2 className="text-xl font-semibold text-gray-900 capitalize">
-                {currentPage.replace('-', ' ')}
+                {(() => {
+                  switch (currentPage) {
+                    case 'isbar':
+                      return 'Report';
+                    case 'dashboard':
+                      return 'Dashboard';
+                    case 'staff':
+                      return 'Department Staff';
+                    case 'resources':
+                      return 'Resources';
+                    case 'database':
+                      return 'All Records';
+                    case 'trends':
+                      return 'Analytics';
+                    case 'form-builder':
+                      return 'Form Builder';
+                    case 'user-management':
+                      return 'User Management';
+                    default:
+                      return currentPage.replace('-', ' ');
+                  }
+                })()}
               </h2>
             </div>
 

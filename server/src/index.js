@@ -1,5 +1,6 @@
 // ...existing code...
 // ...existing code...
+// ...existing code...
 
 // ...existing code...
 
@@ -21,6 +22,19 @@ const pool = new Pool({
 });
 
 const app = express();
+// Get form templates for a department
+app.get('/api/form-templates/department/:department', async (req, res) => {
+  const { department } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT * FROM form_templates WHERE department = $1 AND is_active = true ORDER BY created_at DESC',
+      [department]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 const port = process.env.PORT || 5000;
 
 // --- ISBAR Dynamic Records API ---
@@ -47,16 +61,24 @@ isbarRecordsRouter.post('/', async (req, res) => {
 // Get ISBAR records (optionally filter by department)
 isbarRecordsRouter.get('/', async (req, res) => {
   try {
-    const { department } = req.query;
+    const { department, mrn } = req.query;
     let query = 'SELECT * FROM isbar_records';
+    let conditions = [];
     let params = [];
     if (department) {
-      query += ' WHERE department = $1';
+      conditions.push('department = $' + (params.length + 1));
       params.push(department);
+    }
+    if (mrn) {
+      // form_data is a JSONB column, so we can filter by mrn key
+      conditions.push(`form_data->>'mrn' = $${params.length + 1}`);
+      params.push(mrn);
+    }
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
     query += ' ORDER BY created_at DESC';
     const result = await pool.query(query, params);
-    // Return the form_data field as the record
     res.json(result.rows.map(row => row.form_data));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -86,11 +108,12 @@ app.get('/api/resources', async (req, res) => {
 
 // Add a new resource
 app.post('/api/resources', async (req, res) => {
-  const { name, type, quantity, standard_quantity, unit, expiry_date, batch_number } = req.body;
+  // department should be provided by the frontend or inferred from the logged-in user
+  const { name, type, quantity, standard_quantity, unit, expiry_date, batch_number, department } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO resources (name, type, quantity, standard_quantity, unit, expiry_date, batch_number) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [name, type, quantity, standard_quantity, unit, expiry_date, batch_number]
+      'INSERT INTO resources (name, type, quantity, standard_quantity, unit, expiry_date, batch_number, department) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [name, type, quantity, standard_quantity, unit, expiry_date, batch_number, department]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

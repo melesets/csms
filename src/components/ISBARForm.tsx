@@ -106,7 +106,7 @@ export const ISBARForm: React.FC<ISBARFormProps> = ({ onBack }) => {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">ISBAR Handover Record</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Report Record</h2>
             <p className="text-gray-600 mt-1">
               Complete the ISBAR assessment for patient handover
             </p>

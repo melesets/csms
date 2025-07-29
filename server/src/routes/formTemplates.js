@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { Pool } from 'pg';
 const router = express.Router();
@@ -12,9 +11,36 @@ const pool = new Pool({
   port: process.env.PGPORT,
 });
 
+// DELETE: Remove a template by id
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM form_templates WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET active template for a department
 router.get('/department/:department/active-template', async (req, res) => {
   const { department } = req.params;
+// DELETE: Remove a template by id
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM form_templates WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
   try {
     const result = await pool.query(
       'SELECT * FROM form_templates WHERE department = $1 AND is_active = true LIMIT 1',

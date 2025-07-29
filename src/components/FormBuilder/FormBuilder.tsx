@@ -113,7 +113,15 @@ export const FormBuilder = () => {
 
   const handleDeleteTemplate = (templateId: string) => {
     if (window.confirm('Are you sure you want to delete this template?')) {
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      // Delete from backend
+      fetch(`/api/form-templates/${templateId}`, { method: 'DELETE' })
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to delete template');
+          setTemplates(prev => prev.filter(t => t.id !== templateId));
+        })
+        .catch(err => {
+          alert('Error deleting template: ' + err.message);
+        });
     }
   };
 

@@ -1,5 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
+// Fetch all active templates for dropdown filter
+function useTemplates(department?: string) {
+  const [templates, setTemplates] = useState<any[]>([]);
+  useEffect(() => {
+    if (department) {
+      fetch(`/api/form-templates/department/${department}`)
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          if (Array.isArray(data)) {
+            setTemplates(data.map((t: any) => ({ ...t, id: t.id.toString() })));
+          } else {
+            setTemplates([]);
+          }
+        });
+    } else {
+      setTemplates([]);
+    }
+  }, [department]);
+  return templates;
+}
 import { useAuth } from '../hooks/useAuth';
 import { Search, Filter, Calendar } from 'lucide-react';
 import { toEthiopian as toEthDate, toGregorian } from 'ethiopian-date';
@@ -55,6 +75,8 @@ export const DatabaseRecords = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const templates = useTemplates(user?.department);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   // Fetch records from backend API
   useEffect(() => {
     const fetchRecords = async () => {
@@ -123,7 +145,13 @@ export const DatabaseRecords = () => {
   else if (recordType === 'resource') baseRecords = resourceRecords;
   else baseRecords = [...records, ...resourceRecords];
 
-  const filteredRecords = baseRecords;
+  // Filter by selected template if set
+  let filteredRecords = baseRecords;
+  if (selectedTemplateId) {
+    filteredRecords = filteredRecords.filter(
+      (rec: any) => rec.templateId === selectedTemplateId || rec.template_id === selectedTemplateId || rec.template_id === Number(selectedTemplateId)
+    );
+  }
   // Only show columns for fields present in the dynamic form data (not standard ISBAR fields unless present)
   // If recordType is 'dynamic', use only keys from dynamic records
   // If 'resource', use resource keys; if 'all', use union
@@ -221,7 +249,23 @@ export const DatabaseRecords = () => {
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex flex-wrap gap-4 mb-4">
+      <div className="flex flex-wrap gap-4 mb-4">
+        {/* Template filter dropdown */}
+        {recordType === 'dynamic' && (
+          <div className="flex items-center gap-2">
+            <label className="font-medium text-gray-700">Template:</label>
+            <select
+              value={selectedTemplateId}
+              onChange={e => setSelectedTemplateId(e.target.value)}
+              className="border rounded px-2 py-1"
+            >
+              <option value="">All Templates</option>
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
           <div className="flex items-center gap-2">
             <label className="font-medium text-gray-700">Show:</label>
             <select
