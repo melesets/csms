@@ -2,30 +2,20 @@ import React, { useState } from 'react';
 import { Users, Plus, Shield, Search, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { User } from '../../types/auth';
-import { defaultUsers } from '../../data/defaultUsers';
 import { UserForm } from './UserForm';
 import { UserList } from './UserList';
-  const handleDeleteUser = (userId: string) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
-    fetch(`/api/users/${userId}`, { method: 'DELETE' })
-      .then(res => res.ok ? res.json() : null)
-      .then(result => {
-        if (result && result.success) {
-          setUsers((prev: User[]) => prev.filter((u: User) => u.id !== userId));
-          showSuccessMessage('User deleted successfully!');
-        }
-      });
-  };
 
 export const UserManagement = () => {
   const { user: currentUser, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  
   // Fetch users from backend on mount
   React.useEffect(() => {
     fetch('/api/users')
       .then(res => res.ok ? res.json() : [])
       .then(data => setUsers(data || []));
   }, []);
+  
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,6 +92,18 @@ export const UserManagement = () => {
       .then(updatedUser => {
         if (updatedUser) {
           setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+        }
+      });
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    fetch(`/api/users/${userId}`, { method: 'DELETE' })
+      .then(res => res.ok ? res.json() : null)
+      .then(result => {
+        if (result && result.success) {
+          setUsers((prev: User[]) => prev.filter((u: User) => u.id !== userId));
+          showSuccessMessage('User deleted successfully!');
         }
       });
   };

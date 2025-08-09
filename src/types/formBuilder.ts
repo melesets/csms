@@ -1,3 +1,5 @@
+export type TextAlign = 'left' | 'center' | 'right';
+
 export interface FormField {
   id: string;
   type: FieldType;
@@ -5,17 +7,36 @@ export interface FormField {
   name: string;
   required: boolean;
   placeholder?: string;
-  options?: string[];
+  options?: Array<{ value: string; label: string }>;
   validation?: FieldValidation;
   conditional?: ConditionalLogic;
-  width: 'full' | 'half' | 'third' | 'quarter';
+  width?: 'full' | 'half' | 'third' | 'quarter';
   section?: string;
+  color?: string;
+  align?: TextAlign;
+  rows?: number;
+  min?: number;
+  max?: number;
+  fields?: Array<{
+    name: string;
+    label: string;
+    type: string;
+    required?: boolean;
+    placeholder?: string;
+    min?: number;
+    max?: number;
+    options?: Array<{ value: string; label: string }>;
+  }>;
+  acceptedTypes?: string[];
+  maxSize?: number;
+  style?: string;
 }
 
 export interface FormTemplate {
   id: string;
   name: string;
   department: string;
+  profession?: string | null;
   description: string;
   version: number;
   isActive: boolean;
@@ -33,6 +54,7 @@ export interface FormSection {
   order: number;
   isCollapsible: boolean;
   isCollapsed: boolean;
+  color?: string;
 }
 
 export interface FieldValidation {
@@ -51,23 +73,24 @@ export interface ConditionalLogic {
 export type FieldType = 
   | 'text' 
   | 'number' 
-  | 'dropdown' 
-  | 'multiselect'
+  | 'select'
+  | 'radio'
+  | 'checkbox'
   | 'textarea'
   | 'date'
   | 'time'
   | 'datetime'
-  | 'temperature'
-  | 'heart-rate'
-  | 'blood-pressure'
-  | 'o2-saturation'
-  | 'pain-scale'
-  | 'isbar-situation'
-  | 'isbar-background'
-  | 'isbar-assessment'
-  | 'isbar-recommendation'
-  | 'range'
-  | 'file'
+  | 'vital-signs'
+  | 'patient-info'
+  | 'medication'
+  | 'situation'
+  | 'background'
+  | 'assessment'
+  | 'recommendation'
+  | 'stability'
+  | 'file-upload'
+  | 'signature'
+  | 'rating'
   | 'divider';
 
 export interface FieldTemplate {

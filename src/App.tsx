@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './hooks/useAuth';
+import { ShiftProvider } from './hooks/useShift';
+import { SearchProvider } from './hooks/useSearch';
 import { LoginForm } from './components/Auth/LoginForm';
 import { Layout } from './components/Layout';
 import Dashboard from './components/Dashboard';
@@ -12,11 +14,17 @@ import { TrendsAnalytics } from './components/TrendsAnalytics';
 import { FormBuilder } from './components/FormBuilder/FormBuilder';
 import { UserManagement } from './components/UserManagement/UserManagement';
 import { DynamicISBARForm } from './components/DynamicISBARForm';
+import { DashboardFormMapping } from './components/Admin/DashboardFormMapping';
 import { useAuth } from './hooks/useAuth';
+import IsbarLoader from './components/IsbarLoader';
 
 const AppContent = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
+
+  if (loading) {
+    return <IsbarLoader overlay message="Loading application..." size={96} />;
+  }
 
   if (!user) {
     return <LoginForm />;
@@ -38,6 +46,8 @@ const AppContent = () => {
         return <TrendsAnalytics />;
       case 'form-builder':
         return <FormBuilder />;
+      case 'dashboard-mapping':
+        return <DashboardFormMapping />;
       case 'user-management':
         return <UserManagement />;
       default:
@@ -55,7 +65,11 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ShiftProvider>
+        <SearchProvider>
+          <AppContent />
+        </SearchProvider>
+      </ShiftProvider>
     </AuthProvider>
   );
 }

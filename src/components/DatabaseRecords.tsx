@@ -1,15 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 // Fetch all active templates for dropdown filter
 function useTemplates(department?: string) {
   const [templates, setTemplates] = useState<any[]>([]);
+  const [refresh, setRefresh] = useState(0);
+  // Expose a function to trigger refresh
+  const refetch = () => setRefresh(r => r + 1);
   useEffect(() => {
     if (department) {
-      fetch(`/api/form-templates/department/${department}`)
+      fetch('/api/form-templates')
         .then(res => res.ok ? res.json() : [])
         .then(data => {
           if (Array.isArray(data)) {
-            setTemplates(data.map((t: any) => ({ ...t, id: t.id.toString() })));
+            setTemplates(data.filter((t: any) => t.department === department && t.is_active).map((t: any) => ({
+              ...t,
+              id: t.id.toString(),
+              fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
+              sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || []))
+            })));
           } else {
             setTemplates([]);
           }
@@ -17,12 +25,40 @@ function useTemplates(department?: string) {
     } else {
       setTemplates([]);
     }
-  }, [department]);
-  return templates;
+  }, [department, refresh]);
+  return [templates, refetch] as const;
 }
 import { useAuth } from '../hooks/useAuth';
-import { Search, Filter, Calendar } from 'lucide-react';
-import { toEthiopian as toEthDate, toGregorian } from 'ethiopian-date';
+import IsbarLoader from './IsbarLoader';
+import { Search, Calendar } from 'lucide-react';
+import { toEthiopian as toEthDate } from 'ethiopian-date';
+
+// Simple Ethiopian to Gregorian conversion (approximate, for filtering)
+function ethiopianToGregorian(ethYear: number, ethMonth: number, ethDay: number): [number, number, number] {
+  // Ethiopian New Year is September 11 (Gregorian) or September 12 in Gregorian leap years
+  // Removed unused gregorianEpoch
+  const ethiopianEpoch = 1724220;
+  const jdn =
+    ethDay +
+    30 * (ethMonth - 1) +
+    365 * (ethYear - 1) +
+    Math.floor(ethYear / 4) +
+    ethiopianEpoch - 1;
+  // Convert JDN to Gregorian
+  let r = 4 * (jdn + 68569) / 146097;
+  r = Math.floor(r);
+  let a = jdn + 68569 - Math.floor((146097 * r + 3) / 4);
+  let b = 4000 * (a + 1) / 1461001;
+  b = Math.floor(b);
+  let c = a - Math.floor(1461 * b / 4) + 31;
+  let d = 80 * c / 2447;
+  d = Math.floor(d);
+  const day = c - Math.floor(2447 * d / 80);
+  const e = Math.floor(d / 11);
+  const month = d + 2 - 12 * e;
+  const year = 100 * (r - 49) + b + e;
+  return [year, month, day];
+}
 
 function escape(str: any) {
   if (str === null || str === undefined) return '';
@@ -34,26 +70,15 @@ function escape(str: any) {
     .replace(/'/g, '&#39;');
 }
 
-function toEthiopian(year: number, month: number, day: number): [number, number, number] {
-  const eth = toEthDate(year, month, day);
-  if (eth && typeof eth === 'object' && 'year' in eth && 'month' in eth && 'day' in eth) {
-    return [eth.year, eth.month, eth.day];
-  }
-  if (Array.isArray(eth) && eth.length === 3) {
-    return eth;
-  }
-  return [NaN, NaN, NaN];
-}
+// Removed unused toEthiopian function
 
+// ethDate: 'DD-MM-YYYY' (Ethiopian)
 function toGregorianDateFromEthiopianInput(ethDate: string): Date | null {
-  // ethDate: 'DD-MM-YYYY' (Ethiopian)
   if (!ethDate) return null;
   const [d, m, y] = ethDate.split('-').map(Number);
   if ([y, m, d].some(isNaN)) return null;
   try {
-    // toGregorian returns [year, month, day] in Gregorian
-    const [gy, gm, gd] = toGregorian(y, m, d);
-    // JS Date: month is 0-based
+    const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
     return new Date(gy, gm - 1, gd);
   } catch {
     return null;
@@ -64,8 +89,8 @@ function toGregorianDateFromEthiopianInput(ethDate: string): Date | null {
 export const DatabaseRecords = () => {
   const { user } = useAuth() || { user: null };
   const [records, setRecords] = useState<any[]>([]);
-  const [resourceRecords, setResourceRecords] = useState<any[]>([]);
-  const [recordType, setRecordType] = useState<'dynamic' | 'resource'>('dynamic');
+  // Removed resourceRecords, only dynamic records are used
+  // Only show dynamic form records
   const [searchTerm, setSearchTerm] = useState('');
   // Remove stability filter
   const [dateFrom, setDateFrom] = useState('');
@@ -75,7 +100,7 @@ export const DatabaseRecords = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const templates = useTemplates(user?.department);
+  const [templates, refetchTemplates] = useTemplates(user?.department);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   // Fetch records from backend API
   useEffect(() => {
@@ -83,25 +108,12 @@ export const DatabaseRecords = () => {
       setLoading(true);
       setError(null);
       try {
-        let url = '';
+        let url = '/api/form-submissions';
         let params: any = {};
-        if (recordType === 'dynamic') {
-          url = '/api/isbar-records';
-        } else if (recordType === 'resource') {
-          url = '/api/resources';
-        } else {
-          // For 'all', fetch both and merge
-          const [dynRes, resRes] = await Promise.all([
-            fetch('/api/records').then(r => r.json()),
-            fetch('/api/resources').then(r => r.json()),
-          ]);
-          setRecords(dynRes);
-          setResourceRecords(resRes);
-          setLoading(false);
-          return;
+        if (selectedTemplateId) {
+          params.formId = selectedTemplateId;
         }
         if (searchTerm) params.search = searchTerm;
-        // Convert Ethiopian date input to Gregorian YYYY-MM-DD string for backend filtering
         if (dateFrom) {
           const fromDate = toGregorianDateFromEthiopianInput(dateFrom);
           if (fromDate && !isNaN(fromDate.getTime())) {
@@ -120,17 +132,29 @@ export const DatabaseRecords = () => {
             params.dateTo = `${y}-${m}-${d}`;
           }
         }
-        if (user && user.department && user.role !== 'admin') params.department = user.department;
+        // Avoid passing department param due to backend filter issues; rely on strict client-side filter below
+        // if (user && user.department && user.role !== 'admin') params.department = user.department;
         const query = Object.keys(params).length
           ? '?' + new URLSearchParams(params).toString()
           : '';
         const fullUrl = url + query;
-        console.log('Fetching records from:', fullUrl, 'user.department:', user?.department);
+        console.log('Fetching dynamic form submissions from:', fullUrl);
         const res = await fetch(fullUrl);
         if (!res.ok) throw new Error('Failed to fetch records');
         const data = await res.json();
-        if (recordType === 'dynamic') setRecords(data);
-        else setResourceRecords(data);
+        // Enforce department scoping on the client as a safety net
+        const isAdmin = user?.role === 'admin';
+        const dept = user?.department;
+        const scoped = Array.isArray(data)
+          ? (isAdmin || !dept)
+            ? data
+            : data.filter((rec: any) =>
+                rec?.template_department === dept ||
+                rec?.submitted_by_department === dept ||
+                rec?.department === dept
+              )
+          : [];
+        setRecords(scoped);
       } catch (err: any) {
         setError(err.message || 'Error fetching records');
       } finally {
@@ -138,40 +162,46 @@ export const DatabaseRecords = () => {
       }
     };
     fetchRecords();
-  }, [recordType, searchTerm, dateFrom, dateTo, user]);
+  }, [searchTerm, dateFrom, dateTo, user, selectedTemplateId]);
 
-  let baseRecords: any[] = [];
-  if (recordType === 'dynamic') baseRecords = records;
-  else if (recordType === 'resource') baseRecords = resourceRecords;
-  else baseRecords = [...records, ...resourceRecords];
+  let baseRecords: any[] = records;
 
   // Filter by selected template if set
   let filteredRecords = baseRecords;
   if (selectedTemplateId) {
     filteredRecords = filteredRecords.filter(
-      (rec: any) => rec.templateId === selectedTemplateId || rec.template_id === selectedTemplateId || rec.template_id === Number(selectedTemplateId)
+      (rec: any) => rec.template_id === Number(selectedTemplateId)
     );
   }
-  // Only show columns for fields present in the dynamic form data (not standard ISBAR fields unless present)
-  // If recordType is 'dynamic', use only keys from dynamic records
-  // If 'resource', use resource keys; if 'all', use union
+  // Always show only the latest 50 records (by submitted_at or created_at desc)
+  filteredRecords = filteredRecords
+    .slice()
+    .sort((a, b) => {
+      const aDate = new Date(a.submitted_at || a.created_at || 0).getTime();
+      const bDate = new Date(b.submitted_at || b.created_at || 0).getTime();
+      return bDate - aDate;
+    })
+    .slice(0, 50);
+  // Always show these columns for dynamic records:
+  // id, template_name, template_department, submitted_by, submitted_at, ...form_data fields
+  // Get all unique keys from form_data fields for dynamic records
   let allKeys: string[] = [];
-  if (recordType === 'dynamic') {
-    allKeys = Array.from(records.reduce((set: Set<string>, rec: any) => {
-      Object.keys(rec).forEach(k => set.add(k));
+  const formDataKeys = Array.from(
+    records.reduce((set: Set<string>, rec: any) => {
+      if (rec.form_data && typeof rec.form_data === 'object') {
+        Object.keys(rec.form_data).forEach(k => set.add(k));
+      }
       return set;
-    }, new Set<string>()));
-  } else if (recordType === 'resource') {
-    allKeys = Array.from(resourceRecords.reduce((set: Set<string>, rec: any) => {
-      Object.keys(rec).forEach(k => set.add(k));
-      return set;
-    }, new Set<string>()));
-  } else {
-    allKeys = Array.from(filteredRecords.reduce((set: Set<string>, rec: any) => {
-      Object.keys(rec).forEach(k => set.add(k));
-      return set;
-    }, new Set<string>()));
-  }
+    }, new Set<string>())
+  );
+  allKeys = [
+    'id',
+    'template_name',
+    'template_department',
+    'submitted_by',
+    'submitted_at',
+    ...formDataKeys
+  ];
 
   // Frontend date filtering as a fallback, using created_at field and Gregorian range
   let dateFilteredRecords = filteredRecords;
@@ -227,8 +257,10 @@ export const DatabaseRecords = () => {
   const handleDelete = (id: string) => {
     // Implement your delete logic here
     alert('Delete record with id: ' + id);
+    refetchTemplates(); // Refetch templates after delete (if needed)
   };
 
+  // Refetch templates after activation (listen for custom event or poll, or add a button if needed)
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -251,32 +283,21 @@ export const DatabaseRecords = () => {
       <div className="bg-white rounded-xl shadow-sm p-6">
       <div className="flex flex-wrap gap-4 mb-4">
         {/* Template filter dropdown */}
-        {recordType === 'dynamic' && (
-          <div className="flex items-center gap-2">
-            <label className="font-medium text-gray-700">Template:</label>
-            <select
-              value={selectedTemplateId}
-              onChange={e => setSelectedTemplateId(e.target.value)}
-              className="border rounded px-2 py-1"
-            >
-              <option value="">All Templates</option>
-              {templates.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-          <div className="flex items-center gap-2">
-            <label className="font-medium text-gray-700">Show:</label>
-            <select
-              value={recordType}
-              onChange={e => setRecordType(e.target.value as 'dynamic' | 'resource')}
-              className="border rounded px-2 py-1"
-            >
-              <option value="dynamic">Dynamic Form Records</option>
-              <option value="resource">Resource Management Records</option>
-            </select>
-          </div>
+        {/* Template filter dropdown */}
+        <div className="flex items-center gap-2">
+          <label className="font-medium text-gray-700">Template:</label>
+          <select
+            value={selectedTemplateId}
+            onChange={e => setSelectedTemplateId(e.target.value)}
+            className="border rounded px-2 py-1"
+          >
+            <option value="">All Templates</option>
+            {templates.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+          {/* Removed Show: dropdown and recordType selector */}
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
@@ -304,7 +325,7 @@ export const DatabaseRecords = () => {
               const [d, m, y] = dateFrom.split('-').map(Number);
               if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
                 try {
-                  const [gy, gm, gd] = toGregorian(y, m, d);
+                  const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
                   return (
                     <div className="text-xs text-gray-500 mt-1">
                       Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}
@@ -331,7 +352,7 @@ export const DatabaseRecords = () => {
               const [d, m, y] = dateTo.split('-').map(Number);
               if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
                 try {
-                  const [gy, gm, gd] = toGregorian(y, m, d);
+                  const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
                   return (
                     <div className="text-xs text-gray-500 mt-1">
                       Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}
@@ -352,8 +373,9 @@ export const DatabaseRecords = () => {
       <div className="bg-white rounded-xl shadow-sm p-4 overflow-x-auto">
         {loading ? (
           <div className="text-center p-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Loading records...</h3>
+            <div className="flex items-center justify-center">
+              <IsbarLoader message="Loading records..." size={72} />
+            </div>
           </div>
         ) : error ? (
           <div className="text-center p-8">
@@ -378,13 +400,31 @@ export const DatabaseRecords = () => {
             <tbody>
               {dateFilteredRecords.map((record, idx) => (
                 <tr key={record.id || idx} className="hover:bg-blue-50">
-                  {allKeys.map(key => (
-                    <td key={key} className="px-2 py-1 border truncate max-w-xs" title={escape(record[key])}>
-                      {typeof record[key] === 'object' && record[key] !== null
-                        ? <span className="text-gray-400">[object]</span>
-                        : escape(record[key])}
-                    </td>
-                  ))}
+                  {allKeys.map(key => {
+                    let value;
+                    if (key in record) {
+                      value = record[key];
+                    } else if (record.form_data && key in record.form_data) {
+                      value = record.form_data[key];
+                    } else {
+                      value = '';
+                    }
+                    return (
+                      <td key={key} className="px-2 py-1 border truncate max-w-xs" title={
+                        Array.isArray(value)
+                          ? value.join(', ')
+                          : typeof value === 'object' && value !== null
+                            ? JSON.stringify(value)
+                            : escape(value)
+                      }>
+                        {Array.isArray(value)
+                          ? value.join(', ')
+                          : typeof value === 'object' && value !== null
+                            ? <span className="text-gray-400">[object]</span>
+                            : escape(value)}
+                      </td>
+                    );
+                  })}
                   <td className="px-2 py-1 border whitespace-nowrap">
                     <button className="text-blue-600 hover:underline mr-2" onClick={() => setViewRecord(record)}>View</button>
                     <button className="text-purple-600 hover:underline mr-2" onClick={() => setRawRecord(record)}>Raw</button>

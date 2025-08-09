@@ -402,12 +402,12 @@ export const ISBARForm: React.FC<ISBARFormProps> = ({ onBack }) => {
               disabled={isSubmitting}
               className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center"
             >
-              {isSubmitting ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Saving...
-                </>
-              ) : (
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Saving...
+              </>
+            ) : (
                 <>
                   <Save className="w-5 h-5 mr-2" />
                   Save ISBAR Record

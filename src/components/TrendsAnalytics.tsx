@@ -1,19 +1,37 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { TrendingUp, Users, Activity, Calendar, BarChart3, PieChart } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ISBARRecord } from '../types';
-import { mockISBARRecords } from '../data/mockData';
 
 export const TrendsAnalytics = () => {
   const { user } = useAuth();
-  const [records] = useLocalStorage<ISBARRecord[]>('isbar_records', mockISBARRecords);
+  const [records, setRecords] = useState<any[]>([]);
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter'>('month');
+
+  // Fetch real form submissions from backend
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        let url = '/api/form-submissions';
+        if (user?.role !== 'admin' && user?.department) {
+          url += `?department=${encodeURIComponent(user.department)}`;
+        }
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setRecords(data);
+        }
+      } catch (err) {
+        console.error('Error fetching records:', err);
+        setRecords([]);
+      }
+    };
+    fetchRecords();
+  }, [user]);
 
   // Filter records by department for non-admin users
   const filteredRecords = user?.role === 'admin' 
     ? records 
-    : records.filter(record => record.department === user?.department);
+    : records.filter(record => record.template_department === user?.department);
 
   const analytics = useMemo(() => {
     const now = new Date();
@@ -21,26 +39,29 @@ export const TrendsAnalytics = () => {
     const cutoffDate = new Date(now.getTime() - (timeframeDays * 24 * 60 * 60 * 1000));
     
     const timeFrameRecords = filteredRecords.filter(record => 
-      new Date(record.timestamp) >= cutoffDate
+      new Date(record.submitted_at || record.created_at) >= cutoffDate
     );
 
-    // Stability trends
+    // Stability trends from form data
     const stabilityTrends = timeFrameRecords.reduce((acc, record) => {
-      acc[record.stability] = (acc[record.stability] || 0) + 1;
+      const stability = record.form_data?.stability || record.form_data?.['Patient Stability'] || 'Unknown';
+      acc[stability] = (acc[stability] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     // Department trends (for admin)
     const departmentTrends = user?.role === 'admin' 
       ? timeFrameRecords.reduce((acc, record) => {
-          acc[record.department] = (acc[record.department] || 0) + 1;
+          const dept = record.template_department || 'Unknown';
+          acc[dept] = (acc[dept] || 0) + 1;
           return acc;
         }, {} as Record<string, number>)
       : {};
 
-    // Shift trends
-    const shiftTrends = timeFrameRecords.reduce((acc, record) => {
-      acc[record.shift] = (acc[record.shift] || 0) + 1;
+    // Template trends
+    const templateTrends = timeFrameRecords.reduce((acc, record) => {
+      const template = record.template_name || 'Unknown';
+      acc[template] = (acc[template] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -50,7 +71,7 @@ export const TrendsAnalytics = () => {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dayRecords = timeFrameRecords.filter(record => {
-        const recordDate = new Date(record.timestamp);
+        const recordDate = new Date(record.submitted_at || record.created_at);
         return recordDate.toDateString() === date.toDateString();
       });
       dailyActivity.push({
@@ -59,18 +80,23 @@ export const TrendsAnalytics = () => {
       });
     }
 
-    // Average vital signs
+    // Average vital signs from form data
     const vitalStats = timeFrameRecords.reduce((acc, record) => {
-      if (record.vitalSigns.temperature) {
-        acc.temperature.sum += record.vitalSigns.temperature;
+      const formData = record.form_data || {};
+      const temp = formData.temperature || formData['Temperature'] || formData['Body Temperature'];
+      const hr = formData.heartRate || formData['Heart Rate'] || formData['Pulse'];
+      const o2 = formData.oxygenSaturation || formData['Oxygen Saturation'] || formData['SpO2'];
+      
+      if (temp && !isNaN(Number(temp))) {
+        acc.temperature.sum += Number(temp);
         acc.temperature.count++;
       }
-      if (record.vitalSigns.heartRate) {
-        acc.heartRate.sum += record.vitalSigns.heartRate;
+      if (hr && !isNaN(Number(hr))) {
+        acc.heartRate.sum += Number(hr);
         acc.heartRate.count++;
       }
-      if (record.vitalSigns.oxygenSaturation) {
-        acc.oxygenSaturation.sum += record.vitalSigns.oxygenSaturation;
+      if (o2 && !isNaN(Number(o2))) {
+        acc.oxygenSaturation.sum += Number(o2);
         acc.oxygenSaturation.count++;
       }
       return acc;
@@ -84,7 +110,7 @@ export const TrendsAnalytics = () => {
       totalRecords: timeFrameRecords.length,
       stabilityTrends,
       departmentTrends,
-      shiftTrends,
+      templateTrends,
       dailyActivity,
       avgTemperature: vitalStats.temperature.count > 0 ? (vitalStats.temperature.sum / vitalStats.temperature.count).toFixed(1) : 'N/A',
       avgHeartRate: vitalStats.heartRate.count > 0 ? Math.round(vitalStats.heartRate.sum / vitalStats.heartRate.count) : 'N/A',
@@ -93,12 +119,12 @@ export const TrendsAnalytics = () => {
   }, [filteredRecords, timeframe, user?.role]);
 
   const getStabilityColor = (stability: string) => {
-    switch (stability) {
-      case 'Stable':
+    switch (stability.toLowerCase()) {
+      case 'stable':
         return 'bg-green-500';
-      case 'Unstable':
+      case 'unstable':
         return 'bg-yellow-500';
-      case 'Critical':
+      case 'critical':
         return 'bg-red-500';
       default:
         return 'bg-gray-500';
@@ -210,26 +236,31 @@ export const TrendsAnalytics = () => {
                 </div>
               );
             })}
+            {Object.keys(analytics.stabilityTrends).length === 0 && (
+              <div className="text-center text-gray-500 py-4">No stability data available</div>
+            )}
           </div>
         </div>
 
-        {/* Shift Distribution */}
+        {/* Template Distribution */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Shift Distribution</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Form Templates</h3>
             <Users className="w-5 h-5 text-gray-400" />
           </div>
           
           <div className="space-y-4">
-            {Object.entries(analytics.shiftTrends).map(([shift, count], index) => {
+            {Object.entries(analytics.templateTrends).slice(0, 5).map(([template, count], index) => {
               const percentage = analytics.totalRecords > 0 
                 ? ((count / analytics.totalRecords) * 100).toFixed(1) 
                 : 0;
               return (
-                <div key={shift} className="flex items-center justify-between">
+                <div key={template} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className={`w-4 h-4 rounded-full mr-3 ${getDepartmentColor(index)}`}></div>
-                    <span className="text-sm font-medium text-gray-900">{shift} Shift</span>
+                    <span className="text-sm font-medium text-gray-900 truncate" title={template}>
+                      {template.length > 20 ? template.substring(0, 20) + '...' : template}
+                    </span>
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-bold text-gray-900">{count}</span>
@@ -238,6 +269,9 @@ export const TrendsAnalytics = () => {
                 </div>
               );
             })}
+            {Object.keys(analytics.templateTrends).length === 0 && (
+              <div className="text-center text-gray-500 py-4">No template data available</div>
+            )}
           </div>
         </div>
       </div>

@@ -13,23 +13,52 @@ import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import inventoryReportsRouter from './routes/inventoryReports.js';
 import formTemplatesRouter from './routes/formTemplates.js';
+import formSubmissionsRouter from './routes/formSubmissions.js';
+import departmentStaffRouter from './routes/departmentStaff.js';
+import dashboardMappingsRouter from './routes/dashboardMappings.js';
 
 dotenv.config();
 
 // Initialize pool BEFORE any route/database usage
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/isbar_db',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:1954@localhost:1212/ISBAR',
 });
+
+// Ensure users table has profession column
+(async () => {
+  try {
+    await pool.query(`ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS profession VARCHAR(50);`);
+    console.log('Ensured users.profession column exists');
+  } catch (err) {
+    console.error('Error ensuring profession column:', err);
+  }
+})();
+
+// Ensure form_templates has profession column to support profession-specific templates
+(async () => {
+  try {
+    await pool.query(`ALTER TABLE IF EXISTS form_templates ADD COLUMN IF NOT EXISTS profession VARCHAR(50);`);
+    console.log('Ensured form_templates.profession column exists');
+  } catch (err) {
+    console.error('Error ensuring form_templates.profession column:', err);
+  }
+})();
 
 const app = express();
 // Get form templates for a department
 app.get('/api/form-templates/department/:department', async (req, res) => {
   const { department } = req.params;
+  const { profession } = req.query;
   try {
-    const result = await pool.query(
-      'SELECT * FROM form_templates WHERE department = $1 AND is_active = true ORDER BY created_at DESC',
-      [department]
-    );
+    // If profession is provided, include templates with matching profession OR templates with NULL profession (apply to all)
+    let query = 'SELECT * FROM form_templates WHERE department = $1 AND is_active = true';
+    const params = [department];
+    if (profession) {
+      query += ' AND (profession IS NULL OR profession = $2)';
+      params.push(profession);
+    }
+    query += ' ORDER BY created_at DESC';
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -91,6 +120,9 @@ app.use(express.json());
 app.use('/api/isbar-records', isbarRecordsRouter);
 app.use('/api/inventory-reports', inventoryReportsRouter);
 app.use('/api/form-templates', formTemplatesRouter);
+app.use('/api/form-submissions', formSubmissionsRouter);
+app.use('/api/department-staff', departmentStaffRouter);
+app.use('/api/dashboard-mappings', dashboardMappingsRouter);
 
 // PostgreSQL connection
 // ...existing code...
@@ -152,11 +184,21 @@ app.delete('/api/resources/:id', async (req, res) => {
 // Update user
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { username, password, email, role } = req.body;
+  const { username, password, email, role, name, department, isActive, profession } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE users SET username=$1, password=$2, email=$3, role=$4 WHERE id=$5 RETURNING id, username, email, role, created_at',
-      [username, password, email, role, id]
+      `UPDATE users SET 
+         username = COALESCE($1, username),
+         password = COALESCE($2, password),
+         email = COALESCE($3, email),
+         role = COALESCE($4, role),
+         name = COALESCE($5, name),
+         department = COALESCE($6, department),
+         isActive = COALESCE($7, isActive),
+         profession = COALESCE($8, profession)
+       WHERE id = $9
+       RETURNING id, username, name, email, role, department, profession, COALESCE(isActive, isactive, true) AS "isActive", created_at AS "createdAt"`,
+      [username ?? null, password ?? null, email ?? null, role ?? null, name ?? null, department ?? null, isActive ?? null, profession ?? null, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
     res.json(result.rows[0]);
@@ -248,17 +290,41 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+// Departments list endpoint (distinct departments across tables)
+app.get('/api/departments', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT department FROM (
+        SELECT department FROM users
+        UNION
+        SELECT department FROM resources
+        UNION
+        SELECT department FROM department_staff
+        UNION
+        SELECT department FROM form_templates
+        UNION
+        SELECT department FROM dashboard_mappings
+      ) t
+      WHERE department IS NOT NULL AND department <> ''
+      ORDER BY department
+    `);
+    res.json(result.rows.map(r => r.department));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // User Management
 // Create user
 app.post('/api/users', async (req, res) => {
-  const { username, password, name, role, department, isActive, permissions } = req.body;
+  const { username, password, name, role, department, isActive, permissions, profession } = req.body;
   if (!username || !password || !name || !role || !department) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   try {
     const result = await pool.query(
-      'INSERT INTO users (username, password, name, role, department, isActive, permissions, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id, username, name, role, department, isActive, permissions, created_at',
-      [username, password, name, role, department, isActive ?? true, permissions ? JSON.stringify(permissions) : null]
+      'INSERT INTO users (username, password, name, role, department, isActive, permissions, profession, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING id, username, name, role, department, isActive, permissions, profession, created_at',
+      [username, password, name, role, department, isActive ?? true, permissions ? JSON.stringify(permissions) : null, profession ?? null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -267,7 +333,19 @@ app.post('/api/users', async (req, res) => {
 });
 app.get('/api/users', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, username, email, role, department, created_at FROM users');
+    const result = await pool.query(
+      `SELECT 
+         id,
+         username,
+         name,
+         email,
+         role,
+         department,
+         profession,
+         COALESCE(isActive, isactive, true) AS "isActive",
+         created_at AS "createdAt"
+       FROM users`
+    );
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -309,11 +387,11 @@ app.post('/api/department-staff', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  console.log('Login attempt:', { username, password });
+  const { username, password, profession } = req.body;
+  console.log('Login attempt:', { username, password, profession });
   try {
     const result = await pool.query(
-      'SELECT id, username, role, name, department, created_at, isActive FROM users WHERE username = $1 AND password = $2',
+      'SELECT id, username, role, name, department, profession, created_at, isActive FROM users WHERE username = $1 AND password = $2',
       [username, password]
     );
     console.log('Login query result:', result.rows);
@@ -323,6 +401,10 @@ app.post('/api/login', async (req, res) => {
     const user = result.rows[0];
     if (user.isactive === false) {
       return res.status(403).json({ error: 'User is not active' });
+    }
+    // Enforce profession match when provided
+    if (profession && user.profession && String(profession).trim() !== String(user.profession).trim()) {
+      return res.status(403).json({ error: 'Profession mismatch' });
     }
     // Remove password and isActive from response
     const { password: _pw, isactive, ...userData } = user;
@@ -369,7 +451,7 @@ app.post('/api/login', async (req, res) => {
       default:
         permissions = [];
     }
-    const finalUser = { ...userData, role, department: user.department, permissions };
+    const finalUser = { ...userData, role, department: user.department, profession: user.profession, permissions };
     console.log('Login response user object:', finalUser);
     res.json(finalUser);
   } catch (err) {

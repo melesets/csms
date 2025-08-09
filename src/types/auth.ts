@@ -1,12 +1,14 @@
 export interface User {
   id: string;
   username: string;
-  password: string;
   name: string;
-  role: 'admin' | 'user';
+  email: string;
+  role: 'admin' | 'user' | 'staff' | 'viewer';
   department: string;
-  permissions: Permission[];
+  profession?: 'Nurse' | 'Midwifery' | 'General Practitioner' | 'Senior Physician' | 'Admin';
   isActive: boolean;
+  permissions: Permission[];
+  createdAt?: string;
   lastLogin?: string;
 }
 
@@ -17,23 +19,39 @@ export interface Permission {
 
 export interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string, profession?: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (module: string, action?: string) => boolean;
+  canAccessPage: (page: string) => boolean;
+  getUserDepartmentFilter: () => string | null;
+  loading: boolean;
 }
-
 
 export const DEPARTMENTS = [
   'NICU',
+  'ICU',
+  'Medical Ward',
+  'Pediatrics Ward',
+  'Surgical Ward',
+  'Gyni Ward',
+  'OB',
+  'AEOPD',
   'PEOPD',
   'TFU',
-  'Pediatrics Ward',
-  'Medical Ward',
-  'Gynecology Ward',
-  'Obstetrics Unit',
-  'Surgical Ward',
-  'AEOPD',
-  'ICU'
+  'Recovery'
+];
+
+// Central list of professions used across the app (login, form builder, mappings)
+export const PROFESSIONS = [
+  'General Practitioner',
+  'Senior Physician',
+  'Midwifery',
+  'Nurse'
 ] as const;
 
-export type Department = typeof DEPARTMENTS[number];
+export const USER_ROLES = [
+  { value: 'admin', label: 'Administrator', description: 'Full system access' },
+  { value: 'user', label: 'User', description: 'Can create and view own reports' },
+  { value: 'staff', label: 'Staff', description: 'Department-level access' },
+  { value: 'viewer', label: 'Viewer', description: 'Read-only access' }
+];

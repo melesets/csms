@@ -1,20 +1,34 @@
-import React, { useState } from 'react';
-import { Save, Eye, Settings, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Plus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { FormTemplate } from '../../types/formBuilder';
-import { mockFormTemplates } from '../../data/mockData';
-import { TemplateManager } from './TemplateManager';
 import { FormDesigner } from './FormDesigner';
 import { FormPreview } from './FormPreview';
-
-type ViewMode = 'list' | 'designer' | 'preview';
+import { TemplateManager } from './TemplateManager';
 
 export const FormBuilder = () => {
   const { user, hasPermission } = useAuth();
-  const [templates, setTemplates] = useLocalStorage<FormTemplate[]>('form_templates', mockFormTemplates);
-  const [currentView, setCurrentView] = useState<ViewMode>('list');
+  const [templates, setTemplates] = useState<FormTemplate[]>([]);
+  const [currentView, setCurrentView] = useState<'list' | 'designer' | 'preview'>('list');
   const [currentTemplate, setCurrentTemplate] = useState<FormTemplate | null>(null);
+  // Ref to trigger report page template refresh
+  const reportRefetchTemplates = (window as any).reportRefetchTemplates;
+
+  useEffect(() => {
+    // Fetch templates from backend on mount
+    fetch('/api/form-templates')
+      .then(res => res.json())
+      .then(data => {
+        // Ensure all IDs are strings for frontend compatibility and parse JSON fields
+        setTemplates(Array.isArray(data) ? data.map(t => ({
+          ...t,
+          id: t.id?.toString?.() ?? '',
+          fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
+          sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || []))
+        })) : []);
+      })
+      .catch(() => setTemplates([]));
+  }, []);
 
   if (!hasPermission('form-builder', 'view')) {
     return (
@@ -30,18 +44,47 @@ export const FormBuilder = () => {
 
   const handleCreateTemplate = () => {
     const newTemplate: FormTemplate = {
-      id: Date.now().toString(),
+      id: Math.random().toString(36).substr(2, 9),
       name: 'New Form Template',
-      department: user?.department === 'All' ? 'NICU' : user?.department || 'NICU',
-      description: 'A new ISBAR form template',
+      department: user?.department === 'All' ? 'Medical Ward' : user?.department || 'Medical Ward',
+      description: 'A new dynamic form template',
       version: 1,
       isActive: false,
-      fields: [],
+      fields: [
+        // Start with basic patient identification fields
+        {
+          id: 'patient-name',
+          type: 'text',
+          label: 'Patient Name',
+          name: 'patientName',
+          required: true,
+          placeholder: 'Enter patient full name',
+          width: 'half'
+        },
+        {
+          id: 'mrn',
+          type: 'text',
+          label: 'MRN',
+          name: 'mrn',
+          required: true,
+          placeholder: 'Medical Record Number',
+          width: 'half'
+        },
+        {
+          id: 'bed-number',
+          type: 'text',
+          label: 'Bed Number',
+          name: 'bedNumber',
+          required: true,
+          placeholder: 'e.g., MW-12',
+          width: 'half'
+        }
+      ],
       sections: [
         {
-          id: 'patient-info',
-          name: 'Patient Information',
-          description: 'Basic patient details',
+          id: 'main-section',
+          name: 'Form Content',
+          description: 'Main form fields - customize as needed',
           order: 1,
           isCollapsible: false,
           isCollapsed: false
@@ -51,7 +94,6 @@ export const FormBuilder = () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
     setCurrentTemplate(newTemplate);
     setCurrentView('designer');
   };
@@ -66,58 +108,90 @@ export const FormBuilder = () => {
     setCurrentView('preview');
   };
 
-  const handleSaveTemplate = (template: FormTemplate) => {
-    // Remove id so backend uses SERIAL id
-    const { id, ...templateWithoutId } = template;
-    fetch('/api/form-templates', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(templateWithoutId)
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to save template');
-        return res.json();
-      })
-      .then(savedTemplate => {
-        // Set the saved template as active
-        fetch(`/api/form-templates/${savedTemplate.id}/set-active`, {
-          method: 'PATCH',
-        })
-          .then(res => {
-            if (!res.ok) throw new Error('Failed to activate template');
-            return res.json();
-          })
-          .then(activeTemplate => {
-            const existingIndex = templates.findIndex(t => t.id === activeTemplate.id);
-            if (existingIndex !== -1) {
-              setTemplates(prev => prev.map((t, index) => 
-                index === existingIndex ? { ...activeTemplate, updatedAt: new Date().toISOString() } : t
-              ));
-            } else {
-              setTemplates(prev => [activeTemplate, ...prev]);
-            }
-            setCurrentView('list');
-            setCurrentTemplate(null);
-            alert('Template saved and set as active!');
-          })
-          .catch(err => {
-            alert('Error activating template: ' + err.message);
-          });
-      })
-      .catch(err => {
-        alert('Error saving template: ' + err.message);
+  const handleSaveTemplate = async (template: FormTemplate) => {
+    try {
+      // Fetch latest templates to avoid stale comparisons
+      let latest: any[] = await fetch('/api/form-templates').then(r => r.ok ? r.json() : []);
+      if (!Array.isArray(latest)) latest = [];
+      latest = latest.map((t: any) => ({ ...t, id: t.id?.toString?.() ?? '' }));
+
+      // Find an existing template with same (name, department, profession)
+      const wantProf = template.profession ?? null;
+      const existing = latest.find(t => (
+        t.name === template.name &&
+        t.department === template.department &&
+        ((t.profession ?? null) === wantProf)
+      ));
+
+      let url = '/api/form-templates';
+      let method: 'POST' | 'PUT' = 'POST';
+      let body: any = { ...template };
+
+      if (existing) {
+        // Update the existing record when name+department matches
+        url = `/api/form-templates/${existing.id}`;
+        method = 'PUT';
+        body.id = existing.id;
+      } else if (template.id && latest.some(t => t.id === template.id)) {
+        // Editing by id (fallback when name/department changed but still want to overwrite this id)
+        url = `/api/form-templates/${template.id}`;
+        method = 'PUT';
+      } else {
+        // Create new when no match by name+department
+        const { id, ...rest } = template;
+        body = rest;
+      }
+
+      const saveRes = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       });
+      if (!saveRes.ok) throw new Error('Failed to save template');
+      const savedTemplate = await saveRes.json();
+
+      // Activate saved/updated template
+      const actRes = await fetch(`/api/form-templates/${savedTemplate.id}/set-active`, { method: 'PATCH' });
+      if (!actRes.ok) throw new Error('Failed to activate template');
+      const activeTemplate = await actRes.json();
+
+      const parsedTemplate = {
+        ...activeTemplate,
+        id: activeTemplate.id?.toString?.() ?? '',
+        fields: typeof activeTemplate.fields === 'string' ? JSON.parse(activeTemplate.fields) : (activeTemplate.fields || []),
+        sections: typeof activeTemplate.sections === 'string' ? JSON.parse(activeTemplate.sections) : (activeTemplate.sections || [])
+      };
+
+      // Deduplicate: keep only one per (name, department), newest wins
+      setTemplates(prev => [
+        parsedTemplate,
+        ...prev.filter(t => !(
+          t.name === parsedTemplate.name &&
+          t.department === parsedTemplate.department &&
+          ((t as any).profession ?? null) === ((parsedTemplate as any).profession ?? null) &&
+          t.id !== parsedTemplate.id
+        ))
+      ]);
+
+      setCurrentView('list');
+      setCurrentTemplate(null);
+      if (typeof reportRefetchTemplates === 'function') reportRefetchTemplates();
+      alert('Template saved and set as active!');
+    } catch (err: any) {
+      alert('Error saving template: ' + (err?.message || err));
+    }
   };
 
   const handleDeleteTemplate = (templateId: string) => {
     if (window.confirm('Are you sure you want to delete this template?')) {
-      // Delete from backend
       fetch(`/api/form-templates/${templateId}`, { method: 'DELETE' })
-        .then(res => {
-          if (!res.ok) throw new Error('Failed to delete template');
+        .then(async res => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to delete template');
+          }
           setTemplates(prev => prev.filter(t => t.id !== templateId));
+          alert('Template deleted successfully.');
         })
         .catch(err => {
           alert('Error deleting template: ' + err.message);
@@ -126,9 +200,34 @@ export const FormBuilder = () => {
   };
 
   const handleToggleActive = (templateId: string) => {
-    setTemplates(prev => prev.map(t =>
-      t.id === templateId ? { ...t, isActive: !t.isActive } : t
-    ));
+    const template = templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    const newActiveStatus = !Boolean(template.isActive);
+    
+    fetch(`/api/form-templates/${templateId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...template,
+        isActive: newActiveStatus
+      })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to update template status');
+        return res.json();
+      })
+      .then(() => {
+        setTemplates(prev => prev.map(t =>
+          t.id === templateId ? { ...t, isActive: newActiveStatus } : t
+        ));
+        if (typeof reportRefetchTemplates === 'function') reportRefetchTemplates();
+      })
+      .catch(err => {
+        alert('Error updating template status: ' + err.message);
+      });
   };
 
   const renderCurrentView = () => {
@@ -153,40 +252,150 @@ export const FormBuilder = () => {
         );
       default:
         return (
-          <TemplateManager
-            templates={templates}
-            onEdit={handleEditTemplate}
-            onPreview={handlePreviewTemplate}
-            onDelete={handleDeleteTemplate}
-            onToggleActive={handleToggleActive}
-            userRole={user?.role || 'user'}
-            userDepartment={user?.department || ''}
-          />
+          <>
+            {/* Form Creation Instructions */}
+            <div className="bg-blue-50 rounded-xl p-6 mb-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">Create Dynamic Forms</h3>
+              <div className="text-blue-800 space-y-2">
+                <p>• <strong>Any Form Type:</strong> Create ISBAR, clinical assessments, audit forms, or any custom form</p>
+                <p>• <strong>Department Assignment:</strong> Choose which department can access the form</p>
+                <p>• <strong>Dynamic Fields:</strong> Add, remove, or modify fields as needed</p>
+                <p>• <strong>Easy Updates:</strong> Edit existing forms anytime to add new fields or change requirements</p>
+              </div>
+            </div>
+
+            {/* Current Templates Table */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Templates</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Form Name</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fields</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {templates.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-6 text-center text-gray-400">
+                          No forms found. Click "Create New Form" to get started.
+                        </td>
+                      </tr>
+                    ) : (
+                      // Only show unique (name, department) pairs, most recent first
+                      Array.from(
+                        new Map(templates.map(t => [`${t.name}__${t.department}`, t])).values()
+                      ).map((t) => (
+                        <tr key={t.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-sm text-gray-900 font-medium">{t.name}</td>
+                          <td className="px-4 py-2 text-sm text-gray-700">{t.department}</td>
+                          <td className="px-4 py-2">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                t.isActive 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {t.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-700">{t.fields?.length || 0} fields</td>
+                          <td className="px-4 py-2 text-sm text-gray-500">
+                            {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Unknown'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Template Manager */}
+            <TemplateManager
+              templates={templates}
+              onEdit={handleEditTemplate}
+              onPreview={handlePreviewTemplate}
+              onDelete={handleDeleteTemplate}
+              onToggleActive={handleToggleActive}
+              onImport={async (importedTemplates) => {
+                // Fetch latest templates once
+                let current = await fetch('/api/form-templates').then(r => r.ok ? r.json() : []);
+                if (!Array.isArray(current)) current = [];
+                // Normalize
+                current = current.map((t: any) => ({
+                  ...t,
+                  id: t.id?.toString?.() ?? '',
+                }));
+
+                for (const t of importedTemplates) {
+                  const match = current.find((x: any) => x.name === t.name && x.department === t.department);
+                  if (match) {
+                    // Update existing when name+department unchanged
+                    await fetch(`/api/form-templates/${match.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        ...match,
+                        name: t.name,
+                        department: t.department,
+                        description: t.description,
+                        version: t.version ?? match.version ?? 1,
+                        isActive: t.isActive ?? match.isActive ?? match.is_active ?? false,
+                        fields: t.fields || [],
+                        sections: t.sections || []
+                      })
+                    });
+                  } else {
+                    // Create new only if name or department changed (no match)
+                    await fetch('/api/form-templates', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ...t, id: undefined })
+                    });
+                  }
+                }
+
+                // Refetch templates from backend and normalize
+                fetch('/api/form-templates')
+                  .then(res => res.json())
+                  .then(data => setTemplates(Array.isArray(data) ? data.map(t => ({
+                    ...t,
+                    id: t.id?.toString?.() ?? '',
+                    fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
+                    sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || []))
+                  })) : []));
+              }}
+              userRole={user?.role || 'user'}
+              userDepartment={user?.department || ''}
+            />
+          </>
         );
     }
   };
 
   return (
     <div className="space-y-6">
-      {currentView === 'list' && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Form Builder</h2>
-            <p className="text-gray-600 mt-1">
-              Create and manage custom ISBAR form templates for {user?.role === 'admin' ? 'all departments' : user?.department}
-            </p>
-          </div>
-          {hasPermission('form-builder', 'create') && (
-            <button
-              onClick={handleCreateTemplate}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create Template
-            </button>
-          )}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Dynamic Form Builder</h2>
+          <p className="text-gray-600 mt-1">
+            Create any type of form for {user?.role === 'admin' ? 'any department' : user?.department}
+          </p>
         </div>
-      )}
+        {hasPermission('form-builder', 'create') && (
+          <button
+            onClick={handleCreateTemplate}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Create New Form
+          </button>
+        )}
+      </div>
 
       {/* Navigation breadcrumbs */}
       {currentView !== 'list' && (

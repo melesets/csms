@@ -63,14 +63,34 @@ export const FormPreview: React.FC<FormPreviewProps> = ({ template, onBack }) =>
           <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
           <p className="text-sm text-gray-600 mt-1">{template.description}</p>
         </div>
-        
         <div className="p-6">
           <DynamicFormRenderer
             template={template}
-            onSubmit={(data) => {
+            onSubmit={async (data) => {
               if (isInteractive) {
-                console.log('Form submitted:', data);
-                alert('Form submitted! Check console for data.');
+                try {
+                  const res = await fetch('/api/form-submissions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      template_id: template.id,
+                      data,
+                      submitted_by: 'preview-user' // Replace with real user if available
+                    })
+                  });
+                  if (!res.ok) throw new Error('Failed to submit form');
+                  alert('Form submitted and saved!');
+                } catch (err) {
+                  let msg = 'Unknown error';
+                  if (err && typeof err === 'object' && 'message' in err) {
+                    msg = (err as any).message;
+                  } else if (typeof err === 'string') {
+                    msg = err;
+                  } else {
+                    msg = JSON.stringify(err);
+                  }
+                  alert('Error submitting form: ' + msg);
+                }
               }
             }}
             isPreview={!isInteractive}

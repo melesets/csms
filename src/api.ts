@@ -27,6 +27,19 @@ export async function apiPut(path: string, data: any) {
   return res.json();
 }
 
+export async function apiPatch(path: string, data?: any) {
+  const options: RequestInit = {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+  const res = await fetch(`${API_BASE}${path}`, options);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function apiDelete(path: string) {
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(await res.text());

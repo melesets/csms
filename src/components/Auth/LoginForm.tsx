@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn, Shield } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Stethoscope } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 export const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [profession, setProfession] = useState('Nurse');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -15,7 +16,7 @@ export const LoginForm = () => {
     setIsLoading(true);
     setError('');
 
-    const success = await login(username, password);
+    const success = await login(username, password, profession);
     
     if (!success) {
       setError('Invalid username or password');
@@ -28,10 +29,10 @@ export const LoginForm = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Shield className="w-8 h-8 text-blue-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 border-2 border-white bg-[#003153] text-white">
+            <Stethoscope className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">ISBAR Clinical System</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">AGH-HMS</h1>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
 
@@ -63,6 +64,7 @@ export const LoginForm = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-12"
                 placeholder="Enter your password"
+                autoComplete="current-password"
                 required
               />
               <button
@@ -73,6 +75,25 @@ export const LoginForm = () => {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="profession" className="block text-sm font-medium text-gray-700 mb-2">
+              Professionals
+            </label>
+            <select
+              id="profession"
+              value={profession}
+              onChange={(e) => setProfession(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              required
+            >
+              <option value="Nurse">Nurse</option>
+              <option value="Midwifery">Midwifery</option>
+              <option value="General Practitioner">General Practitioner</option>
+              <option value="Senior Physician">Senior Physician</option>
+              <option value="Admin">Admin</option>
+            </select>
           </div>
 
           {error && (
@@ -97,16 +118,7 @@ export const LoginForm = () => {
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-500 mb-3">Demo Credentials:</p>
-          <div className="space-y-2 text-xs text-gray-600">
-            <div><strong>Admin:</strong> admin / admin123</div>
-            <div><strong>NICU:</strong> nicu_nurse / nicu123</div>
-            <div><strong>Surgery:</strong> surgery_nurse / surgery123</div>
-            <div><strong>ICU:</strong> icu_nurse / icu123</div>
-          </div>
-        </div>
-      </div>
+              </div>
     </div>
   );
 };

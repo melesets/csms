@@ -17,13 +17,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create a new report
+// Create a new report (overwrite existing report for same shift/department)
 router.post('/', async (req, res) => {
   try {
     const { shift, staffName, staffId, department, date, resources } = req.body;
-    if (!shift || !staffName || !staffId || !department || !date || !resources) {
+    if (!shift || !staffName || !department || !date || !resources) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+    
+    // Delete any existing report for the same shift and department
+    await InventoryReport.destroy({
+      where: {
+        shift: shift,
+        department: department
+      }
+    });
+    
+    // Create the new report
     const report = await InventoryReport.create({ shift, staffName, staffId, department, date, resources });
     res.status(201).json(report);
   } catch (err) {

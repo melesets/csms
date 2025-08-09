@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiPost, apiGet } from '../api';
-import { Package, Pen } from 'lucide-react';
+import { Package, Pen, Flag, AlertTriangle, MinusCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Resource } from '../types';
 // import { Layout } from './Layout';
@@ -232,18 +232,33 @@ function ResourceManagement() {
                     }
                     const now = new Date();
                     // Save report to backend
+                    const selectedStaffData = staff.find(s => s.name === selectedStaff);
+                    const deptResources = resources.filter(r => user?.role === 'admin' || r.department === user?.department);
                     const report = {
                       shift: selectedShift,
                       staffName: selectedStaff,
-                      staffId: staff.find(s => s.name === selectedStaff)?.id || null,
+                      staffId: selectedStaffData?.id ? parseInt(selectedStaffData.id) : null,
                       department: user?.department || '',
                       date: now.toISOString(),
-                      resources: resources.map(r => ({ ...r }))
+                      resources: deptResources.map(r => ({ ...r }))
                     };
+                    console.log('Saving inventory report:', report);
                     try {
                       await apiPost('/inventory-reports', report);
                       window.dispatchEvent(new Event('inventory_report_saved'));
+                      // Trigger dashboard refresh
+                      window.dispatchEvent(new Event('dashboard_refresh'));
                       alert('Report saved successfully!');
+                      // Optionally refresh the current page's resources
+                      const fetchResources = async () => {
+                        try {
+                          const data = await apiGet('/resources');
+                          setResources(data);
+                        } catch (err) {
+                          console.error('Failed to refresh resources:', err);
+                        }
+                      };
+                      fetchResources();
                     } catch (err: any) {
                       alert('Failed to save report: ' + (err?.message || err));
                     }
@@ -445,6 +460,7 @@ function ResourceManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expired Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch Number</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -511,6 +527,47 @@ function ResourceManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {resource.type === 'Drug' && resource.batch_number ? resource.batch_number : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {(() => {
+                        const qtyNum = Number(resource.quantity);
+                        const isLowStock = !isNaN(qtyNum) && qtyNum < 2;
+                        let isExpired = false;
+                        let isNearExpired = false;
+                        if (resource.type === 'Drug' && resource.expiry_date) {
+                          const d = new Date(resource.expiry_date as any);
+                          if (!isNaN(d.getTime())) {
+                            const now = new Date();
+                            const diffDays = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                            isExpired = d < now;
+                            isNearExpired = !isExpired && diffDays >= 0 && diffDays <= 7;
+                          }
+                        }
+                        const badges: any[] = [];
+                        if (isExpired) badges.push(
+                          <span key="expired" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            <Flag className="w-3 h-3 mr-1" />
+                            Expired
+                          </span>
+                        );
+                        if (isNearExpired) badges.push(
+                          <span key="near" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Near Expired
+                          </span>
+                        );
+                        if (isLowStock) badges.push(
+                          <span key="low" className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                            <MinusCircle className="w-3 h-3 mr-1" />
+                            Low Stock
+                          </span>
+                        );
+                        return badges.length ? (
+                          <div className="flex flex-wrap items-center gap-2">{badges}</div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex gap-2">

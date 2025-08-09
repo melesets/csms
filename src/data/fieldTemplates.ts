@@ -1,272 +1,310 @@
-import { FieldTemplate } from '../types/formBuilder';
-
-export const fieldTemplates: FieldTemplate[] = [
+export const fieldTemplates = [
   // Basic Fields
   {
     type: 'text',
     label: 'Text Input',
+    category: 'basic',
     icon: 'Type',
-    category: 'basic',
     defaultProps: {
-      type: 'text',
       label: 'Text Field',
-      name: 'text_field',
+      placeholder: 'Enter text...',
       required: false,
-      width: 'full',
-      placeholder: 'Enter text...'
-    }
-  },
-  {
-    type: 'number',
-    label: 'Number Input',
-    icon: 'Hash',
-    category: 'basic',
-    defaultProps: {
-      type: 'number',
-      label: 'Number Field',
-      name: 'number_field',
-      required: false,
-      width: 'half'
-    }
-  },
-  {
-    type: 'dropdown',
-    label: 'Dropdown',
-    icon: 'ChevronDown',
-    category: 'basic',
-    defaultProps: {
-      type: 'dropdown',
-      label: 'Dropdown Field',
-      name: 'dropdown_field',
-      required: false,
-      width: 'half',
-      options: ['Option 1', 'Option 2', 'Option 3']
-    }
-  },
-  {
-    type: 'multiselect',
-    label: 'Multi Select',
-    icon: 'List',
-    category: 'basic',
-    defaultProps: {
-      type: 'multiselect',
-      label: 'Multi Select Field',
-      name: 'multiselect_field',
-      required: false,
-      width: 'full',
-      options: ['Option 1', 'Option 2', 'Option 3']
+      validation: {}
     }
   },
   {
     type: 'textarea',
     label: 'Text Area',
-    icon: 'AlignLeft',
     category: 'basic',
+    icon: 'AlignLeft',
     defaultProps: {
-      type: 'textarea',
       label: 'Text Area',
-      name: 'textarea_field',
+      placeholder: 'Enter detailed text...',
       required: false,
-      width: 'full',
-      placeholder: 'Enter detailed information...'
+      rows: 3,
+      validation: {}
+    }
+  },
+  {
+    type: 'number',
+    label: 'Number Input',
+    category: 'basic',
+    icon: 'Hash',
+    defaultProps: {
+      label: 'Number Field',
+      placeholder: 'Enter number...',
+      required: false,
+      min: 0,
+      max: 1000,
+      validation: {}
+    }
+  },
+  {
+    type: 'select',
+    label: 'Dropdown',
+    category: 'basic',
+    icon: 'ChevronDown',
+    defaultProps: {
+      label: 'Select Option',
+      placeholder: 'Choose an option...',
+      required: false,
+      options: [
+        { value: 'option1', label: 'Option 1' },
+        { value: 'option2', label: 'Option 2' },
+        { value: 'option3', label: 'Option 3' }
+      ],
+      validation: {}
+    }
+  },
+  {
+    type: 'multiselect',
+    label: 'Multi-Select Dropdown',
+    category: 'basic',
+    icon: 'List',
+    defaultProps: {
+      label: 'Select Multiple Options',
+      placeholder: 'Choose multiple options...',
+      required: false,
+      options: [
+        { value: 'option1', label: 'Option 1' },
+        { value: 'option2', label: 'Option 2' },
+        { value: 'option3', label: 'Option 3' },
+        { value: 'option4', label: 'Option 4' }
+      ],
+      validation: {}
+    }
+  },
+  {
+    type: 'radio',
+    label: 'Radio Buttons',
+    category: 'basic',
+    icon: 'Circle',
+    defaultProps: {
+      label: 'Choose One',
+      required: false,
+      options: [
+        { value: 'yes', label: 'Yes' },
+        { value: 'no', label: 'No' }
+      ],
+      validation: {}
+    }
+  },
+  {
+    type: 'checkbox',
+    label: 'Checkboxes',
+    category: 'basic',
+    icon: 'CheckSquare',
+    defaultProps: {
+      label: 'Select Multiple',
+      required: false,
+      options: [
+        { value: 'option1', label: 'Option 1' },
+        { value: 'option2', label: 'Option 2' },
+        { value: 'option3', label: 'Option 3' }
+      ],
+      validation: {}
     }
   },
   {
     type: 'date',
     label: 'Date Picker',
-    icon: 'Calendar',
     category: 'basic',
+    icon: 'Calendar',
     defaultProps: {
-      type: 'date',
-      label: 'Date Field',
-      name: 'date_field',
+      label: 'Date',
       required: false,
-      width: 'half'
+      validation: {}
     }
   },
   {
     type: 'time',
     label: 'Time Picker',
-    icon: 'Clock',
     category: 'basic',
+    icon: 'Clock',
     defaultProps: {
-      type: 'time',
-      label: 'Time Field',
-      name: 'time_field',
+      label: 'Time',
       required: false,
-      width: 'half'
+      validation: {}
     }
   },
 
   // Medical Fields
   {
-    type: 'temperature',
-    label: 'Temperature',
-    icon: 'Thermometer',
+    type: 'vital-signs',
+    label: 'Vital Signs',
     category: 'medical',
-    defaultProps: {
-      type: 'temperature',
-      label: 'Temperature (°C)',
-      name: 'temperature',
-      required: false,
-      width: 'quarter',
-      validation: { min: 30, max: 45 }
-    }
-  },
-  {
-    type: 'heart-rate',
-    label: 'Heart Rate',
-    icon: 'Heart',
-    category: 'medical',
-    defaultProps: {
-      type: 'heart-rate',
-      label: 'Heart Rate (bpm)',
-      name: 'heart_rate',
-      required: false,
-      width: 'quarter',
-      validation: { min: 40, max: 200 }
-    }
-  },
-  {
-    type: 'blood-pressure',
-    label: 'Blood Pressure',
     icon: 'Activity',
-    category: 'medical',
     defaultProps: {
-      type: 'blood-pressure',
-      label: 'Blood Pressure',
-      name: 'blood_pressure',
+      label: 'Vital Signs',
       required: false,
-      width: 'quarter',
-      placeholder: '120/80'
+      fields: [
+        { name: 'temperature', label: 'Temperature (°C)', type: 'number', min: 30, max: 45 },
+        { name: 'heartRate', label: 'Heart Rate (bpm)', type: 'number', min: 30, max: 200 },
+        { name: 'bloodPressure', label: 'Blood Pressure', type: 'text', placeholder: '120/80' },
+        { name: 'respiratoryRate', label: 'Respiratory Rate', type: 'number', min: 5, max: 60 },
+        { name: 'oxygenSaturation', label: 'O2 Saturation (%)', type: 'number', min: 70, max: 100 }
+      ],
+      validation: {}
     }
   },
   {
-    type: 'o2-saturation',
-    label: 'O2 Saturation',
-    icon: 'Wind',
+    type: 'patient-info',
+    label: 'Patient Information',
     category: 'medical',
+    icon: 'User',
     defaultProps: {
-      type: 'o2-saturation',
-      label: 'O2 Saturation (%)',
-      name: 'o2_saturation',
+      label: 'Patient Information',
       required: false,
-      width: 'quarter',
-      validation: { min: 70, max: 100 }
+      fields: [
+        { name: 'patientName', label: 'Patient Name', type: 'text', required: true },
+        { name: 'mrn', label: 'MRN', type: 'text', required: true },
+        { name: 'age', label: 'Age', type: 'number', min: 0, max: 120 },
+        { name: 'bedNumber', label: 'Bed Number', type: 'text' },
+        { name: 'department', label: 'Department', type: 'text' }
+      ],
+      validation: {}
     }
   },
   {
-    type: 'pain-scale',
-    label: 'Pain Scale',
-    icon: 'Zap',
+    type: 'medication',
+    label: 'Medication',
     category: 'medical',
+    icon: 'Pill',
     defaultProps: {
-      type: 'pain-scale',
-      label: 'Pain Scale (0-10)',
-      name: 'pain_scale',
+      label: 'Medication',
       required: false,
-      width: 'quarter',
-      validation: { min: 0, max: 10 }
+      fields: [
+        { name: 'medicationName', label: 'Medication Name', type: 'text' },
+        { name: 'dosage', label: 'Dosage', type: 'text' },
+        { name: 'frequency', label: 'Frequency', type: 'text' },
+        { name: 'route', label: 'Route', type: 'select', options: [
+          { value: 'oral', label: 'Oral' },
+          { value: 'iv', label: 'IV' },
+          { value: 'im', label: 'IM' },
+          { value: 'topical', label: 'Topical' }
+        ]}
+      ],
+      validation: {}
     }
   },
 
   // ISBAR Fields
   {
-    type: 'isbar-situation',
-    label: 'ISBAR: Situation',
+    type: 'situation',
+    label: 'Situation',
+    category: 'isbar',
     icon: 'AlertCircle',
-    category: 'isbar',
     defaultProps: {
-      type: 'isbar-situation',
       label: 'Situation',
-      name: 'situation',
+      placeholder: 'Describe the current situation...',
       required: true,
-      width: 'full',
-      placeholder: 'Current patient situation...'
+      rows: 3,
+      validation: {}
     }
   },
   {
-    type: 'isbar-background',
-    label: 'ISBAR: Background',
+    type: 'background',
+    label: 'Background',
+    category: 'isbar',
     icon: 'FileText',
-    category: 'isbar',
     defaultProps: {
-      type: 'isbar-background',
       label: 'Background',
-      name: 'background',
+      placeholder: 'Provide relevant background information...',
       required: true,
-      width: 'full',
-      placeholder: 'Patient background and history...'
+      rows: 3,
+      validation: {}
     }
   },
   {
-    type: 'isbar-assessment',
-    label: 'ISBAR: Assessment',
-    icon: 'CheckSquare',
+    type: 'assessment',
+    label: 'Assessment',
     category: 'isbar',
+    icon: 'Stethoscope',
     defaultProps: {
-      type: 'isbar-assessment',
       label: 'Assessment',
-      name: 'assessment',
+      placeholder: 'Clinical assessment and findings...',
       required: true,
-      width: 'full',
-      placeholder: 'Clinical assessment...'
+      rows: 3,
+      validation: {}
     }
   },
   {
-    type: 'isbar-recommendation',
-    label: 'ISBAR: Recommendation',
-    icon: 'Target',
+    type: 'recommendation',
+    label: 'Recommendation',
     category: 'isbar',
+    icon: 'Target',
     defaultProps: {
-      type: 'isbar-recommendation',
       label: 'Recommendation',
-      name: 'recommendation',
+      placeholder: 'Recommendations and actions needed...',
       required: true,
-      width: 'full',
-      placeholder: 'Recommendations and next steps...'
+      rows: 3,
+      validation: {}
+    }
+  },
+  {
+    type: 'stability',
+    label: 'Patient Stability',
+    category: 'isbar',
+    icon: 'TrendingUp',
+    defaultProps: {
+      label: 'Patient Stability',
+      required: true,
+      options: [
+        { value: 'stable', label: 'Stable' },
+        { value: 'unstable', label: 'Unstable' },
+        { value: 'critical', label: 'Critical' }
+      ],
+      validation: {}
     }
   },
 
   // Advanced Fields
   {
-    type: 'range',
-    label: 'Range Slider',
-    icon: 'MoreHorizontal',
+    type: 'file-upload',
+    label: 'File Upload',
     category: 'advanced',
+    icon: 'Upload',
     defaultProps: {
-      type: 'range',
-      label: 'Range Field',
-      name: 'range_field',
+      label: 'Upload File',
       required: false,
-      width: 'half',
-      validation: { min: 0, max: 100 }
+      acceptedTypes: ['.pdf', '.jpg', '.png', '.doc', '.docx'],
+      maxSize: 5, // MB
+      validation: {}
     }
   },
   {
-    type: 'file',
-    label: 'File Upload',
-    icon: 'Upload',
+    type: 'signature',
+    label: 'Digital Signature',
     category: 'advanced',
+    icon: 'PenTool',
     defaultProps: {
-      type: 'file',
-      label: 'File Upload',
-      name: 'file_field',
+      label: 'Digital Signature',
       required: false,
-      width: 'half'
+      validation: {}
+    }
+  },
+  {
+    type: 'rating',
+    label: 'Rating Scale',
+    category: 'advanced',
+    icon: 'Star',
+    defaultProps: {
+      label: 'Rating',
+      required: false,
+      min: 1,
+      max: 5,
+      validation: {}
     }
   },
   {
     type: 'divider',
     label: 'Section Divider',
-    icon: 'Minus',
     category: 'advanced',
+    icon: 'Minus',
     defaultProps: {
-      type: 'divider',
-      label: 'Section Divider',
-      name: 'divider',
-      required: false,
-      width: 'full'
+      label: 'Section Break',
+      style: 'line', // line, space, heading
+      validation: {}
     }
   }
 ];

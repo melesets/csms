@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { User, DEPARTMENTS } from '../../types/auth';
 
 interface UserFormProps {
@@ -9,26 +9,17 @@ interface UserFormProps {
 
 export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    username: '',
+    username: user?.username || '',
     password: '',
-    name: '',
-    role: 'user' as 'admin' | 'user',
-    department: 'NICU' as string,
-    isActive: true
+    name: user?.name || '',
+    email: user?.email || '',
+    role: user?.role || 'user',
+    department: user?.department || '',
+    profession: user?.profession || 'Nurse',
+    isActive: user?.isActive ?? true
   });
 
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        username: user.username,
-        password: user.password,
-        name: user.name,
-        role: user.role,
-        department: user.department,
-        isActive: user.isActive
-      });
-    }
-  }, [user]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -36,41 +27,45 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) =>
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
-  const getPermissionsForRole = (role: 'admin' | 'user') => {
-    if (role === 'admin') {
-      return [
-        { module: 'dashboard', actions: ['view'] },
-        { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
-        { module: 'staff', actions: ['view', 'create', 'edit', 'delete'] },
-        { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
-        { module: 'database', actions: ['view', 'export'] },
-        { module: 'trends', actions: ['view'] },
-        { module: 'form-builder', actions: ['view', 'create', 'edit', 'delete'] },
-        { module: 'user-management', actions: ['view', 'create', 'edit', 'delete'] }
-      ];
-    } else {
-      return [
-        { module: 'dashboard', actions: ['view'] },
-        { module: 'isbar', actions: ['view', 'create'] },
-        { module: 'staff', actions: ['view', 'create'] },
-        { module: 'resources', actions: ['view', 'create', 'edit'] },
-        { module: 'database', actions: ['view'] },
-        { module: 'trends', actions: ['view'] }
-      ];
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
     }
+    if (!user && !formData.password.trim()) {
+      newErrors.password = 'Password is required for new users';
+    }
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    if (!formData.department.trim()) {
+      newErrors.department = 'Department is required';
+    }
+    if (!formData.profession?.trim()) {
+      newErrors.profession = 'Profession is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const userData = {
-      ...formData,
-      permissions: getPermissionsForRole(formData.role)
-    };
-    
-    onSave(userData);
+    if (validateForm()) {
+      onSave(formData as any);
+    }
   };
 
   return (
@@ -91,20 +86,6 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) =>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
               Username *
             </label>
             <input
@@ -112,23 +93,64 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) =>
               name="username"
               value={formData.username}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.username ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
             />
+            {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Password *
+              Password {!user && '*'}
             </label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder={user ? 'Leave blank to keep current password' : ''}
+              required={!user}
+            />
+            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Full Name *
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
             />
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email *
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.email ? 'border-red-500' : 'border-gray-300'
+              }`}
+              required
+            />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
 
           <div>
@@ -142,8 +164,10 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) =>
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="user">Department User</option>
-              <option value="admin">Administrator</option>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+              <option value="viewer">Viewer</option>
             </select>
           </div>
 
@@ -155,49 +179,55 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) =>
               name="department"
               value={formData.department}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.department ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
-              disabled={formData.role === 'admin'}
             >
-              {formData.role === 'admin' ? (
-                <option value="All">All Departments</option>
-              ) : (
-                DEPARTMENTS.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))
-              )}
+              <option value="">Select Department</option>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
             </select>
+            {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
           </div>
 
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name="isActive"
-              checked={formData.isActive}
-              onChange={handleInputChange}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-            />
-            <label className="ml-2 text-sm font-medium text-gray-700">
-              Active User
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Professionals *
             </label>
+            <select
+              name="profession"
+              value={formData.profession}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.profession ? 'border-red-500' : 'border-gray-300'
+              }`}
+              required
+            >
+              <option value="Nurse">Nurse</option>
+              <option value="Midwifery">Midwifery</option>
+              <option value="General Practitioner">General Practitioner</option>
+              <option value="Senior Physician">Senior Physician</option>
+              <option value="Admin">Admin</option>
+            </select>
+            {errors.profession && <p className="text-red-500 text-xs mt-1">{errors.profession}</p>}
           </div>
         </div>
 
-        {/* Permissions Preview */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">
-            Permissions for {formData.role === 'admin' ? 'Administrator' : 'Department User'}:
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {getPermissionsForRole(formData.role).map((permission, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-              >
-                {permission.module}
-              </span>
-            ))}
-          </div>
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            name="isActive"
+            checked={formData.isActive}
+            onChange={handleInputChange}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label className="ml-2 block text-sm text-gray-900">
+            Active User
+          </label>
         </div>
 
         <div className="flex justify-end space-x-4 pt-6">
@@ -212,7 +242,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) =>
             type="submit"
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
-            {user ? 'Update' : 'Create'} User
+            {user ? 'Update User' : 'Create User'}
           </button>
         </div>
       </form>

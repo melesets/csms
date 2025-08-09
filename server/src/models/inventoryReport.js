@@ -22,7 +22,7 @@ const InventoryReport = sequelize.define('InventoryReport', {
   },
   staffId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     field: 'staff_id',
   },
   department: {

@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
-import { Save } from 'lucide-react';
+import { Save, ChevronDown, ChevronRight } from 'lucide-react';
 import { FormTemplate, FormField } from '../../types/formBuilder';
+import { MinimalistMultiSelect } from './MinimalistMultiSelect';
+
+// Color schemes for sections (same as SectionedFormCanvas)
+const SECTION_COLORS = {
+  blue: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-900', accent: 'bg-blue-500', hover: 'hover:bg-blue-100' },
+  green: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-900', accent: 'bg-green-500', hover: 'hover:bg-green-100' },
+  purple: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-900', accent: 'bg-purple-500', hover: 'hover:bg-purple-100' },
+  orange: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-900', accent: 'bg-orange-500', hover: 'hover:bg-orange-100' },
+  pink: { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-900', accent: 'bg-pink-500', hover: 'hover:bg-pink-100' },
+  indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-900', accent: 'bg-indigo-500', hover: 'hover:bg-indigo-100' },
+  teal: { bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-900', accent: 'bg-teal-500', hover: 'hover:bg-teal-100' },
+  gray: { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-900', accent: 'bg-gray-500', hover: 'hover:bg-gray-100' },
+};
 
 interface DynamicFormRendererProps {
   template: FormTemplate;
@@ -19,6 +32,26 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // State for section collapse/expand
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  // Safe access to template properties
+  const templateSections = template.sections || [];
+  const templateFields = template.fields || [];
+
+  // Toggle section collapse/expand
+  const toggleSection = (sectionId: string) => {
+    setCollapsedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
@@ -34,7 +67,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   };
 
   const validateField = (field: FormField, value: any): string | null => {
-    if (field.required && (!value || value === '')) {
+    if (field.required && (!value || value === '' || (Array.isArray(value) && value.length === 0))) {
       return `${field.label} is required`;
     }
 
@@ -60,19 +93,24 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPreview) return;
+    
     const newErrors: Record<string, string> = {};
+    
     // Validate all fields
-    template.fields.forEach(field => {
+    templateFields.forEach(field => {
+      if (field.type === 'divider') return; // Skip dividers
+      
       const value = formData[field.name];
       const error = validateField(field, value);
       if (error) {
         newErrors[field.name] = error;
       }
     });
+
     setErrors(newErrors);
+
     if (Object.keys(newErrors).length === 0) {
       onSubmit(formData);
-      setFormData({}); // Clear form after submit
       if (onSuccess) onSuccess();
     }
   };
@@ -97,44 +135,25 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
     switch (field.type) {
       case 'text':
-      case 'isbar-situation':
-      case 'isbar-background':
-      case 'isbar-assessment':
-      case 'isbar-recommendation':
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            {field.type.startsWith('isbar-') ? (
-              <textarea
-                value={value}
-                onChange={(e) => handleInputChange(field.name, e.target.value)}
-                placeholder={field.placeholder}
-                rows={3}
-                disabled={disabled}
-                className={`${baseInputClass} resize-none`}
-              />
-            ) : (
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => handleInputChange(field.name, e.target.value)}
-                placeholder={field.placeholder}
-                disabled={disabled}
-                className={baseInputClass}
-              />
-            )}
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              placeholder={field.placeholder}
+              disabled={disabled}
+              className={baseInputClass}
+            />
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
 
       case 'number':
-      case 'temperature':
-      case 'heart-rate':
-      case 'o2-saturation':
-      case 'pain-scale':
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -146,9 +165,8 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               value={value}
               onChange={(e) => handleInputChange(field.name, parseFloat(e.target.value) || '')}
               placeholder={field.placeholder}
-              min={field.validation?.min}
-              max={field.validation?.max}
-              step={field.type === 'temperature' ? 0.1 : 1}
+              min={field.min}
+              max={field.max}
               disabled={disabled}
               className={baseInputClass}
             />
@@ -156,25 +174,30 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           </div>
         );
 
-      case 'blood-pressure':
+      case 'textarea':
+      case 'situation':
+      case 'background':
+      case 'assessment':
+      case 'recommendation':
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <input
-              type="text"
+            <textarea
               value={value}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
-              placeholder={field.placeholder || '120/80'}
+              placeholder={field.placeholder}
+              rows={field.rows || 3}
               disabled={disabled}
-              className={baseInputClass}
+              className={`${baseInputClass} resize-none`}
             />
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
 
+      case 'select':
       case 'dropdown':
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
@@ -188,12 +211,23 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               disabled={disabled}
               className={baseInputClass}
             >
-              <option value="">Select an option</option>
-              {field.options?.map((option, index) => (
-                <option key={index} value={option}>
-                  {option}
-                </option>
-              ))}
+              <option value="">{field.placeholder || 'Select an option'}</option>
+              {(field.options || []).map((option, index) => {
+                // Handle both string options and object options
+                if (typeof option === 'string') {
+                  return (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  );
+                } else {
+                  return (
+                    <option key={index} value={option.value}>
+                      {option.label}
+                    </option>
+                  );
+                }
+              })}
             </select>
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
@@ -206,48 +240,85 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <div className="space-y-2">
-              {field.options?.map((option, index) => (
-                <div key={index} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id={`${field.name}-${index}`}
-                    checked={(value || []).includes(option)}
-                    onChange={(e) => {
-                      const currentValue = value || [];
-                      const newValue = e.target.checked
-                        ? [...currentValue, option]
-                        : currentValue.filter((v: string) => v !== option);
-                      handleInputChange(field.name, newValue);
-                    }}
-                    disabled={disabled}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor={`${field.name}-${index}`} className="ml-2 text-sm text-gray-700">
-                    {option}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <MinimalistMultiSelect
+              options={field.options || []}
+              value={value || []}
+              onChange={(newValue) => handleInputChange(field.name, newValue)}
+              disabled={disabled}
+              placeholder={field.placeholder || 'Select options...'}
+              className={error ? 'border-red-300' : ''}
+            />
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
 
-      case 'textarea':
+      case 'radio':
+      case 'stability':
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <textarea
-              value={value}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              placeholder={field.placeholder}
-              rows={4}
-              disabled={disabled}
-              className={`${baseInputClass} resize-none`}
-            />
+            <div className="space-y-2">
+              {(field.options || []).map((option, index) => {
+                // Handle both string options and object options
+                const optionValue = typeof option === 'string' ? option : option.value;
+                const optionLabel = typeof option === 'string' ? option : option.label;
+                return (
+                  <label key={index} className="flex items-center">
+                    <input
+                      type="radio"
+                      name={field.name}
+                      value={optionValue}
+                      checked={value === optionValue}
+                      onChange={(e) => handleInputChange(field.name, e.target.value)}
+                      disabled={disabled}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">{optionLabel}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          </div>
+        );
+
+      case 'checkbox':
+        return (
+          <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className="space-y-2">
+              {(field.options || []).map((option, index) => {
+                // Handle both string options and object options
+                const optionValue = typeof option === 'string' ? option : option.value;
+                const optionLabel = typeof option === 'string' ? option : option.label;
+                return (
+                  <label key={index} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      value={optionValue}
+                      checked={(value || []).includes(optionValue)}
+                      onChange={(e) => {
+                        const currentValues = value || [];
+                        if (e.target.checked) {
+                          handleInputChange(field.name, [...currentValues, optionValue]);
+                        } else {
+                          handleInputChange(field.name, currentValues.filter((v: string) => v !== optionValue));
+                        }
+                      }}
+                      disabled={disabled}
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">{optionLabel}</span>
+                  </label>
+                );
+              })}
+            </div>
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
@@ -288,22 +359,88 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           </div>
         );
 
-      case 'range':
+      case 'vital-signs':
+        return (
+          <div key={field.id} className="w-full px-2 mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border border-gray-200 rounded-lg">
+              {(field.fields || []).map((subField, index) => (
+                <div key={index}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {subField.label}
+                    {subField.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  <input
+                    type={subField.type}
+                    value={formData[subField.name] || ''}
+                    onChange={(e) => handleInputChange(subField.name, e.target.value)}
+                    placeholder={subField.placeholder}
+                    min={subField.min}
+                    max={subField.max}
+                    disabled={disabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          </div>
+        );
+
+      case 'patient-info':
+        return (
+          <div key={field.id} className="w-full px-2 mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-gray-200 rounded-lg">
+              {(field.fields || []).map((subField, index) => (
+                <div key={index}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {subField.label}
+                    {subField.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  <input
+                    type={subField.type}
+                    value={formData[subField.name] || ''}
+                    onChange={(e) => handleInputChange(subField.name, e.target.value)}
+                    placeholder={subField.placeholder}
+                    min={subField.min}
+                    max={subField.max}
+                    disabled={disabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          </div>
+        );
+
+      case 'rating':
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {field.label}: {value || field.validation?.min || 0}
+              {field.label}: {value || field.min || 1}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
             <input
               type="range"
-              value={value || field.validation?.min || 0}
+              value={value || field.min || 1}
               onChange={(e) => handleInputChange(field.name, parseInt(e.target.value))}
-              min={field.validation?.min || 0}
-              max={field.validation?.max || 100}
+              min={field.min || 1}
+              max={field.max || 5}
               disabled={disabled}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>{field.min || 1}</span>
+              <span>{field.max || 5}</span>
+            </div>
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
@@ -313,8 +450,18 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           <div key={field.id} className="w-full px-2 mb-6">
             <hr className="border-gray-300" />
             {field.label && (
-              <div className="text-center -mt-3">
-                <span className="bg-white px-4 text-sm font-medium text-gray-500">
+              <div
+                className={`-mt-3 ${
+                  field.align === 'left' ? 'text-left' : field.align === 'right' ? 'text-right' : 'text-center'
+                }`}
+              >
+                <span
+                  className="bg-white px-4 text-sm font-bold"
+                  style={{
+                    color: field.color || '#3b82f6',
+                    textShadow: '0 1px 4px rgba(59,130,246,0.15)'
+                  }}
+                >
                   {field.label}
                 </span>
               </div>
@@ -335,11 +482,111 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     }
   };
 
+  // Group fields by section with safe access
+  const groupedFields = templateSections.length > 0 
+    ? templateSections.map(section => ({
+        section,
+        fields: templateFields.filter(field => field.section === section.id)
+      }))
+    : [{ section: null, fields: templateFields }];
+
+  // Add unassigned fields if there are sections
+  const unassignedFields = templateSections.length > 0 
+    ? templateFields.filter(field => !field.section)
+    : [];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex flex-wrap -mx-2">
-        {template.fields.map(renderField)}
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Render sections */}
+      {groupedFields.map(({ section, fields }, groupIndex) => {
+        // Get color scheme for this section
+        const colorScheme = section?.color 
+          ? SECTION_COLORS[section.color as keyof typeof SECTION_COLORS] || SECTION_COLORS.gray
+          : SECTION_COLORS.gray;
+
+        const isCollapsed = section ? collapsedSections.has(section.id) : false;
+        const fieldsWithErrors = fields.filter(field => errors[field.name]);
+        const hasErrors = fieldsWithErrors.length > 0;
+
+        return (
+          <div key={section?.id || 'main'} className="space-y-4">
+            {section && (
+              <div className={`border rounded-lg shadow-sm overflow-hidden transition-all duration-200 ${colorScheme.border} ${hasErrors ? 'ring-2 ring-red-200' : ''}`}>
+                {/* Color accent bar */}
+                <div className={`h-1 ${colorScheme.accent} opacity-60`}></div>
+                
+                {/* Section header - clickable */}
+                <div 
+                  className={`${colorScheme.bg} px-6 py-4 cursor-pointer transition-colors ${colorScheme.hover} ${!isCollapsed ? `border-b ${colorScheme.border}` : ''}`}
+                  onClick={() => toggleSection(section.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        {isCollapsed ? (
+                          <ChevronRight className={`w-5 h-5 mr-3 ${colorScheme.text.replace('-900', '-600')}`} />
+                        ) : (
+                          <ChevronDown className={`w-5 h-5 mr-3 ${colorScheme.text.replace('-900', '-600')}`} />
+                        )}
+                        <h3 className={`text-lg font-semibold ${colorScheme.text}`}>{section.name}</h3>
+                      </div>
+                      {section.description && !isCollapsed && (
+                        <p className={`text-sm mt-1 ml-8 ${colorScheme.text.replace('-900', '-600')}`}>{section.description}</p>
+                      )}
+                    </div>
+                    
+                    {/* Section status indicators */}
+                    <div className="flex items-center space-x-2 ml-4">
+                      {hasErrors && (
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                          {fieldsWithErrors.length} error{fieldsWithErrors.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      <span className={`text-xs px-2 py-1 rounded-full ${colorScheme.bg} ${colorScheme.text.replace('-900', '-700')} border ${colorScheme.border}`}>
+                        {fields.length} field{fields.length !== 1 ? 's' : ''}
+                      </span>
+                      {isCollapsed && (
+                        <span className="text-xs text-gray-500">
+                          Click to expand
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Section content - collapsible */}
+                {!isCollapsed && (
+                  <div className="bg-white px-6 py-6 transition-all duration-200">
+                    <div className="flex flex-wrap -mx-2">
+                      {fields.map(renderField)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* For sections without header (fallback) */}
+            {!section && (
+              <div className="flex flex-wrap -mx-2">
+                {fields.map(renderField)}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Unassigned fields */}
+      {unassignedFields.length > 0 && (
+        <div className="space-y-4">
+          <div className="border-b border-gray-200 pb-3 mb-6">
+            <h3 className="text-lg font-semibold text-gray-700">Additional Information</h3>
+          </div>
+          
+          <div className="flex flex-wrap -mx-2">
+            {unassignedFields.map(renderField)}
+          </div>
+        </div>
+      )}
 
       {!isPreview && (
         <div className="flex justify-end pt-6 border-t border-gray-200">
