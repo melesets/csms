@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit2, Search, UserCheck, CheckCircle } from 'lucide-react';
+import { Users, Plus, Edit2, Search, UserCheck, CheckCircle, Trash2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { Staff } from '../../types';
 
@@ -112,6 +112,21 @@ export const DepartmentStaffManagement = () => {
       department: staffMember.department
     });
     setShowForm(true);
+  };
+
+  const handleDelete = async (staffMember: Staff) => {
+    if (!staffMember?.id) return;
+    if (!window.confirm(`Delete staff member "${staffMember.name}"?`)) return;
+    try {
+      const res = await fetch(`/api/department-staff/${staffMember.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Failed to delete staff member');
+      }
+      setStaff(prev => prev.filter(s => s.id !== staffMember.id));
+    } catch (err: any) {
+      alert(err?.message || 'Error deleting staff member');
+    }
   };
 
   return (
@@ -299,12 +314,22 @@ export const DepartmentStaffManagement = () => {
                     {member.department}
                   </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(member)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-3 justify-end">
+                      <button
+                        onClick={() => handleEdit(member)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(member)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -39,9 +39,14 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
   patient,
   onNewHandover
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [expandLevel, setExpandLevel] = useState(0); // 0: collapsed, 1: basic, 2: full
   const detailsRef = React.useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
+
+  // Load full submission history on expand
+  const [history, setHistory] = useState<any[] | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const getInitials = (name: string) => {
     const parts = String(name || '').split(' ').filter(Boolean);
@@ -50,13 +55,31 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     return (first + last).toUpperCase();
   };
 
+  const parseDateSafe = (iso: string): Date => {
+    if (!iso) return new Date(NaN);
+    const s = String(iso).trim();
+    // If explicit timezone is provided, trust native parse
+    if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+      return new Date(s.replace(' ', 'T'));
+    }
+    // If no timezone, treat as local time (common from many backends)
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?/);
+    if (m) {
+      const [, y, mo, da, h, mi, se, frac] = m as any;
+      const ms = frac ? Math.round(Number('0.' + frac) * 1000) : 0;
+      return new Date(Number(y), Number(mo) - 1, Number(da), Number(h), Number(mi), Number(se || '0'), ms);
+    }
+    // Fallback to native parsing after normalizing space to T
+    return new Date(s.replace(' ', 'T'));
+  };
+
   const timeAgo = (iso: string) => {
-    const t = new Date(iso).getTime();
+    const t = parseDateSafe(iso).getTime();
     if (isNaN(t)) return '';
      const deltaMs = Date.now() - t;
     const delta = Math.max(0, deltaMs);
     const seconds = Math.floor(delta / 1000);
-    if (seconds < 60) return `${seconds} ${seconds === 1 ? 'second' : 'seconds'} ago`;
+    if (seconds < 60) return 'Just now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
     const hours = Math.floor(minutes / 60);
@@ -67,9 +90,16 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
 
   useEffect(() => {
     if (detailsRef.current) {
-      setContentHeight(detailsRef.current.scrollHeight);
+      // Use setTimeout to ensure DOM has updated before measuring
+      const timeoutId = setTimeout(() => {
+        if (detailsRef.current) {
+          setContentHeight(detailsRef.current.scrollHeight);
+        }
+      }, 10); // Small delay to ensure DOM updates
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [isExpanded, patient]);
+  }, [expandLevel, patient, history]);
 
   const getStabilityColor = (stability: string) => {
     switch (stability) {
@@ -102,8 +132,12 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     }
   };
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
+  const toggleBasicExpanded = () => {
+    setExpandLevel(prev => prev === 0 ? 1 : 0); // toggle between collapsed and basic
+  };
+
+  const toggleFullExpanded = () => {
+    setExpandLevel(prev => prev === 2 ? 1 : 2); // toggle between basic and full
   };
 
   const renderAllSubmittedData = () => {
@@ -146,24 +180,23 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     );
   };
 
-  // Load full submission history on expand
-  const [history, setHistory] = useState<any[] | null>(null);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyError, setHistoryError] = useState<string | null>(null);
-
   const matchesPatient = (fd: any) => {
-    const candidates = [fd?.mrn, fd?.MRN, fd?.['MRN'], fd?._mrn, fd?.[' Patient name']];
-    return candidates.some((v) => v !== undefined && String(v) === String(patient.mrn));
+    // Prefer MRN match across common variants
+    const mrnCandidates = [fd?.mrn, fd?.MRN, fd?.['MRN'], fd?._mrn, fd?.patient_mrn, fd?.patientMrn];
+    const mrnMatch = mrnCandidates.some((v) => v !== undefined && String(v).trim() === String(patient.mrn).trim());
+    if (mrnMatch) return true;
+    // Fallback: patient name match when MRN is absent or inconsistent (case-insensitive)
+    const nameCandidates = [fd?.patientName, fd?.['Patient name'], fd?.patient_name];
+    const nameMatch = nameCandidates.some((v) => v !== undefined && String(v).trim().toLowerCase() === String(patient.patientName).trim().toLowerCase());
+    return nameMatch;
   };
 
   const loadHistory = async () => {
     try {
       setLoadingHistory(true);
       setHistoryError(null);
-      const url = patient.department
-        ? `/api/form-submissions?department=${encodeURIComponent(patient.department)}`
-        : '/api/form-submissions';
-      const res = await fetch(url);
+      // Fetch all submissions (across all departments) to show complete history for this patient
+      const res = await fetch('/api/form-submissions');
       const data = res.ok ? await res.json() : [];
       const filtered = (data || []).filter((s: any) => {
         const fd = s?.form_data || {};
@@ -179,10 +212,10 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
   };
 
   useEffect(() => {
-    if (isExpanded && history === null) {
+    if (expandLevel === 2 && history === null) {
       loadHistory();
     }
-  }, [isExpanded]);
+  }, [expandLevel]);
 
   const renderHistory = () => {
     if (loadingHistory) {
@@ -212,14 +245,14 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
 
     return (
       <div className="space-y-3">
-        {history.map((sub: any, idx: number) => {
+        {history.slice(0, 1).map((sub: any, idx: number) => {
           const fd = sub.form_data || {};
           const entries = Object.entries(fd).filter(([_, v]) => v !== undefined && v !== null && v !== '');
           return (
             <div key={sub.id || idx} className="bg-white border border-gray-200 rounded-md p-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-gray-700 font-medium">{sub.template_name || 'Submission'}</div>
-                <div className="text-[10px] text-gray-500">{new Date(sub.submitted_at).toLocaleString()} • {sub.submitted_by_name || sub.submitted_by || 'Unknown'}</div>
+                <div className="text-[10px] text-gray-500">{parseDateSafe(sub.submitted_at).toLocaleString()} • {sub.submitted_by_name || sub.submitted_by || 'Unknown'}</div>
               </div>
               <div className="mt-2 grid grid-cols-1 gap-1">
                 {entries.map(([k, v]) => (
@@ -232,6 +265,13 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
             </div>
           );
         })}
+        {history.length > 1 && (
+          <div className="text-center">
+            <span className="text-[10px] text-white/60">
+              {history.length - 1} more record{history.length > 2 ? 's' : ''} available
+            </span>
+          </div>
+        )}
       </div>
     );
   };
@@ -282,96 +322,114 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
             <span className="truncate">{patient.assignedNurse}</span>
           </div>
           
-          {/* Expand/Collapse Button */}
+          {/* Basic Expand/Collapse Button */}
           <button
-            onClick={toggleExpanded}
-            aria-expanded={isExpanded}
+            onClick={toggleBasicExpanded}
+            aria-expanded={expandLevel > 0}
             className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
-            title={isExpanded ? 'Collapse details' : 'Expand details'}
+            title={expandLevel > 0 ? 'Collapse' : 'Expand basic info'}
           >
-            <ChevronDown className={`w-4 h-4 text-white/80 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-white/80 transition-transform ${expandLevel > 0 ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Expanded Details - Animated */}
       <div
-        className={`border-t border-white/10 bg-white/5 overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
-        style={{ maxHeight: isExpanded ? contentHeight + 16 : 0 }}
+        className={`border-t border-white/10 bg-white/5 overflow-hidden transition-all duration-300 ${expandLevel > 0 ? 'opacity-100' : 'opacity-0'}`}
+        style={{ maxHeight: expandLevel > 0 ? contentHeight + 16 : 0 }}
       >
         <div ref={detailsRef} className="p-4 space-y-4">
-            {/* Department */}
-            <div>
-              <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
-                Department
-              </label>
-              <div className="mt-1 flex items-center">
-                <MapPin className="w-3 h-3 text-white/80 mr-2" />
-                <span className="text-xs text-white">{patient.department}</span>
-              </div>
-            </div>
-
-            {/* Patient Details */}
-            <div>
-              <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
-                Patient Info
-              </label>
-              <div className="mt-1 space-y-1">
-                <div className="flex items-center">
-                  <User className="w-3 h-3 text-white/80 mr-2" />
-                  <span className="text-xs text-white">
-                    {patient.age}y, {patient.gender === 'M' ? 'Male' : 'Female'}
-                  </span>
+            {/* Level 1: Basic Info - Always shown when expanded */}
+            {expandLevel >= 1 && (
+              <>
+                {/* Department */}
+                <div>
+                  <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
+                    Department
+                  </label>
+                  <div className="mt-1 flex items-center">
+                    <MapPin className="w-3 h-3 text-white/80 mr-2" />
+                    <span className="text-xs text-white">{patient.department}</span>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <FileText className="w-3 h-3 text-white/80 mr-2" />
-                  <span className="text-xs text-white">MRN: {patient.mrn}</span>
+
+                {/* Patient Details */}
+                <div>
+                  <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
+                    Patient Info
+                  </label>
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center">
+                      <User className="w-3 h-3 text-white/80 mr-2" />
+                      <span className="text-xs text-white">
+                        {patient.age}y, {patient.gender === 'M' ? 'Male' : 'Female'}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <FileText className="w-3 h-3 text-white/80 mr-2" />
+                      <span className="text-xs text-white">MRN: {patient.mrn}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Last Handover */}
-            <div>
-              <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
-                Last Handover
-              </label>
-              <div className="mt-1 flex items-center">
-                <Clock className="w-3 h-3 text-white/80 mr-2" />
-                <span className="text-xs text-white">
-                  {new Date(patient.lastHandover).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {/* Diagnosis/Background */}
-            <div>
-              <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
-                Diagnosis
-              </label>
-              <div className="mt-1 p-2 bg-white rounded-md border border-gray-200">
-                <div className="flex items-start">
-                  <Stethoscope className="w-3 h-3 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-gray-900 leading-relaxed">
-                    {patient.diagnosis}
-                  </span>
+                {/* Last Handover */}
+                <div>
+                  <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
+                    Last Handover
+                  </label>
+                  <div className="mt-1 flex items-center">
+                    <Clock className="w-3 h-3 text-white/80 mr-2" />
+                    <span className="text-xs text-white">
+                      {parseDateSafe(patient.lastHandover).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Submission History */}
-            <div className="pt-2 border-t border-white/10">
-              <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
-                Submission History
-              </label>
-              <div className="mt-2">
-                {renderHistory()}
-              </div>
-            </div>
+                {/* Show Details Button - Only shown at level 1 */}
+                {expandLevel === 1 && (
+                  <div className="pt-3 border-t border-white/10">
+                    <button
+                      onClick={toggleFullExpanded}
+                      className="w-full px-3 py-2 text-[11px] text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>Show Details</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
 
-                        
-            <div className="text-[10px] text-white/70 text-center pt-2">
-              ID: {patient.id}
-            </div>
+            {/* Level 2: Full Details - Only shown on second expand */}
+            {expandLevel >= 2 && (
+              <>
+                {/* Submission History */}
+                <div className="pt-2 border-t border-white/10">
+                  <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
+                    Submission History
+                  </label>
+                  <div className="mt-2">
+                    {renderHistory()}
+                  </div>
+                </div>
+
+                {/* Hide Details Button - Only shown at level 2 */}
+                <div className="pt-3 border-t border-white/10">
+                  <button
+                    onClick={toggleFullExpanded}
+                    className="w-full px-3 py-2 text-[11px] text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>Hide Details</span>
+                    <ChevronDown className="w-3 h-3 rotate-180" />
+                  </button>
+                </div>
+
+                <div className="text-[10px] text-white/70 text-center pt-2">
+                  ID: {patient.id}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

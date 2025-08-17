@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Save, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Save, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { FormTemplate, FormField } from '../../types/formBuilder';
 import { MinimalistMultiSelect } from './MinimalistMultiSelect';
 
@@ -36,6 +36,10 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   // State for section collapse/expand
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
+  // State for MRN auto-population
+  const [mrnLookupLoading, setMrnLookupLoading] = useState(false);
+  const [mrnLookupStatus, setMrnLookupStatus] = useState<string>('');
+
   // Safe access to template properties
   const templateSections = template.sections || [];
   const templateFields = template.fields || [];
@@ -52,6 +56,129 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       return newSet;
     });
   };
+
+  // MRN lookup functionality
+  const lookupPatientByMRN = useCallback(async (mrn: string) => {
+    if (!mrn || mrn.length < 2) return;
+    
+    setMrnLookupLoading(true);
+    setMrnLookupStatus('');
+    
+    try {
+      const response = await fetch(`/api/patient-data/mrn/${encodeURIComponent(mrn)}?department=${encodeURIComponent(template.department || '')}`);
+      
+      if (response.ok) {
+        const patientData = await response.json();
+        
+        // Auto-populate identification fields
+        const fieldsToPopulate = {
+          // Patient Name variations
+          'Patient Name': patientData.patientName,
+          patientName: patientData.patientName,
+          'Patient name': patientData.patientName,
+          patient_name: patientData.patientName,
+          PatientName: patientData.patientName,
+          name: patientData.patientName,
+          Name: patientData.patientName,
+          
+          // MRN variations
+          MRN: patientData.mrn,
+          mrn: patientData.mrn,
+          patient_mrn: patientData.mrn,
+          patientMrn: patientData.mrn,
+          _mrn: patientData.mrn,
+          
+          // Age variations
+          Age: patientData.age,
+          age: patientData.age,
+          AGE: patientData.age,
+          
+          // Gender variations
+          Gender: patientData.gender,
+          gender: patientData.gender,
+          GENDER: patientData.gender,
+          sex: patientData.gender,
+          Sex: patientData.gender,
+          
+          // Bed Number variations
+          BN: patientData.bedNumber,
+          bedNumber: patientData.bedNumber,
+          'Bed Number': patientData.bedNumber,
+          bed_number: patientData.bedNumber,
+          bn: patientData.bedNumber,
+          Bed: patientData.bedNumber,
+          bed: patientData.bedNumber,
+          'Bed No': patientData.bedNumber,
+          bedNo: patientData.bedNumber,
+          
+          // Date of Birth variations
+          dateOfBirth: patientData.dateOfBirth,
+          'Date of Birth': patientData.dateOfBirth,
+          dob: patientData.dateOfBirth,
+          DOB: patientData.dateOfBirth,
+          
+          // Allergies variations
+          allergies: patientData.allergies,
+          Allergies: patientData.allergies,
+          ALLERGIES: patientData.allergies,
+          
+          // Diagnosis variations
+          diagnosis: patientData.diagnosis,
+          Diagnosis: patientData.diagnosis,
+          'Current Diagnosis': patientData.diagnosis,
+          currentDiagnosis: patientData.diagnosis
+        };
+        
+        // Only populate fields that exist in the form and are currently empty
+        const updatedData: Record<string, any> = {};
+        Object.entries(fieldsToPopulate).forEach(([fieldName, value]) => {
+          if (value && templateFields.some(field => field.name === fieldName) && !formData[fieldName]) {
+            updatedData[fieldName] = value;
+          }
+        });
+        
+        if (Object.keys(updatedData).length > 0) {
+          setFormData(prev => ({ ...prev, ...updatedData }));
+          setMrnLookupStatus(`✓ Patient data loaded from ${patientData.source} (${new Date(patientData.lastUpdated).toLocaleDateString()})`);
+        } else {
+          setMrnLookupStatus('✓ MRN found but no new data to populate');
+        }
+      } else if (response.status === 404) {
+        setMrnLookupStatus('No existing patient data found for this MRN');
+      } else {
+        setMrnLookupStatus('Error looking up patient data');
+      }
+    } catch (error) {
+      console.error('MRN lookup error:', error);
+      setMrnLookupStatus('Error connecting to patient database');
+    } finally {
+      setMrnLookupLoading(false);
+    }
+  }, [template.department, templateFields, formData]);
+
+  // Debounced MRN lookup
+  useEffect(() => {
+    const mrnFields = ['mrn', 'MRN', 'patient_mrn', 'patientMrn', '_mrn'];
+    let currentMRN = '';
+    
+    // Find the first MRN field that has a value
+    for (const field of mrnFields) {
+      if (formData[field] && String(formData[field]).trim()) {
+        currentMRN = String(formData[field]).trim();
+        break;
+      }
+    }
+    
+    if (currentMRN && currentMRN.length >= 2) {
+      const timeoutId = setTimeout(() => {
+        lookupPatientByMRN(currentMRN);
+      }, 1000); // 1 second delay
+      
+      return () => clearTimeout(timeoutId);
+    } else {
+      setMrnLookupStatus('');
+    }
+  }, [formData, lookupPatientByMRN]);
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
@@ -135,21 +262,48 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
     switch (field.type) {
       case 'text':
+        // Check if this is an MRN field
+        const isMrnField = ['mrn', 'MRN', 'patient_mrn', 'patientMrn', '_mrn'].includes(field.name);
+        
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
+              {isMrnField && (
+                <span className="ml-2 text-xs text-blue-600">
+                  <Search className="w-3 h-3 inline mr-1" />
+                  Auto-populate
+                </span>
+              )}
             </label>
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
-              placeholder={field.placeholder}
-              disabled={disabled}
-              className={baseInputClass}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => handleInputChange(field.name, e.target.value)}
+                placeholder={field.placeholder}
+                disabled={disabled}
+                className={baseInputClass}
+              />
+              {isMrnField && mrnLookupLoading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                </div>
+              )}
+            </div>
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+            {isMrnField && mrnLookupStatus && (
+              <p className={`text-xs mt-1 ${
+                mrnLookupStatus.startsWith('✓') 
+                  ? 'text-green-600' 
+                  : mrnLookupStatus.includes('Error') || mrnLookupStatus.includes('No existing')
+                    ? 'text-orange-600'
+                    : 'text-gray-600'
+              }`}>
+                {mrnLookupStatus}
+              </p>
+            )}
           </div>
         );
 
@@ -511,7 +665,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
         return (
           <div key={section?.id || 'main'} className="space-y-4">
             {section && (
-              <div className={`border rounded-lg shadow-sm overflow-hidden transition-all duration-200 ${colorScheme.border} ${hasErrors ? 'ring-2 ring-red-200' : ''}`}>
+              <div className={`border rounded-lg shadow-sm overflow-visible transition-all duration-200 ${colorScheme.border} ${hasErrors ? 'ring-2 ring-red-200' : ''}`}>
                 {/* Color accent bar */}
                 <div className={`h-1 ${colorScheme.accent} opacity-60`}></div>
                 

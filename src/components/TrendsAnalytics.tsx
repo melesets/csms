@@ -6,14 +6,19 @@ export const TrendsAnalytics = () => {
   const { user } = useAuth();
   const [records, setRecords] = useState<any[]>([]);
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter'>('month');
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(
+    user?.role === 'admin' ? (user?.department || 'All') : (user?.department || '')
+  );
 
   // Fetch real form submissions from backend
   useEffect(() => {
     const fetchRecords = async () => {
       try {
         let url = '/api/form-submissions';
-        if (user?.role !== 'admin' && user?.department) {
-          url += `?department=${encodeURIComponent(user.department)}`;
+        const dept = user?.role === 'admin' ? selectedDepartment : (user?.department || '');
+        if (dept && dept !== 'All') {
+          url += `?department=${encodeURIComponent(dept)}`;
         }
         const res = await fetch(url);
         if (res.ok) {
@@ -26,12 +31,34 @@ export const TrendsAnalytics = () => {
       }
     };
     fetchRecords();
+  }, [user, selectedDepartment]);
+
+  // Load departments for admin department selector
+  useEffect(() => {
+    const loadDepartments = async () => {
+      if (user?.role !== 'admin') return;
+      try {
+        const res = await fetch('/api/departments');
+        const list = res.ok ? await res.json() : [];
+        setDepartments(['All', ...(Array.isArray(list) ? list : [])]);
+      } catch (e) {
+        setDepartments(['All']);
+      }
+    };
+    loadDepartments();
   }, [user]);
 
-  // Filter records by department for non-admin users
-  const filteredRecords = user?.role === 'admin' 
-    ? records 
-    : records.filter(record => record.template_department === user?.department);
+  // Filter records by department (client-side fallback)
+  const filteredRecords = (() => {
+    if (user?.role === 'admin') {
+      if (selectedDepartment && selectedDepartment !== 'All') {
+        return records.filter(r => (r.template_department || r.department) === selectedDepartment);
+      }
+      return records;
+    }
+    // Non-admin: always scope to user's department
+    return records.filter(r => (r.template_department || r.department) === user?.department);
+  })();
 
   const analytics = useMemo(() => {
     const now = new Date();
@@ -142,10 +169,22 @@ export const TrendsAnalytics = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Analytics & Trends</h2>
           <p className="text-gray-600 mt-1">
-            Clinical insights and patterns for {user?.role === 'admin' ? 'all departments' : user?.department}
+            Clinical insights and patterns for {user?.role === 'admin' ? (selectedDepartment === 'All' ? 'all departments' : selectedDepartment) : user?.department}
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          {user?.role === 'admin' && (
+            <select
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              title="Filter by department"
+            >
+              {departments.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          )}
           <Calendar className="h-4 w-4 text-gray-400" />
           <select
             value={timeframe}

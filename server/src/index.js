@@ -15,6 +15,7 @@ import inventoryReportsRouter from './routes/inventoryReports.js';
 import formTemplatesRouter from './routes/formTemplates.js';
 import formSubmissionsRouter from './routes/formSubmissions.js';
 import departmentStaffRouter from './routes/departmentStaff.js';
+import patientDataRouter from './routes/patientData.js';
 import dashboardMappingsRouter from './routes/dashboardMappings.js';
 
 dotenv.config();
@@ -122,6 +123,7 @@ app.use('/api/inventory-reports', inventoryReportsRouter);
 app.use('/api/form-templates', formTemplatesRouter);
 app.use('/api/form-submissions', formSubmissionsRouter);
 app.use('/api/department-staff', departmentStaffRouter);
+app.use('/api/patient-data', patientDataRouter);
 app.use('/api/dashboard-mappings', dashboardMappingsRouter);
 
 // PostgreSQL connection

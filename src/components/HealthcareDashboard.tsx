@@ -319,7 +319,7 @@ export const HealthcareDashboard: React.FC = () => {
         });
 
         const toShift = (iso: string): 'Morning' | 'Evening' | 'Night' => {
-          const d = new Date(iso);
+          const d = parseDateSafe(iso);
           const h = d.getHours();
           if (h >= 6 && h < 14) return 'Morning';
           if (h >= 14 && h < 22) return 'Evening';
@@ -328,7 +328,7 @@ export const HealthcareDashboard: React.FC = () => {
 
         const roundsGrouped: { Morning: any[]; Evening: any[]; Night: any[] } = { Morning: [], Evening: [], Night: [] };
         roundSubs
-          .sort((a: any, b: any) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+          .sort((a: any, b: any) => parseDateSafe(b.submitted_at).getTime() - parseDateSafe(a.submitted_at).getTime())
           .forEach((sub: any) => {
             const shiftName = toShift(sub.submitted_at);
             roundsGrouped[shiftName].push({
@@ -363,7 +363,7 @@ export const HealthcareDashboard: React.FC = () => {
       // Calculate statistics
       const today = new Date().toDateString();
       const todayHandovers = submissions.filter((s: any) => 
-        new Date(s.submitted_at).toDateString() === today
+        parseDateSafe(s.submitted_at).toDateString() === today
       );
 
       setStats({
@@ -383,6 +383,22 @@ export const HealthcareDashboard: React.FC = () => {
   // Safe JSON parse helper
   const safeParseJSON = (s: any, fallback: any) => {
     try { return typeof s === 'string' ? JSON.parse(s) : s; } catch { return fallback; }
+  };
+
+  // Robust date parser: if timezone is present, trust it; otherwise treat as local time (consistent with patient cards)
+  const parseDateSafe = (iso: string): Date => {
+    if (!iso) return new Date(NaN);
+    const s = String(iso).trim();
+    if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+      return new Date(s.replace(' ', 'T'));
+    }
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?/);
+    if (m) {
+      const [, y, mo, da, h, mi, se, frac] = m as any;
+      const ms = frac ? Math.round(Number('0.' + frac) * 1000) : 0;
+      return new Date(Number(y), Number(mo) - 1, Number(da), Number(h), Number(mi), Number(se || '0'), ms);
+    }
+    return new Date(s.replace(' ', 'T'));
   };
 
   const processPatientHandovers = (submissions: any[], effectiveMappings: DashboardMapping[]): PatientHandover[] => {
@@ -437,6 +453,7 @@ export const HealthcareDashboard: React.FC = () => {
       if (!data) return undefined;
       const candidates = [
         // Explicit form label variations
+        'Name of the nurse', 'Name of The Nurse', 'Name of the Nurse', 'name of the nurse',
         'Name of nurse', 'Name of Nurse', 'name of nurse',
         // Common field names
         'nurseName', 'nurse', 'assignedNurse', 'assigned_nurse', 'nurse_name',
@@ -480,7 +497,7 @@ export const HealthcareDashboard: React.FC = () => {
           const groupVal = getVal(fd, groupBy) || getVal(fd, fields.secondary) || getVal(fd, fields.identifier) || sub.id;
           const key = String(groupVal);
           const prev = latestByGroup.get(key);
-          if (!prev || new Date(sub.submitted_at) > new Date(prev.submitted_at)) {
+          if (!prev || parseDateSafe(sub.submitted_at).getTime() > parseDateSafe(prev.submitted_at).getTime()) {
             latestByGroup.set(key, sub);
           }
         }
@@ -561,7 +578,7 @@ export const HealthcareDashboard: React.FC = () => {
         const patientKey = `${mrn}-${bedNumber}`;
         
         if (!patientMap.has(patientKey) || 
-            new Date(submission.submitted_at) > new Date(patientMap.get(patientKey)!.lastHandover)) {
+            parseDateSafe(submission.submitted_at).getTime() > parseDateSafe(patientMap.get(patientKey)!.lastHandover).getTime()) {
           
           patientMap.set(patientKey, {
             id: patientKey,
@@ -646,20 +663,18 @@ export const HealthcareDashboard: React.FC = () => {
 
   // Derive visible patients: last 24h and by shift
   const isWithinLast24Hours = (iso: string) => {
-    const t = new Date(iso).getTime();
+    const t = parseDateSafe(iso).getTime();
     if (isNaN(t)) return false;
-    // Extended window to last 7 days to avoid hiding mapped patients
-    return Date.now() - t <= 7 * 24 * 60 * 60 * 1000;
+    return Date.now() - t <= 24 * 60 * 60 * 1000;
   };
 
   const fitsShift = (iso: string) => {
     if (shift === 'All') return true;
-    const d = new Date(iso);
+    const d = parseDateSafe(iso);
     if (isNaN(d.getTime())) return false;
     const hour = d.getHours();
     if (shift === 'Morning') return hour >= 6 && hour < 14;
     if (shift === 'Evening') return hour >= 14 && hour < 22;
-    // Night: 22:00 - 06:00 (wrap)
     return hour >= 22 || hour < 6;
   };
 
@@ -675,9 +690,7 @@ export const HealthcareDashboard: React.FC = () => {
 
   const filteredByTimeShift = patients
     .filter(p => isWithinLast24Hours(p.lastHandover) && fitsShift(p.lastHandover));
-  // Fallback: if strict time/shift filter yields none, show all mapped patients
-  const baseList = filteredByTimeShift.length > 0 ? filteredByTimeShift : patients;
-  const visiblePatients = baseList.filter(matchesQuery);
+  const visiblePatients = filteredByTimeShift.filter(matchesQuery);
 
   return (
     <div className="space-y-6">
@@ -1101,7 +1114,7 @@ export const HealthcareDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {new Date(handover.submitted_at).toLocaleString()}
+                    {parseDateSafe(handover.submitted_at).toLocaleString()}
                   </div>
                 </div>
               );
