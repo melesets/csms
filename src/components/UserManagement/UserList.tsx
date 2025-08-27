@@ -43,12 +43,21 @@ export const UserList: React.FC<UserListProps> = ({
     }
   };
 
+  // Check if a user is the hardcoded limited admin
+  const isLimitedAdmin = (user: User) => user.id === 'limited-admin-local';
+
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-900">
           Users ({users.length})
         </h3>
+        <div className="text-sm text-gray-500">
+          <span className="inline-flex items-center">
+            <Shield className="w-4 h-4 text-purple-600 mr-1" />
+            <span>Limited Admin</span>
+          </span>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -90,10 +99,15 @@ export const UserList: React.FC<UserListProps> = ({
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {user.name}
-                        {currentUser?.id === user.id && (
-                          <span className="ml-2 text-xs text-blue-600">(You)</span>
-                        )}
+                        <div className="flex items-center">
+                          {user.name}
+                          {isLimitedAdmin(user) && (
+                            <Shield className="w-3 h-3 ml-1 text-purple-600" />
+                          )}
+                          {currentUser?.id === user.id && (
+                            <span className="ml-2 text-xs text-blue-600">(You)</span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-sm text-gray-500">{user.username}</div>
                       <div className="text-xs text-gray-400">{user.email}</div>
@@ -131,31 +145,35 @@ export const UserList: React.FC<UserListProps> = ({
                 </td>
                 {hasEditPermission && (
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex space-x-2">
                       <button
                         onClick={() => onEdit(user)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Edit user"
+                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-900'}`}
+                        disabled={!hasEditPermission || isLimitedAdmin(user)}
+                        title={isLimitedAdmin(user) ? 'Limited admin cannot be edited' : 'Edit user'}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => onToggleStatus(user.id)}
-                        className={`${user.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}`}
-                        title={user.isActive ? 'Deactivate user' : 'Activate user'}
-                        disabled={currentUser?.id === user.id}
+                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-yellow-600 hover:text-yellow-900'}`}
+                        disabled={!hasEditPermission || isLimitedAdmin(user)}
+                        title={isLimitedAdmin(user) ? 'Limited admin status cannot be changed' : user.isActive ? 'Deactivate user' : 'Activate user'}
                       >
-                        {user.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                        {user.isActive ? (
+                          <UserX className="w-4 h-4" />
+                        ) : (
+                          <UserCheck className="w-4 h-4" />
+                        )}
                       </button>
-                      {currentUser?.id !== user.id && (
-                        <button
-                          onClick={() => onDelete(user.id)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete user"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => onDelete(user.id)}
+                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`}
+                        disabled={!hasEditPermission || isLimitedAdmin(user)}
+                        title={isLimitedAdmin(user) ? 'Limited admin cannot be deleted' : 'Delete user'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 )}

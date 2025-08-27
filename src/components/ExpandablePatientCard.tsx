@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import IsbarLoader from './IsbarLoader';
 import { 
   Bed, 
@@ -10,7 +10,6 @@ import {
   Activity,
   ChevronDown,
   FileText,
-  Stethoscope,
   MapPin
 } from 'lucide-react';
 
@@ -23,28 +22,28 @@ interface PatientHandover {
   stability: 'stable' | 'unstable' | 'critical';
   lastHandover: string;
   assignedNurse: string;
+  assignedPhysician?: string;
+  assignedMidwife?: string;
   diagnosis: string;
   age: number;
   gender: 'M' | 'F';
-  formData?: Record<string, any>;
+  formData?: Record<string, unknown>;
   fieldLabels?: Record<string, string>;
 }
 
 interface ExpandablePatientCardProps {
   patient: PatientHandover;
-  onNewHandover: () => void;
 }
 
 export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
   patient,
-  onNewHandover
 }) => {
   const [expandLevel, setExpandLevel] = useState(0); // 0: collapsed, 1: basic, 2: full
   const detailsRef = React.useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
 
   // Load full submission history on expand
-  const [history, setHistory] = useState<any[] | null>(null);
+  const [history, setHistory] = useState<Record<string, unknown>[] | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
 
@@ -55,37 +54,67 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     return (first + last).toUpperCase();
   };
 
-  const parseDateSafe = (iso: string): Date => {
+  const parseDateSafe = (iso: string | number | Date | null | undefined): Date => {
+    // Accept Date objects directly
     if (!iso) return new Date(NaN);
+    if (iso instanceof Date) return iso;
+    // Numeric epochs (seconds or milliseconds)
+    if (typeof iso === 'number' && !isNaN(iso)) {
+      return iso < 1e12 ? new Date(iso * 1000) : new Date(iso);
+    }
     const s = String(iso).trim();
+    // If looks like a pure number string, try numeric parse
+    if (/^\d+$/.test(s)) {
+      const n = Number(s);
+      return n < 1e12 ? new Date(n * 1000) : new Date(n);
+    }
     // If explicit timezone is provided, trust native parse
     if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
       return new Date(s.replace(' ', 'T'));
     }
-    // If no timezone, treat as local time (common from many backends)
+    // If no timezone, try to parse as local ISO-like string
     const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?/);
     if (m) {
-      const [, y, mo, da, h, mi, se, frac] = m as any;
+      const [, y, mo, da, h, mi, se, frac] = m;
       const ms = frac ? Math.round(Number('0.' + frac) * 1000) : 0;
       return new Date(Number(y), Number(mo) - 1, Number(da), Number(h), Number(mi), Number(se || '0'), ms);
     }
-    // Fallback to native parsing after normalizing space to T
-    return new Date(s.replace(' ', 'T'));
+    // Fallback: try native parse, then try appending Z (UTC) if result is invalid or in future
+    const direct = new Date(s.replace(' ', 'T'));
+    if (!isNaN(direct.getTime())) return direct;
+    const withZ = new Date((s.replace(' ', 'T')) + 'Z');
+    if (!isNaN(withZ.getTime())) return withZ;
+    return new Date(NaN);
   };
 
-  const timeAgo = (iso: string) => {
-    const t = parseDateSafe(iso).getTime();
-    if (isNaN(t)) return '';
-     const deltaMs = Date.now() - t;
-    const delta = Math.max(0, deltaMs);
-    const seconds = Math.floor(delta / 1000);
-    if (seconds < 60) return 'Just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-    const days = Math.floor(hours / 24);
-    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+  const timeAgo = (iso: string | number | Date | null | undefined) => {
+    try {
+      // Normalize to Date
+      const dt = parseDateSafe(iso);
+      if (isNaN(dt.getTime())) return 'Just now';
+
+      // If parsed date is in the future by more than 60s, try treating as UTC
+      const now = Date.now();
+      if (dt.getTime() - now > 60 * 1000) {
+        // try append Z
+        const alt = parseDateSafe(String(iso) + 'Z');
+        if (!isNaN(alt.getTime()) && alt.getTime() <= now) {
+          return timeAgo(alt);
+        }
+      }
+
+      const deltaMs = Math.max(0, now - dt.getTime());
+      const seconds = Math.floor(deltaMs / 1000);
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+      const days = Math.floor(hours / 24);
+      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    } catch {
+      return 'Just now';
+    }
   };
 
   useEffect(() => {
@@ -101,21 +130,72 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     }
   }, [expandLevel, patient, history]);
 
-  const getStabilityColor = (stability: string) => {
-    switch (stability) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-      case 'unstable': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'stable': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const getStabilityIcon = (stability: string) => {
     switch (stability) {
       case 'critical': return <AlertTriangle className="w-3 h-3" />;
       case 'unstable': return <Activity className="w-3 h-3" />;
+      case 'subcritical': return <Activity className="w-3 h-3" />;
       case 'stable': return <CheckCircle className="w-3 h-3" />;
       default: return <Heart className="w-3 h-3" />;
+    }
+  };
+
+  // Derive Patient Condition (Critical, Subcritical, Stable) from form data or fallback to existing stability
+  const getPatientCondition = (): 'critical' | 'subcritical' | 'stable' => {
+    const fd: Record<string, unknown> = patient.formData || {};
+    const labels = patient.fieldLabels || {};
+    // Helper: find a key in formData by label includes
+    const findKeyByLabel = (cands: string[]): string | undefined => {
+      const entries = Object.entries(labels || {});
+      for (const [k, lbl] of entries) {
+        const l = String(lbl || '').toLowerCase();
+        for (const c of cands) {
+          if (l.includes(c.toLowerCase())) return k;
+        }
+      }
+      return undefined;
+    };
+    // Try common key variants directly
+    const directKeys = [
+      'Patient Condition',
+      'patient_condition',
+      'patientCondition',
+      'condition',
+      'Patient status',
+      'patient_status',
+      'status'
+    ];
+    let raw: unknown = undefined;
+    for (const key of directKeys) {
+      if (key in fd) { raw = fd[key]; break; }
+      const ci = Object.keys(fd).find(k => k.toLowerCase() === String(key).toLowerCase());
+      if (ci) { raw = fd[ci]; break; }
+    }
+    // If not found, try via label map
+    if (raw === undefined) {
+      const mappedKey = findKeyByLabel(['patient condition', 'condition', 'status']);
+      if (mappedKey && mappedKey in fd) raw = fd[mappedKey];
+    }
+    if (raw !== undefined) {
+      const norm = String(raw).trim().toLowerCase();
+      if (/(^|\b)critical(\b|$)/.test(norm) || /\bcode\s*red\b/.test(norm)) return 'critical';
+      if (/(^|\b)sub[-\s]?critical(\b|$)/.test(norm) || /\bamber\b/.test(norm) || /\byellow\b/.test(norm)) return 'subcritical';
+      if (/(^|\b)stable(\b|$)/.test(norm) || /\bcode\s*green\b/.test(norm)) return 'stable';
+      // Map alternative synonyms to closest
+      if (/(^|\b)unstable(\b|$)/.test(norm)) return 'subcritical';
+      const n = Number(norm);
+      if (!isNaN(n)) { if (n >= 3) return 'critical'; if (n === 2) return 'subcritical'; return 'stable'; }
+    }
+    // Fallback from existing stability field
+    switch (patient.stability) {
+      case 'critical':
+        return 'critical';
+      case 'unstable':
+        return 'subcritical';
+      case 'stable':
+        return 'stable';
+      default:
+        return 'stable';
     }
   };
 
@@ -124,6 +204,8 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
       case 'critical':
         return 'bg-red-600/20 text-red-300 border-red-500';
       case 'unstable':
+        return 'bg-yellow-500/20 text-yellow-200 border-yellow-400';
+      case 'subcritical':
         return 'bg-yellow-500/20 text-yellow-200 border-yellow-400';
       case 'stable':
         return 'bg-green-600/20 text-green-300 border-green-500';
@@ -140,47 +222,7 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     setExpandLevel(prev => prev === 2 ? 1 : 2); // toggle between basic and full
   };
 
-  const renderAllSubmittedData = () => {
-    const data = patient.formData || {};
-    const entries = Object.entries(data)
-      .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-      .sort((a, b) => {
-        const la = (patient.fieldLabels?.[a[0]] || a[0]).toLowerCase();
-        const lb = (patient.fieldLabels?.[b[0]] || b[0]).toLowerCase();
-        return la.localeCompare(lb);
-      });
-
-    if (entries.length === 0) return null;
-
-    const pretty = (key: string) => {
-      if (patient.fieldLabels && patient.fieldLabels[key]) return patient.fieldLabels[key];
-      return key.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    };
-
-    const renderValue = (val: any) => {
-      if (Array.isArray(val)) return val.join(', ');
-      if (typeof val === 'object') return JSON.stringify(val);
-      return String(val);
-    };
-
-    return (
-      <div>
-        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-          All Submitted Information
-        </label>
-        <div className="mt-2 space-y-1">
-          {entries.map(([key, value]) => (
-            <div key={key} className="flex items-start justify-between bg-white border border-gray-200 rounded px-2 py-1">
-              <span className="text-xs text-gray-600 mr-3 truncate max-w-[50%]">{pretty(key)}</span>
-              <span className="text-xs text-gray-900 text-right break-all max-w-[50%]">{renderValue(value)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const matchesPatient = (fd: any) => {
+  const matchesPatient = useCallback((fd: Record<string, unknown>) => {
     // Prefer MRN match across common variants
     const mrnCandidates = [fd?.mrn, fd?.MRN, fd?.['MRN'], fd?._mrn, fd?.patient_mrn, fd?.patientMrn];
     const mrnMatch = mrnCandidates.some((v) => v !== undefined && String(v).trim() === String(patient.mrn).trim());
@@ -189,33 +231,33 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     const nameCandidates = [fd?.patientName, fd?.['Patient name'], fd?.patient_name];
     const nameMatch = nameCandidates.some((v) => v !== undefined && String(v).trim().toLowerCase() === String(patient.patientName).trim().toLowerCase());
     return nameMatch;
-  };
+  }, [patient.mrn, patient.patientName]);
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       setLoadingHistory(true);
       setHistoryError(null);
       // Fetch all submissions (across all departments) to show complete history for this patient
       const res = await fetch('/api/form-submissions');
-      const data = res.ok ? await res.json() : [];
-      const filtered = (data || []).filter((s: any) => {
-        const fd = s?.form_data || {};
+      const data: Record<string, unknown>[] = res.ok ? await res.json() : [];
+      const filtered = (data || []).filter((s: Record<string, unknown>) => {
+        const fd = (s?.form_data as Record<string, unknown>) || {};
         return matchesPatient(fd);
-      }).sort((a: any, b: any) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
+      }).sort((a: Record<string, unknown>, b: Record<string, unknown>) => new Date(b.submitted_at as string).getTime() - new Date(a.submitted_at as string).getTime());
       setHistory(filtered);
-    } catch (e: any) {
+    } catch {
       setHistory([]);
       setHistoryError('Failed to load submission history');
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [matchesPatient]);
 
   useEffect(() => {
     if (expandLevel === 2 && history === null) {
       loadHistory();
     }
-  }, [expandLevel]);
+  }, [expandLevel, history, loadHistory]);
 
   const renderHistory = () => {
     if (loadingHistory) {
@@ -237,22 +279,22 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
       if (patient.fieldLabels && patient.fieldLabels[key]) return patient.fieldLabels[key];
       return key.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     };
-    const renderValue = (val: any) => {
+    const renderValue = (val: unknown) => {
       if (Array.isArray(val)) return val.join(', ');
-      if (typeof val === 'object') return JSON.stringify(val);
+      if (typeof val === 'object' && val !== null) return JSON.stringify(val);
       return String(val);
     };
 
     return (
       <div className="space-y-3">
-        {history.slice(0, 1).map((sub: any, idx: number) => {
-          const fd = sub.form_data || {};
-          const entries = Object.entries(fd).filter(([_, v]) => v !== undefined && v !== null && v !== '');
+        {history.slice(0, 1).map((sub: Record<string, unknown>, idx: number) => {
+          const fd = (sub.form_data as Record<string, unknown>) || {};
+          const entries = Object.entries(fd).filter(([, v]) => v !== undefined && v !== null && v !== '');
           return (
-            <div key={sub.id || idx} className="bg-white border border-gray-200 rounded-md p-2">
+            <div key={sub.id as string || idx} className="bg-white border border-gray-200 rounded-md p-2">
               <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-700 font-medium">{sub.template_name || 'Submission'}</div>
-                <div className="text-[10px] text-gray-500">{parseDateSafe(sub.submitted_at).toLocaleString()} • {sub.submitted_by_name || sub.submitted_by || 'Unknown'}</div>
+                <div className="text-xs text-gray-700 font-medium">{sub.template_name as string || 'Submission'}</div>
+                <div className="text-[10px] text-gray-500">{parseDateSafe(sub.submitted_at as string).toLocaleString()} • {sub.submitted_by_name as string || sub.submitted_by as string || 'Unknown'}</div>
               </div>
               <div className="mt-2 grid grid-cols-1 gap-1">
                 {entries.map(([k, v]) => (
@@ -285,18 +327,20 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
           <div className="p-1.5 bg-white/10 rounded-md">
             <Bed className="w-4 h-4 text-white" />
           </div>
-          <div className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${getStabilityBadgeClasses(patient.stability)}`}>
+          {(() => { const cond = getPatientCondition(); return (
+          <div className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${getStabilityBadgeClasses(cond)}`}>
             <div className="flex items-center">
-              {getStabilityIcon(patient.stability)}
-              <span className="ml-1 capitalize">{patient.stability}</span>
+              {getStabilityIcon(cond)}
+              <span className="ml-1">{cond === 'critical' ? 'Critical' : cond === 'subcritical' ? 'Subcritical' : 'Stable'}</span>
             </div>
           </div>
+          ); })()}
         </div>
 
         {/* Patient Basic Info */}
         <div className="space-y-1.5">
-          <div className="flex items-center flex-wrap gap-2">
-            <div className="font-semibold text-white text-sm leading-tight truncate uppercase">
+          <div className="flex items-center flex-wrap gap-2 min-w-0">
+            <div className="font-semibold text-white text-sm leading-tight uppercase break-words whitespace-normal">
               {patient.patientName}
             </div>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white border border-white/20">
@@ -309,19 +353,40 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
           
           <div className="flex items-center justify-between text-[11px] text-white/80">
             <span>{patient.age}y, {patient.gender}</span>
-            <span>{timeAgo(patient.lastHandover)}</span>
+            <span title={(() => { const d = parseDateSafe(patient.lastHandover); return isNaN(d.getTime()) ? 'Unknown' : d.toLocaleString(); })()}>
+              {timeAgo(patient.lastHandover)}
+            </span>
           </div>
         </div>
 
-        {/* Assigned Nurse */}
+        {/* Assigned clinician area - only render when mapping/submission supplies a clinician */}
+        {(patient.assignedPhysician || patient.assignedMidwife || patient.assignedNurse) && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
           <div className="flex items-center text-[11px] text-white/80 gap-2">
-            <div className="w-6 h-6 rounded-full bg-white/10 text-white border border-white/20 flex items-center justify-center text-[10px] font-semibold">
-              {getInitials(patient.assignedNurse)}
-            </div>
-            <span className="truncate">{patient.assignedNurse}</span>
+            {patient.assignedPhysician ? (
+              <>
+                <div className="w-6 h-6 rounded-full bg-white/10 text-white border border-white/20 flex items-center justify-center text-[10px] font-semibold">
+                  {getInitials(patient.assignedPhysician)}
+                </div>
+                <span className="truncate">{patient.assignedPhysician}</span>
+              </>
+            ) : patient.assignedMidwife ? (
+              <>
+                <div className="w-6 h-6 rounded-full bg-white/10 text-white border border-white/20 flex items-center justify-center text-[10px] font-semibold">
+                  {getInitials(patient.assignedMidwife)}
+                </div>
+                <span className="truncate">{patient.assignedMidwife}</span>
+              </>
+            ) : (
+              <>
+                <div className="w-6 h-6 rounded-full bg-white/10 text-white border border-white/20 flex items-center justify-center text-[10px] font-semibold">
+                  {getInitials(patient.assignedNurse)}
+                </div>
+                <span className="truncate">{patient.assignedNurse}</span>
+              </>
+            )}
           </div>
-          
+
           {/* Basic Expand/Collapse Button */}
           <button
             onClick={toggleBasicExpanded}
@@ -332,6 +397,7 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
             <ChevronDown className={`w-4 h-4 text-white/80 transition-transform ${expandLevel > 0 ? 'rotate-180' : ''}`} />
           </button>
         </div>
+        )}
       </div>
 
       {/* Expanded Details - Animated */}
@@ -380,8 +446,8 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
                   </label>
                   <div className="mt-1 flex items-center">
                     <Clock className="w-3 h-3 text-white/80 mr-2" />
-                    <span className="text-xs text-white">
-                      {parseDateSafe(patient.lastHandover).toLocaleString()}
+                    <span className="text-xs text-white" title={parseDateSafe(patient.lastHandover).toLocaleString()}>
+                      {timeAgo(patient.lastHandover)}
                     </span>
                   </div>
                 </div>

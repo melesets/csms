@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AuthProvider } from './hooks/useAuth';
 import { ShiftProvider } from './hooks/useShift';
 import { SearchProvider } from './hooks/useSearch';
 import { LoginForm } from './components/Auth/LoginForm';
 import { Layout } from './components/Layout';
 import Dashboard from './components/Dashboard';
-import { ISBARForm } from './components/ISBARForm';
 import { DepartmentStaffManagement } from './components/DepartmentStaff/DepartmentStaffManagement';
 import ResourceManagement from './components/ResourceManagement';
 import { DatabaseRecords } from './components/DatabaseRecords';
@@ -22,6 +21,14 @@ const AppContent = () => {
   const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
 
+  const { hasPermission } = useAuth();
+
+  const deny = (
+    <div className="p-6 text-center text-red-600">Access denied</div>
+  );
+
+  const canView = (module: string) => hasPermission(module, 'view');
+
   if (loading) {
     return <IsbarLoader overlay message="Loading application..." size={96} />;
   }
@@ -33,25 +40,26 @@ const AppContent = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />;
+        return canView('dashboard') ? <Dashboard /> : deny;
       case 'isbar':
-        return <DynamicISBARForm />;
+        return canView('isbar') ? <DynamicISBARForm /> : deny;
       case 'staff':
-        return <DepartmentStaffManagement />;
+        return canView('staff') ? <DepartmentStaffManagement /> : deny;
       case 'resources':
-        return <ResourceManagement />;
+        return canView('resources') ? <ResourceManagement /> : deny;
       case 'database':
-        return <DatabaseRecords />;
+        return canView('database') ? <DatabaseRecords /> : deny;
       case 'trends':
-        return <TrendsAnalytics />;
+        return canView('trends') ? <TrendsAnalytics /> : deny;
       case 'form-builder':
-        return <FormBuilder />;
+        return canView('form-builder') ? <FormBuilder /> : deny;
       case 'dashboard-mapping':
-        return <DashboardFormMapping />;
+        // Permission module name uses plural in limited-admin block: 'dashboard-mappings'
+        return canView('dashboard-mappings') ? <DashboardFormMapping /> : deny;
       case 'user-management':
-        return <UserManagement />;
+        return canView('user-management') ? <UserManagement /> : deny;
       default:
-        return <Dashboard />;
+        return canView('dashboard') ? <Dashboard /> : deny;
     }
   };
 

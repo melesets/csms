@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types/auth';
+import { apiPost } from '../api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -28,26 +29,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string, profession?: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password, profession }),
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
+      // Hardcoded limited-admin login: username 'admin' and password 'admin1954'
+      if (username === 'admin' && password === 'admin1954') {
+        const userData: any = {
+          id: 'limited-admin-local',
+          username: 'admin',
+          name: 'Limited Admin',
+          email: 'limited.admin@local',
+          role: 'admin',
+          department: 'All',
+          profession: 'Admin',
+          isActive: true,
+          // Mark this session as limited admin without changing role union
+          limitedAdmin: true,
+          permissions: [
+            { module: 'dashboard', actions: ['view'] },
+            { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
+            { module: 'staff', actions: ['view', 'create', 'edit', 'delete'] },
+            { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
+            { module: 'database', actions: ['view', 'export'] },
+            { module: 'trends', actions: ['view'] }
+            // excluded: form-builder, user-management, dashboard-mappings
+          ],
+          createdAt: new Date().toISOString()
+        };
         setUser(userData);
         localStorage.setItem('isbar_user', JSON.stringify(userData));
         return true;
-      } else {
-        const error = await response.json().catch(() => ({ error: 'Login failed' }));
-        console.error('Login failed:', error);
-        return false;
       }
-    } catch (error) {
-      console.error('Login error:', error);
+      const userData = await apiPost('/login', { username, password, profession });
+      setUser(userData);
+      localStorage.setItem('isbar_user', JSON.stringify(userData));
+      return true;
+    } catch (e: any) {
+      try {
+        const parsed = typeof e?.message === 'string' ? JSON.parse(e.message) : e;
+        console.error('Login failed:', parsed);
+      } catch {
+        console.error('Login failed:', e);
+      }
       return false;
     }
   };
@@ -57,8 +77,88 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('isbar_user');
   };
 
+  // Frontend-only impersonation: fetch user list, pick target, synthesize permissions
+  const impersonate = async (params: { userId?: string; username?: string }): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/users');
+      if (!res.ok) throw new Error('Failed to load users');
+      const users = await res.json();
+      const target = users.find((u: any) =>
+        (params.userId && String(u.id) === String(params.userId)) ||
+        (params.username && String(u.username) === String(params.username))
+      );
+      if (!target) throw new Error('User not found');
+      const role = String(target.role || '').toLowerCase();
+      let permissions: any[] = [];
+      switch (role) {
+        case 'admin':
+          permissions = [
+            { module: 'dashboard', actions: ['view'] },
+            { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
+            { module: 'staff', actions: ['view', 'create', 'edit', 'delete'] },
+            { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
+            { module: 'database', actions: ['view', 'export'] },
+            { module: 'trends', actions: ['view'] },
+            { module: 'form-builder', actions: ['view', 'create', 'edit', 'delete'] },
+            { module: 'user-management', actions: ['view', 'create', 'edit', 'delete'] }
+          ];
+          break;
+        case 'staff':
+          permissions = [
+            { module: 'dashboard', actions: ['view'] },
+            { module: 'forms', actions: ['edit'] }
+          ];
+          break;
+        case 'viewer':
+          permissions = [
+            { module: 'dashboard', actions: ['view'] }
+          ];
+          break;
+        case 'user':
+          permissions = [
+            { module: 'dashboard', actions: ['view'] },
+            { module: 'isbar', actions: ['view'] },
+            { module: 'staff', actions: ['view'] },
+            { module: 'resources', actions: ['view'] },
+            { module: 'database', actions: ['view'] },
+            { module: 'trends', actions: ['view'] },
+            { module: 'form-builder', actions: ['view'] },
+            { module: 'user-management', actions: [] }
+          ];
+          break;
+        default:
+          permissions = [];
+      }
+      const userData = {
+        id: target.id,
+        username: target.username,
+        name: target.name,
+        email: target.email,
+        role,
+        department: target.department,
+        profession: target.profession,
+        isActive: target.isActive ?? true,
+        permissions,
+        createdAt: target.createdAt
+      } as any;
+      setUser(userData);
+      localStorage.setItem('isbar_user', JSON.stringify(userData));
+      return true;
+    } catch (e) {
+      console.error('Impersonation failed:', e);
+      return false;
+    }
+  };
+
   const hasPermission = (module: string, action?: string): boolean => {
     if (!user || !user.permissions) return false;
+
+    // Limited admin (hardcoded session) is blocked for select modules
+    if ((user as any).limitedAdmin) {
+      const blocked = new Set(['form-builder', 'dashboard-mappings', 'user-management']);
+      if (blocked.has(module)) return false;
+      return true;
+    }
 
     // Admin has all permissions
     if (user.role === 'admin') return true;
@@ -91,6 +191,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       'user-management': ['admin']
     };
 
+    // Hardcoded limited admin: block specific pages regardless of role
+    if ((user as any).limitedAdmin) {
+      if (['form-builder', 'user-management', 'dashboard-mappings'].includes(page)) return false;
+    }
+
     const allowedRoles = pageAccess[page] || [];
     return allowedRoles.includes(user.role);
   };
@@ -105,6 +210,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     login,
     logout,
+    impersonate,
     hasPermission,
     canAccessPage,
     getUserDepartmentFilter,

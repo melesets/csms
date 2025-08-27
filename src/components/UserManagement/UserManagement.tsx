@@ -9,11 +9,38 @@ export const UserManagement = () => {
   const { user: currentUser, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   
-  // Fetch users from backend on mount
+  // Hardcoded limited admin user
+  const limitedAdminUser = {
+    id: 'limited-admin-local',
+    username: 'admin',
+    name: 'Limited Admin',
+    email: 'limited.admin@local',
+    role: 'admin',
+    department: 'All',
+    profession: 'Admin',
+    isActive: true,
+    limitedAdmin: true,
+    lastLogin: new Date().toISOString(),
+    permissions: [
+      { module: 'dashboard', actions: ['view'] },
+      { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
+      { module: 'staff', actions: ['view', 'create', 'edit', 'delete'] },
+      { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
+      { module: 'database', actions: ['view', 'export'] },
+      { module: 'trends', actions: ['view'] }
+    ]
+  };
+
+  // Fetch users from backend on mount and add hardcoded limited admin
   React.useEffect(() => {
     fetch('/api/users')
       .then(res => res.ok ? res.json() : [])
-      .then(data => setUsers(data || []));
+      .then(data => {
+        // Filter out any existing limited admin to avoid duplicates
+        const filteredData = (data || []).filter((u: any) => u.id !== 'limited-admin-local');
+        // Add the hardcoded limited admin
+        setUsers([limitedAdminUser, ...filteredData]);
+      });
   }, []);
   
   const [showForm, setShowForm] = useState(false);

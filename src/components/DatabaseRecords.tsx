@@ -1,37 +1,7 @@
-
-import { useState, useEffect } from 'react';
-// Fetch all active templates for dropdown filter
-function useTemplates(department?: string) {
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [refresh, setRefresh] = useState(0);
-  // Expose a function to trigger refresh
-  const refetch = () => setRefresh(r => r + 1);
-  useEffect(() => {
-    if (department) {
-      fetch('/api/form-templates')
-        .then(res => res.ok ? res.json() : [])
-        .then(data => {
-          if (Array.isArray(data)) {
-            setTemplates(data.filter((t: any) => t.department === department && t.is_active).map((t: any) => ({
-              ...t,
-              id: t.id.toString(),
-              fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
-              sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || []))
-            })));
-          } else {
-            setTemplates([]);
-          }
-        });
-    } else {
-      setTemplates([]);
-    }
-  }, [department, refresh]);
-  return [templates, refetch] as const;
-}
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import IsbarLoader from './IsbarLoader';
 import { Search, Calendar } from 'lucide-react';
-import { toEthiopian as toEthDate } from 'ethiopian-date';
 
 // Simple Ethiopian to Gregorian conversion (approximate, for filtering)
 function ethiopianToGregorian(ethYear: number, ethMonth: number, ethDay: number): [number, number, number] {
@@ -99,9 +69,83 @@ export const DatabaseRecords = () => {
   const [rawRecord, setRawRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [templates, refetchTemplates] = useTemplates(user?.department);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Build template options from submissions so dropdown is never empty
+  const submissionTemplates = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; department?: string }>();
+    for (const rec of records) {
+      const rawId = rec?.template_id ?? rec?.form_id ?? rec?.formId;
+      // Prefer numeric id when available, otherwise fall back to template_name so dropdown is always populated
+      const id: string | undefined = rawId != null ? String(rawId) : (rec?.template_name ? String(rec.template_name) : undefined);
+      if (!id) continue;
+      const name: string = rec?.template_name ?? `Form ${id}`;
+      const department: string | undefined = rec?.template_department ?? rec?.department;
+      if (!map.has(id)) {
+        map.set(id, { id, name, department });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [records]);
+
+  // Helper: record matches current template selection
+  const matchesSelectedTemplate = (rec: any): boolean => {
+    if (!selectedTemplateId) return true;
+    // Match by numeric id if selected is numeric
+    const isNumeric = /^\d+$/.test(selectedTemplateId);
+    if (isNumeric) {
+      const rid = rec?.template_id ?? rec?.form_id ?? rec?.formId;
+      return String(rid ?? '') === selectedTemplateId;
+    }
+    // Otherwise match by template name
+    const name: string = rec?.template_name ?? '';
+    return String(name || '').toLowerCase() === selectedTemplateId.toLowerCase();
+  };
+
+  // Build department options based on selected template
+  const relatedDepartments = useMemo(() => {
+    const set = new Set<string>();
+    for (const rec of records) {
+      if (!matchesSelectedTemplate(rec)) continue;
+      const dep: string | undefined = rec?.template_department ?? rec?.submitted_by_department ?? rec?.department;
+      if (dep) set.add(String(dep));
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [records, selectedTemplateId]);
+
+  // Reset department if it no longer exists under the selected template
+  useEffect(() => {
+    if (selectedDepartment && !relatedDepartments.includes(selectedDepartment)) {
+      setSelectedDepartment('');
+    }
+  }, [relatedDepartments, selectedDepartment]);
+
+  // Build user options based on selected template and department
+  const relatedUsers = useMemo(() => {
+    const set = new Set<string>();
+    for (const rec of records) {
+      if (!matchesSelectedTemplate(rec)) continue;
+      if (selectedDepartment) {
+        const dep: string | undefined = rec?.template_department ?? rec?.submitted_by_department ?? rec?.department;
+        if (!dep || String(dep) !== selectedDepartment) continue;
+      }
+      const userVal: string | undefined = rec?.submitted_by ?? rec?.created_by ?? rec?.createdBy ?? rec?.submittedBy ?? rec?.user;
+      if (userVal) set.add(String(userVal));
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [records, selectedTemplateId, selectedDepartment]);
+
+  // Reset user if it no longer exists under the selected template/department
+  useEffect(() => {
+    if (selectedUser && !relatedUsers.includes(selectedUser)) {
+      setSelectedUser('');
+    }
+  }, [relatedUsers, selectedUser]);
+
   // Fetch records from backend API
   useEffect(() => {
     const fetchRecords = async () => {
@@ -111,7 +155,11 @@ export const DatabaseRecords = () => {
         let url = '/api/form-submissions';
         let params: any = {};
         if (selectedTemplateId) {
-          params.formId = selectedTemplateId;
+          // Only pass numeric formId to backend if selection is numeric; otherwise rely on client-side filter
+          const maybeNum = Number(selectedTemplateId);
+          if (!isNaN(maybeNum) && isFinite(maybeNum)) {
+            params.formId = selectedTemplateId;
+          }
         }
         if (searchTerm) params.search = searchTerm;
         if (dateFrom) {
@@ -162,16 +210,38 @@ export const DatabaseRecords = () => {
       }
     };
     fetchRecords();
-  }, [searchTerm, dateFrom, dateTo, user, selectedTemplateId]);
+  }, [searchTerm, dateFrom, dateTo, user, selectedTemplateId, refreshKey]);
 
   let baseRecords: any[] = records;
 
   // Filter by selected template if set
   let filteredRecords = baseRecords;
   if (selectedTemplateId) {
-    filteredRecords = filteredRecords.filter(
-      (rec: any) => rec.template_id === Number(selectedTemplateId)
-    );
+    const selectedNum = Number(selectedTemplateId);
+    const isNumericSel = !isNaN(selectedNum) && isFinite(selectedNum);
+    filteredRecords = filteredRecords.filter((rec: any) => {
+      const recId = rec?.template_id ?? rec?.form_id ?? rec?.formId;
+      const recName = rec?.template_name;
+      if (isNumericSel) {
+        return Number(recId) === selectedNum;
+      }
+      // Non-numeric selection: match by template_name (case-insensitive)
+      return typeof recName === 'string' && recName.toLowerCase() === selectedTemplateId.toLowerCase();
+    });
+  }
+  // Filter by selected department
+  if (selectedDepartment) {
+    filteredRecords = filteredRecords.filter((rec: any) => {
+      const dept = rec?.template_department || rec?.submitted_by_department || rec?.department;
+      return typeof dept === 'string' && dept.toLowerCase() === selectedDepartment.toLowerCase();
+    });
+  }
+  // Filter by selected user
+  if (selectedUser) {
+    filteredRecords = filteredRecords.filter((rec: any) => {
+      const userName = rec?.submitted_by || rec?.created_by || rec?.createdBy || rec?.submittedBy || rec?.user;
+      return typeof userName === 'string' && userName.toLowerCase() === selectedUser.toLowerCase();
+    });
   }
   // Always show only the latest 50 records (by submitted_at or created_at desc)
   filteredRecords = filteredRecords
@@ -182,6 +252,22 @@ export const DatabaseRecords = () => {
       return bDate - aDate;
     })
     .slice(0, 50);
+
+  // Helper to get stable record id
+  const getRecordId = (rec: any, idx: number): string => {
+    const base = rec?.id ?? `${rec?.template_id ?? rec?.form_id ?? rec?.formId ?? 'form'}_${rec?.submitted_at ?? rec?.created_at ?? rec?.createdAt ?? rec?.timestamp ?? idx}`;
+    return String(base);
+  };
+
+  // selection helpers (defined later after dateFilteredRecords)
+  const toggleRow = (rec: any, idx: number) => {
+    const id = getRecordId(rec, idx);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
   // Always show these columns for dynamic records:
   // id, template_name, template_department, submitted_by, submitted_at, ...form_data fields
   // Get all unique keys from form_data fields for dynamic records
@@ -237,8 +323,25 @@ export const DatabaseRecords = () => {
     dateFilteredRecords = dateFilteredRecords.slice(0, 50);
   }
 
+  // selection helpers for current view (use currently displayed rows after date filtering and limiting)
+  const displayedRecords = dateFilteredRecords;
+  const isAllSelected = displayedRecords.length > 0 && displayedRecords.every((rec: any, idx: number) => selectedIds.has(getRecordId(rec, idx)));
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (isAllSelected) {
+        displayedRecords.forEach((rec: any, idx: number) => next.delete(getRecordId(rec, idx)));
+      } else {
+        displayedRecords.forEach((rec: any, idx: number) => next.add(getRecordId(rec, idx)));
+      }
+      return next;
+    });
+  };
+
   const exportToCSV = () => {
     if (dateFilteredRecords.length === 0) return;
+    const ok = window.confirm(`Export ${dateFilteredRecords.length} currently displayed record(s) to CSV?`);
+    if (!ok) return;
     const keys = Object.keys(dateFilteredRecords[0]);
     const csvRows = [keys.join(',')];
     dateFilteredRecords.forEach(rec => {
@@ -254,10 +357,42 @@ export const DatabaseRecords = () => {
     document.body.removeChild(link);
   };
 
-  const handleDelete = (id: string) => {
-    // Implement your delete logic here
-    alert('Delete record with id: ' + id);
-    refetchTemplates(); // Refetch templates after delete (if needed)
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    // Collect ids of currently displayed records that are selected and have a real numeric/string id
+    const idsToDelete: string[] = [];
+    displayedRecords.forEach((rec: any, idx: number) => {
+      const selKey = getRecordId(rec, idx);
+      if (selectedIds.has(selKey) && rec?.id != null) idsToDelete.push(String(rec.id));
+    });
+    if (idsToDelete.length === 0) return;
+    const ok = window.confirm(`Delete ${idsToDelete.length} record(s) permanently?`);
+    if (!ok) return;
+    try {
+      // Perform deletes sequentially to simplify error handling
+      for (const id of idsToDelete) {
+        const res = await fetch(`/api/form-submissions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(await res.text());
+      }
+      // Clear selection and refresh list
+      setSelectedIds(new Set());
+      setRefreshKey(k => k + 1);
+    } catch (e: any) {
+      alert('Failed to delete some records: ' + (e?.message || e));
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!id) return;
+    const ok = window.confirm('Delete this record permanently?');
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/form-submissions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      setRefreshKey(k => k + 1);
+    } catch (e: any) {
+      alert('Failed to delete: ' + (e?.message || e));
+    }
   };
 
   // Refetch templates after activation (listen for custom event or poll, or add a button if needed)
@@ -271,101 +406,134 @@ export const DatabaseRecords = () => {
             {user?.role === 'admin' ? 'all departments' : user?.department || 'General'}
           </p>
         </div>
-        <button
-          onClick={exportToCSV}
-          className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg ml-4"
-        >
-          Export CSV
-        </button>
       </div>
 
-      {/* Search and Filters */}
+      {/* Selection Actions and Filters */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="flex flex-wrap gap-4 mb-4">
-        {/* Template filter dropdown */}
-        {/* Template filter dropdown */}
-        <div className="flex items-center gap-2">
-          <label className="font-medium text-gray-700">Template:</label>
-          <select
-            value={selectedTemplateId}
-            onChange={e => setSelectedTemplateId(e.target.value)}
-            className="border rounded px-2 py-1"
-          >
-            <option value="">All Templates</option>
-            {templates.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+        <div className="space-y-4">
+          {/* Row: Template */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
+              <button onClick={exportToCSV} disabled={dateFilteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${dateFilteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
+              <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
+            </div>
+            <div className="w-full">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Template</label>
+              <select value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                <option value="">All Templates</option>
+                {submissionTemplates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}{t.department ? ` (${t.department})` : ''}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {/* Row: Department (options related to selected template) */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
+              <button onClick={exportToCSV} disabled={dateFilteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${dateFilteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
+              <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
+            </div>
+            <div className="w-full">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
+              <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                <option value="">All Departments</option>
+                {relatedDepartments.map(dep => (
+                  <option key={dep} value={dep}>{dep}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {/* Row: User (options related to selected template and department) */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
+              <button onClick={exportToCSV} disabled={dateFilteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${dateFilteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
+              <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
+            </div>
+            <div className="w-full">
+              <label className="block text-xs font-medium text-gray-600 mb-1">User</label>
+              <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                <option value="">All Users</option>
+                {relatedUsers.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {/* Row: Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
+              <button onClick={exportToCSV} className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Export</button>
+              <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
+            </div>
+            <div className="w-full">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input type="text" placeholder="Search by any field..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+            </div>
+          </div>
+          {/* Row: Date From (Eth) */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
+              <button onClick={exportToCSV} className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Export</button>
+              <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
+            </div>
+            <div className="w-full">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date From (Eth)</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input type="text" placeholder="DD-MM-YYYY" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              {dateFrom && (() => {
+                const [d, m, y] = dateFrom.split('-').map(Number);
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                  try {
+                    const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
+                    return (
+                      <div className="text-xs text-gray-500 mt-1">Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}</div>
+                    );
+                  } catch {}
+                }
+                return null;
+              })()}
+            </div>
+          </div>
+          {/* Row: Date To (Eth) */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 shrink-0">
+              <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
+              <button onClick={exportToCSV} className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Export</button>
+              <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
+            </div>
+            <div className="w-full">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date To (Eth)</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input type="text" placeholder="DD-MM-YYYY" value={dateTo} onChange={e => setDateTo(e.target.value)} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              {dateTo && (() => {
+                const [d, m, y] = dateTo.split('-').map(Number);
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                  try {
+                    const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
+                    return (
+                      <div className="text-xs text-gray-500 mt-1">Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}</div>
+                    );
+                  } catch {}
+                }
+                return null;
+              })()}
+            </div>
+          </div>
         </div>
-          {/* Removed Show: dropdown and recordType selector */}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          {/* Stability filter removed */}
-          {/* Date From (Ethiopian) */}
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="DD-MM-YYYY (Eth)"
-                value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            {dateFrom && (() => {
-              const [d, m, y] = dateFrom.split('-').map(Number);
-              if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-                try {
-                  const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
-                  return (
-                    <div className="text-xs text-gray-500 mt-1">
-                      Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}
-                    </div>
-                  );
-                } catch {}
-              }
-              return null;
-            })()}
-          </div>
-          {/* Date To (Ethiopian) */}
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="DD-MM-YYYY (Eth)"
-                value={dateTo}
-                onChange={e => setDateTo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            {dateTo && (() => {
-              const [d, m, y] = dateTo.split('-').map(Number);
-              if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-                try {
-                  const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
-                  return (
-                    <div className="text-xs text-gray-500 mt-1">
-                      Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}
-                    </div>
-                  );
-                } catch {}
-              }
-              return null;
-            })()}
-          </div>
-          <div className="text-sm text-gray-500 flex items-center">
-            <span className="font-medium text-gray-900">{filteredRecords.length}</span> records found
-          </div>
+        <div className="mt-4 text-sm text-gray-500 text-right">
+          <span className="font-medium text-gray-900">{filteredRecords.length}</span> records found
         </div>
       </div>
 
@@ -391,6 +559,9 @@ export const DatabaseRecords = () => {
           <table className="min-w-full border text-xs">
             <thead className="bg-gray-100">
               <tr>
+                <th className="px-2 py-1 border w-8">
+                  <input type="checkbox" checked={isAllSelected} onChange={toggleSelectAll} />
+                </th>
                 {allKeys.map(key => (
                   <th key={key} className="px-2 py-1 border">{escape(key)}</th>
                 ))}
@@ -400,6 +571,13 @@ export const DatabaseRecords = () => {
             <tbody>
               {dateFilteredRecords.map((record, idx) => (
                 <tr key={record.id || idx} className="hover:bg-blue-50">
+                  <td className="px-2 py-1 border text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(getRecordId(record, idx))}
+                      onChange={() => toggleRow(record, idx)}
+                    />
+                  </td>
                   {allKeys.map(key => {
                     let value;
                     if (key in record) {

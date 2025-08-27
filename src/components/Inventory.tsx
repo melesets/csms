@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useShift } from '../hooks/useShift';
 
 type Shift = 'Morning' | 'Evening' | 'Night';
 
@@ -11,7 +12,7 @@ interface InventoryReport {
 }
 
 const Inventory: React.FC = () => {
-  const [shift, setShift] = useState<Shift>('Morning');
+  const { shift } = useShift();
   const [staffName, setStaffName] = useState('');
   const [resources] = useState<any[]>([]); // Placeholder for resource data
   const [lastReport, setLastReport] = useState<InventoryReport | null>(() => {
@@ -54,11 +55,7 @@ const Inventory: React.FC = () => {
       <div className="mb-4 flex gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Shift</label>
-          <select value={shift} onChange={e => setShift(e.target.value as Shift)} className="border rounded px-2 py-1">
-            <option value="Morning">Morning</option>
-            <option value="Evening">Evening</option>
-            <option value="Night">Night</option>
-          </select>
+          <div className="border rounded px-2 py-1 bg-gray-100">{shift}</div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Staff Name</label>

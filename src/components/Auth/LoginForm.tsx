@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, LogIn, Stethoscope } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { apiGet } from '../../api';
 
 export const LoginForm = () => {
   const [username, setUsername] = useState('');
@@ -9,19 +10,57 @@ export const LoginForm = () => {
   const [profession, setProfession] = useState('Nurse');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setInfo('');
+
+    // Pre-flight: ensure backend + DB are ready
+    const maxAttempts = 12; // up to ~60s
+    const delayMs = 5000;
+    let attempt = 0;
+    while (attempt < maxAttempts) {
+      try {
+        await apiGet('/test-db');
+        break; // ready
+      } catch {
+        attempt++;
+        if (import.meta.env.DEV) {
+          setInfo(`Server starting… retrying (${attempt}/${maxAttempts})`);
+        }
+        if (attempt >= maxAttempts) {
+          setIsLoading(false);
+          setInfo('');
+          setError('Service temporarily unavailable. Please try again shortly.');
+          return;
+        }
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
 
     const success = await login(username, password, profession);
-    
     if (!success) {
-      setError('Invalid username or password');
+      // Distinguish service unavailability from invalid credentials
+      try {
+        const health: any = await apiGet('/health');
+        if (!health?.ready) {
+          setError('Service temporarily unavailable. Please try again shortly.');
+        } else {
+          setError('Invalid username or password');
+        }
+      } catch (e: any) {
+        if ((e as any)?.status === 503) {
+          setError('Service temporarily unavailable. Please try again shortly.');
+        } else {
+          setError('Invalid username or password');
+        }
+      }
     }
-    
+
     setIsLoading(false);
   };
 
@@ -95,6 +134,12 @@ export const LoginForm = () => {
               <option value="Admin">Admin</option>
             </select>
           </div>
+
+          {import.meta.env.DEV && info && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-700">{info}</p>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">

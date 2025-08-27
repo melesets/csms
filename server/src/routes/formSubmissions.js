@@ -1,14 +1,6 @@
 import express from 'express';
-import { Pool } from 'pg';
+import pool from '../pool.js';
 const router = express.Router();
-
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: process.env.PGPORT,
-});
 
 // POST: Submit a new form record
 router.post('/', async (req, res) => {
@@ -54,7 +46,7 @@ router.post('/', async (req, res) => {
 
 // GET: Fetch submissions with filtering
 router.get('/', async (req, res) => {
-  const { formId, department, user, limit } = req.query;
+  const { formId, department, user, limit, timeframe } = req.query;
   
   try {
     let query = `
@@ -73,7 +65,7 @@ router.get('/', async (req, res) => {
 
     if (department) {
       // Use proper parameter placeholders for both comparisons and advance index correctly
-      query += ` AND (s.template_department = ${idx} OR t.department = ${idx + 1})`;
+      query += ` AND (s.template_department = $${idx} OR t.department = $${idx + 1})`;
       params.push(department, department);
       idx += 2;
     }
@@ -81,6 +73,17 @@ router.get('/', async (req, res) => {
     if (user) {
       query += ` AND s.submitted_by = $${idx++}`;
       params.push(user);
+    }
+
+    // Optional timeframe filter: week|month|quarter
+    if (timeframe) {
+      const tf = String(timeframe).toLowerCase();
+      const days = tf === 'week' ? 7 : tf === 'month' ? 30 : tf === 'quarter' ? 90 : null;
+      if (days) {
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        query += ` AND s.submitted_at >= $${idx++}`;
+        params.push(cutoff.toISOString());
+      }
     }
 
     query += ' ORDER BY s.submitted_at DESC';

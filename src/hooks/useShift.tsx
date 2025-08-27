@@ -10,14 +10,12 @@ interface ShiftContextType {
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 
 export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [shift, setShift] = useState<ShiftType>('All');
+  const [shift, setShift] = useState<ShiftType>(() => {
+  const storedShift = localStorage.getItem('isbar_shift') as ShiftType;
+  return storedShift || 'All';
+});
 
-  useEffect(() => {
-    const saved = localStorage.getItem('isbar_shift');
-    if (saved === 'Morning' || saved === 'Evening' || saved === 'Night' || saved === 'All') {
-      setShift(saved);
-    }
-  }, []);
+  
 
   useEffect(() => {
     localStorage.setItem('isbar_shift', shift);
@@ -35,5 +33,3 @@ export const useShift = (): ShiftContextType => {
   if (!ctx) throw new Error('useShift must be used within a ShiftProvider');
   return ctx;
 };
-
-

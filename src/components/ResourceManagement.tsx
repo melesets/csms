@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiPost, apiGet } from '../api';
 import { Package, Pen, Flag, AlertTriangle, MinusCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useShift } from '../hooks/useShift';
 import { Resource } from '../types';
 // import { Layout } from './Layout';
 function ResourceManagement() {
@@ -9,8 +10,20 @@ function ResourceManagement() {
   const [resources, setResources] = useState<Resource[]>([]);
   // (removed duplicate filteredResources, see below for correct version)
   const [staff, setStaff] = useState<{ id: string; name: string; department?: string; role?: string }[]>([]);
+  // Sync selectedShift with global shift context (tabs)
+  const { shift: globalShift } = useShift();
   const [selectedShift, setSelectedShift] = useState('Morning');
+  useEffect(() => {
+    // If tabs set shift to 'All', keep user's manual selection; otherwise follow tab
+    const resolved = globalShift && globalShift !== 'All' ? globalShift : selectedShift;
+    setSelectedShift(resolved as any);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalShift]);
   const [selectedStaff, setSelectedStaff] = useState('');
+  // Admin-only filters for viewing inventory
+  const [deptFilter, setDeptFilter] = useState<string>('');
+  const [userFilter, setUserFilter] = useState<string>('');
+  const [reports, setReports] = useState<any[]>([]);
   // Fetch staff for reporting dropdown (from department staff register)
   useEffect(() => {
     const fetchStaff = async () => {
@@ -58,6 +71,35 @@ function ResourceManagement() {
     };
     fetchResources();
   }, []);
+
+  // Fetch inventory reports (for viewing snapshots per user/department)
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const url = deptFilter ? `/api/inventory-reports?department=${encodeURIComponent(deptFilter)}` : '/api/inventory-reports';
+        const data = await apiGet(url);
+        setReports(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setReports([]);
+      }
+    };
+    fetchReports();
+  }, [deptFilter]);
+
+  // Refresh reports when saved elsewhere
+  useEffect(() => {
+    const onSaved = () => {
+      (async () => {
+        try {
+          const url = deptFilter ? `/api/inventory-reports?department=${encodeURIComponent(deptFilter)}` : '/api/inventory-reports';
+          const data = await apiGet(url);
+          setReports(Array.isArray(data) ? data : []);
+        } catch {}
+      })();
+    };
+    window.addEventListener('inventory_report_saved', onSaved);
+    return () => window.removeEventListener('inventory_report_saved', onSaved);
+  }, [deptFilter]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -123,6 +165,14 @@ function ResourceManagement() {
         }
         updated = await res.json();
         setResources((prev) => prev.map(r => r.id === editResourceId ? updated : r));
+        // Refetch to ensure full consistency with DB
+        try {
+          const fres = await fetch('/api/resources');
+          if (fres.ok) {
+            const list = await fres.json();
+            setResources(list);
+          }
+        } catch {}
       } else {
         res = await fetch('/api/resources', {
           method: 'POST',
@@ -135,6 +185,14 @@ function ResourceManagement() {
         }
         updated = await res.json();
         setResources((prev) => [...prev, updated]);
+        // Refetch to ensure full consistency with DB
+        try {
+          const fres = await fetch('/api/resources');
+          if (fres.ok) {
+            const list = await fres.json();
+            setResources(list);
+          }
+        } catch {}
       }
       setNewResource({ name: '', type: 'Drug', quantity: '', standardQuantity: '', unit: '', expiredDate: '', batchNumber: '' });
       setShowModal(false);
@@ -147,10 +205,17 @@ function ResourceManagement() {
     }
   };
 
-  // Filtered and searched resources, and by department for non-admin users
-  const filteredResources = resources
-    .filter(resource => user?.role === 'admin' || resource.department === user?.department)
-    .filter(resource => {
+  // Determine target department context
+  const targetDepartment = user?.role === 'admin' ? (deptFilter || '') : (user?.department || '');
+
+  // Live resources filtered by department (admins can choose dept, others are fixed)
+  const liveDeptScoped = resources.filter(r =>
+    user?.role === 'admin' ? (!targetDepartment || r.department === targetDepartment) : r.department === user?.department
+  );
+
+  // Helper to apply search/type filters to a given list
+  const applySearchAndType = (list: Resource[]) => {
+    return list.filter(resource => {
       const matchesType = filterType === 'All' || resource.type === filterType;
       const searchLower = search.toLowerCase();
       const matchesSearch =
@@ -159,6 +224,25 @@ function ResourceManagement() {
         (resource.batch_number ? resource.batch_number.toLowerCase().includes(searchLower) : false);
       return matchesType && matchesSearch;
     });
+  };
+
+  // If a user is selected for viewing, show the latest report snapshot for that user and department
+  const latestReportForUser = (() => {
+    if (!userFilter) return null;
+    const dept = targetDepartment || user?.department || '';
+    const candidates = (reports || []).filter((r: any) => (
+      (!dept || r.department === dept) && (String(r.staffName || '').toLowerCase() === String(userFilter).toLowerCase())
+    ));
+    if (candidates.length === 0) return null;
+    // newest by date
+    candidates.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return candidates[0];
+  })();
+
+  const reportResourcesRaw: Resource[] = latestReportForUser?.resources || [];
+  const filteredReportResources = applySearchAndType(reportResourcesRaw as any);
+  const filteredLiveResources = applySearchAndType(liveDeptScoped);
+  const filteredResources = userFilter ? filteredReportResources : filteredLiveResources;
 
   // Inline quantity save handler
   const handleQuantityEdit = (resource: Resource) => {
@@ -192,87 +276,126 @@ function ResourceManagement() {
   return (
     <div>
       <div className="p-6">
-        {/* Reporting Mechanism UI */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-4 items-center w-full md:w-auto">
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">Shift</label>
-              <select
-                value={selectedShift}
-                onChange={e => setSelectedShift(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-gray-50"
-              >
-                <option value="Morning">Morning</option>
-                <option value="Evening">Evening</option>
-                <option value="Night">Night</option>
-              </select>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">Name of Nurse/Midwife</label>
-              <div className="flex items-center gap-2">
+        {/* Reporting Mechanism UI (non-admin only) */}
+        {user?.role !== 'admin' && (
+          <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-4 items-center w-full md:w-auto">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">Shift</label>
                 <select
-                  value={selectedStaff}
-                  onChange={e => setSelectedStaff(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-gray-50 min-w-[180px]"
+                  value={selectedShift}
+                  onChange={e => setSelectedShift(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-gray-50"
                 >
-                  <option value="">Select Staff</option>
-                  {staff
-                    .filter(s => !user?.department || s.department === user.department)
-                    .map(s => (
-                      <option key={s.id} value={s.name}>{s.name} {s.department ? `(${s.department})` : ''}</option>
-                    ))}
+                  <option value="Morning">Morning</option>
+                  <option value="Evening">Evening</option>
+                  <option value="Night">Night</option>
                 </select>
-                <button
-                  className="ml-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow"
-                  onClick={async () => {
-                    if (!selectedStaff) return;
-                    if (!resources || resources.length === 0) {
-                      alert('No resources to save in the report.');
-                      return;
-                    }
-                    const now = new Date();
-                    // Save report to backend
-                    const selectedStaffData = staff.find(s => s.name === selectedStaff);
-                    const deptResources = resources.filter(r => user?.role === 'admin' || r.department === user?.department);
-                    const report = {
-                      shift: selectedShift,
-                      staffName: selectedStaff,
-                      staffId: selectedStaffData?.id ? parseInt(selectedStaffData.id) : null,
-                      department: user?.department || '',
-                      date: now.toISOString(),
-                      resources: deptResources.map(r => ({ ...r }))
-                    };
-                    console.log('Saving inventory report:', report);
-                    try {
-                      await apiPost('/inventory-reports', report);
-                      window.dispatchEvent(new Event('inventory_report_saved'));
-                      // Trigger dashboard refresh
-                      window.dispatchEvent(new Event('dashboard_refresh'));
-                      alert('Report saved successfully!');
-                      // Optionally refresh the current page's resources
-                      const fetchResources = async () => {
-                        try {
-                          const data = await apiGet('/resources');
-                          setResources(data);
-                        } catch (err) {
-                          console.error('Failed to refresh resources:', err);
-                        }
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">Name of Nurse/Midwife</label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedStaff}
+                    onChange={e => setSelectedStaff(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-gray-50 min-w-[180px]"
+                  >
+                    <option value="">Select Staff</option>
+                    {staff
+                      .filter(s => !user?.department || s.department === user.department)
+                      .map(s => (
+                        <option key={s.id} value={s.name}>{s.name} {s.department ? `(${s.department})` : ''}</option>
+                      ))}
+                  </select>
+                  <button
+                    className="ml-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow"
+                    onClick={async () => {
+                      if (!selectedStaff) return;
+                      if (!resources || resources.length === 0) {
+                        alert('No resources to save in the report.');
+                        return;
+                      }
+                      const now = new Date();
+                      // Save report to backend
+                      const selectedStaffData = staff.find(s => s.name === selectedStaff);
+                      const deptResources = resources.filter(r => r.department === user?.department);
+                      // Determine shift to save: prefer tab's shift when not 'All', else dropdown selection
+                      const shiftToSave = (globalShift && globalShift !== 'All') ? globalShift : selectedShift;
+                      const report = {
+                        shift: shiftToSave,
+                        staffName: selectedStaff,
+                        staffId: selectedStaffData?.id ? parseInt(selectedStaffData.id) : null,
+                        department: user?.department || '',
+                        date: now.toISOString(),
+                        resources: deptResources.map(r => ({ ...r }))
                       };
-                      fetchResources();
-                    } catch (err: any) {
-                      alert('Failed to save report: ' + (err?.message || err));
-                    }
-                  }}
-                  disabled={!selectedStaff}
-                  type="button"
-                >
-                  Save Report
-                </button>
+                      try {
+                        await apiPost('/inventory-reports', report);
+                        // Inform dashboard which shift was just saved so it can highlight immediately
+                        window.dispatchEvent(new CustomEvent('inventory_report_saved', {
+                          detail: {
+                            shift: shiftToSave,
+                            date: report.date,
+                            department: report.department,
+                            staffName: selectedStaff
+                          }
+                        }));
+                        alert('Report saved successfully!');
+                      } catch (err: any) {
+                        alert('Failed to save report: ' + (err?.message || err));
+                      }
+                    }}
+                    disabled={!selectedStaff}
+                    type="button"
+                  >
+                    Save Report
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 w-full">
+          {/* Admin Filters for viewing inventory by Department/User */}
+          {user?.role === 'admin' && (
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto items-end">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">Department</label>
+                <select
+                  value={deptFilter}
+                  onChange={e => setDeptFilter(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-gray-50 min-w-[160px]"
+                >
+                  <option value="">All</option>
+                  {Array.from(new Set(resources.map(r => r.department).filter(Boolean))).map(dep => (
+                    <option key={String(dep)} value={String(dep)}>{String(dep)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">User</label>
+                <select
+                  value={userFilter}
+                  onChange={e => setUserFilter(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-gray-50 min-w-[180px]"
+                >
+                  <option value="">All Users (Live)</option>
+                  {staff
+                    .filter(s => !deptFilter || s.department === deptFilter)
+                    .map(s => (
+                      <option key={s.id} value={s.name}>{s.name}{s.department ? ` (${s.department})` : ''}</option>
+                    ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setDeptFilter(''); setUserFilter(''); }}
+                className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Clear
+              </button>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             <input
               type="text"
@@ -305,6 +428,11 @@ function ResourceManagement() {
             </button>
           </div>
         </div>
+        {userFilter && (
+          <div className="mb-3 px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-sm">
+            Viewing latest saved inventory report for <strong>{userFilter}</strong>{targetDepartment ? ` in ${targetDepartment}` : ''}. Clear the User filter to return to live inventory.
+          </div>
+        )}
         {/* Modal */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -531,7 +659,10 @@ function ResourceManagement() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {(() => {
                         const qtyNum = Number(resource.quantity);
-                        const isLowStock = !isNaN(qtyNum) && qtyNum < 2;
+                        const stdNumRaw = (resource.standard_quantity as any);
+                        const stdNum = stdNumRaw !== undefined && stdNumRaw !== null ? Number(stdNumRaw) : NaN;
+                        // Low stock only when qty < 2 AND standard >= 2; if standard missing, fallback to qty < 2
+                        const isLowStock = !isNaN(qtyNum) && (!isNaN(stdNum) ? (qtyNum < 2 && stdNum >= 2) : (qtyNum < 2));
                         let isExpired = false;
                         let isNearExpired = false;
                         if (resource.type === 'Drug' && resource.expiry_date) {
@@ -565,7 +696,7 @@ function ResourceManagement() {
                         return badges.length ? (
                           <div className="flex flex-wrap items-center gap-2">{badges}</div>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">OK</span>
                         );
                       })()}
                     </td>

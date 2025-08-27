@@ -10,30 +10,41 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { Pool } from 'pg';
+import pool from './pool.js';
 import inventoryReportsRouter from './routes/inventoryReports.js';
 import formTemplatesRouter from './routes/formTemplates.js';
 import formSubmissionsRouter from './routes/formSubmissions.js';
 import departmentStaffRouter from './routes/departmentStaff.js';
 import patientDataRouter from './routes/patientData.js';
 import dashboardMappingsRouter from './routes/dashboardMappings.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
-// Initialize pool BEFORE any route/database usage
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:1954@localhost:1212/ISBAR',
-});
+// Shared pool imported from ./pool.js
+// Readiness flag: API routes will return 503 until DB is ready
+let isReady = false;
 
-// Ensure users table has profession column
-(async () => {
-  try {
-    await pool.query(`ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS profession VARCHAR(50);`);
-    console.log('Ensured users.profession column exists');
-  } catch (err) {
-    console.error('Error ensuring profession column:', err);
-  }
-})();
+async function checkDbOnce() {
+  await pool.query('SELECT 1');
+}
+
+function startDbReadinessProbe({ intervalMs = 3000 } = {}) {
+  const timer = setInterval(async () => {
+    try {
+      await checkDbOnce();
+      isReady = true;
+      clearInterval(timer);
+      console.log('[Readiness] Database connection established. Service is ready.');
+      if (typeof process !== 'undefined' && typeof process.send === 'function') {
+        try { process.send('ready'); } catch {}
+      }
+    } catch (err) {
+      console.log('[Readiness] Waiting for database...', err?.message || err);
+    }
+  }, intervalMs);
+}
 
 // Ensure form_templates has profession column to support profession-specific templates
 (async () => {
@@ -46,6 +57,16 @@ const pool = new Pool({
 })();
 
 const app = express();
+// Rewrite support: allow frontend served under /isbar to call /isbar/api/*
+// by rewriting it to /api/* so existing API routes work.
+app.use((req, _res, next) => {
+  if (req.url.startsWith('/isbar/api/')) {
+    req.url = req.url.replace('/isbar/api/', '/api/');
+  } else if (req.url === '/isbar/api') {
+    req.url = '/api';
+  }
+  next();
+});
 // Get form templates for a department
 app.get('/api/form-templates/department/:department', async (req, res) => {
   const { department } = req.params;
@@ -118,6 +139,24 @@ isbarRecordsRouter.get('/', async (req, res) => {
 
 app.use(cors());
 app.use(express.json());
+
+// Gate all API routes until DB is ready, but allow health and test-db
+app.use('/api', (req, res, next) => {
+  if (isReady) return next();
+  if (req.path === '/test-db' || req.path === '/health') return next();
+  return res.status(503).json({ error: 'Service is initializing. Please try again shortly.' });
+});
+
+// Health endpoints
+app.get('/api/health', async (req, res) => {
+  try {
+    if (!isReady) return res.status(503).json({ ready: false });
+    await checkDbOnce();
+    return res.json({ ready: true });
+  } catch (e) {
+    return res.status(503).json({ ready: false, error: String(e?.message || e) });
+  }
+});
 app.use('/api/isbar-records', isbarRecordsRouter);
 app.use('/api/inventory-reports', inventoryReportsRouter);
 app.use('/api/form-templates', formTemplatesRouter);
@@ -125,6 +164,24 @@ app.use('/api/form-submissions', formSubmissionsRouter);
 app.use('/api/department-staff', departmentStaffRouter);
 app.use('/api/patient-data', patientDataRouter);
 app.use('/api/dashboard-mappings', dashboardMappingsRouter);
+
+// --- Serve built frontend (no Nginx needed) ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, '../../dist');
+
+console.log('[Static] Serving frontend from:', distPath);
+
+// Serve static assets under /isbar
+app.use('/isbar', express.static(distPath));
+// Ensure exact /isbar redirects to /isbar/
+app.get('/isbar', (req, res) => res.redirect('/isbar/'));
+// SPA fallback: route all /isbar/* to index.html
+app.get('/isbar/*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+// Convenience: redirect root to /isbar/
+app.get('/', (req, res) => res.redirect('/isbar/'));
 
 // PostgreSQL connection
 // ...existing code...
@@ -507,6 +564,8 @@ app.post('/api/records', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  // Start readiness probe for PM2 wait_ready and API gating
+  startDbReadinessProbe({ intervalMs: 3000 });
 
   // Ensure admin user exists (username: quality, password: isbar1954)
   (async () => {

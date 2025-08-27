@@ -58,7 +58,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
             <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white flex items-center justify-center mr-3">
               <Stethoscope className="w-6 h-6 text-white" />
             </div>
-            <h1 className={`text-lg font-semibold ${isCollapsed ? 'hidden' : ''}`}>AGH-HMS</h1>
+            <h1 className={`text-lg font-semibold ${isCollapsed ? 'hidden' : ''}`}>AGH-CSMS</h1>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -184,17 +184,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
               </div>
               {currentPage === 'dashboard' && (
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm text-gray-600">Shift</label>
-                  <select
-                    value={shift}
-                    onChange={(e) => setShift(e.target.value as any)}
-                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="All">All</option>
-                    <option value="Morning">Morning</option>
-                    <option value="Evening">Evening</option>
-                    <option value="Night">Night</option>
-                  </select>
+                  <label className="text-sm text-gray-600">Shift:</label>
+                  <span className="text-sm font-medium text-gray-800">{shift}</span>
                 </div>
               )}
               <span className="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

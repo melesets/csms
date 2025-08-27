@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Bed, User, Calendar, Stethoscope, FileText, Clock } from 'lucide-react';
+import { X, Bed, User, Stethoscope, FileText, Clock } from 'lucide-react';
 
 interface PatientDetailsModalProps {
   patient: {
@@ -32,9 +32,19 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
     switch (stability) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
       case 'unstable': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'subcritical': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'stable': return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  // Derive Patient Condition label
+  const getPatientCondition = (): 'critical' | 'subcritical' | 'stable' => {
+    // Fallback to existing stability mapping because modal props don't include formData
+    const s = String(patient.stability || '').toLowerCase();
+    if (s.includes('critical')) return 'critical';
+    if (s.includes('unstable') || s.includes('subcritical')) return 'subcritical';
+    return 'stable';
   };
 
   return (
@@ -65,10 +75,12 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-600">Patient Status</label>
-                <div className={`mt-1 px-3 py-2 rounded-lg border ${getStabilityColor(patient.stability)}`}>
-                  <span className="font-medium capitalize">{patient.stability}</span>
+                <label className="text-sm font-medium text-gray-600">Patient Condition</label>
+                {(() => { const cond = getPatientCondition(); return (
+                <div className={`mt-1 px-3 py-2 rounded-lg border ${getStabilityColor(cond)}`}>
+                  <span className="font-medium">{cond === 'critical' ? 'Critical' : cond === 'subcritical' ? 'Subcritical' : 'Stable'}</span>
                 </div>
+                ); })()}
               </div>
               
               <div>

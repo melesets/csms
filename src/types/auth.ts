@@ -21,6 +21,7 @@ export interface AuthContextType {
   user: User | null;
   login: (username: string, password: string, profession?: string) => Promise<boolean>;
   logout: () => void;
+  impersonate: (params: { userId?: string; username?: string }) => Promise<boolean>;
   hasPermission: (module: string, action?: string) => boolean;
   canAccessPage: (page: string) => boolean;
   getUserDepartmentFilter: () => string | null;
