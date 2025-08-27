@@ -523,7 +523,7 @@ export const HealthcareDashboard: React.FC = () => {
           const tid = s.template_id != null ? String(s.template_id) : null;
           const tname = s.template_name ? String(s.template_name).toLowerCase() : null;
           const templateMatch = (tid && roundTemplateIdSet.has(tid)) || (tname && roundTemplateNameSet.has(tname));
-          const deptOk = !departmentFilter || (String(s.template_department || s.department || '').toLowerCase() === String(departmentFilter).toLowerCase());
+          const deptOk = !departmentFilter || (String(s.template_department || s.department || '').toLowerCase().includes(String(departmentFilter).toLowerCase()));
           return templateMatch && deptOk;
         });
 
@@ -533,33 +533,35 @@ export const HealthcareDashboard: React.FC = () => {
           const d = parseDateSafe(iso);
           const h = d.getHours();
           if (h >= 7 && h < 15) return 'Morning';
-          if (h >= 15 && h < 23) return 'Evening'; // Corrected from 'Night'
+          if (h >= 15 && h < 23) return 'Evening';
           return 'Night';
+        };
+
+        const getSubmissionShift = (sub: Record<string, unknown>): 'Morning' | 'Evening' | 'Night' | null => {
+          const fd = (sub.form_data as Record<string, unknown>) || {};
+          const shiftFromData = getByKeySmart(fd, 'shift');
+          let shiftName = normalizeShift(shiftFromData);
+        
+          if (!shiftName) {
+            const bd = bestDate(sub);
+            if (bd) {
+              shiftName = toShift(bd);
+            }
+          }
+          return shiftName;
         };
 
         const roundsGrouped: { Morning: Round[]; Evening: Round[]; Night: Round[] } = { Morning: [], Evening: [], Night: [] };
         (roundSubs || []).forEach((sub: Record<string, unknown>) => {
-          const fd = (sub.form_data as Record<string, unknown>) || {};
-          const bd = bestDate(sub); // Define bd early so it's always available
-
-          // --- DEBUGGING SHIFT LOGIC ---
-          const shiftFromData = getByKeySmart(fd, 'shift');
-          console.log(`[Debug] Shift from data for submission ${sub.id}:`, shiftFromData);
-          
-          let shiftName = normalizeShift(shiftFromData);
-          console.log(`[Debug] Normalized shift for submission ${sub.id}:`, shiftName);
-          
-          // Fallback to time-based calculation if shift not in data
-          if (!shiftName) {
-            shiftName = toShift(bd);
-            console.log(`[Debug] Fallback shift for submission ${sub.id}:`, shiftName);
-          }
-          // --- END DEBUGGING ---
-
+          const shiftName = getSubmissionShift(sub);
+        
           if (!shiftName) {
             console.error("Could not determine shift for submission:", sub);
-            return; // Skip this submission if we can't determine a shift
+            return; 
           }
+
+          const fd = (sub.form_data as Record<string, unknown>) || {};
+          const bd = bestDate(sub);
 
           const mapping = roundMappings.find((m: DashboardMapping) => {
             const idMatch = m.formTemplateId != null && sub.template_id != null && String(m.formTemplateId) === String(sub.template_id);
@@ -601,13 +603,15 @@ export const HealthcareDashboard: React.FC = () => {
         }
 
         setRoundsByShift(roundsGrouped);
+
         const latestOverall = (roundSubs || []).reduce((acc: { sub: Record<string, unknown>; t: Date } | null, cur: Record<string, unknown>) => {
           const dCur = parseDateSafe(bestDate(cur));
           if (!acc) return !isNaN(dCur.getTime()) ? { sub: cur, t: dCur } : acc;
           return (!isNaN(dCur.getTime()) && dCur > acc.t) ? { sub: cur, t: dCur } : acc;
         }, null as null | { sub: Record<string, unknown>; t: Date });
+
         if (latestOverall) {
-          const shiftOfLatest = toShift(bestDate(latestOverall.sub));
+          const shiftOfLatest = getSubmissionShift(latestOverall.sub);
           setMostRecentRoundShift(shiftOfLatest);
         } else {
           setMostRecentRoundShift(null);
@@ -856,19 +860,6 @@ export const HealthcareDashboard: React.FC = () => {
                 <option value="24">Last 24 hours</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Shift</label>
-              <select
-                value={shift}
-                onChange={e => setShift(e.target.value as ShiftType)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-              >
-                <option value="All">All Shifts</option>
-                <option value="Morning">Morning</option>
-                <option value="Evening">Evening</option>
-                <option value="Night">Night</option>
-              </select>
-            </div>
             <div className="flex gap-2 md:justify-end">
               <button
                 onClick={() => { setFilterDept(''); setFilterUser(''); setTimeWindow('24'); setShift('All'); }}
@@ -880,6 +871,7 @@ export const HealthcareDashboard: React.FC = () => {
           </div>
         </div>
       )}
+      
       <DashboardSection
         title={`${(patientMappings.length === 1 ? (patientMappings[0].displayName || patientMappings[0].display_name || 'Patients') : 'Active Patients')} (${visiblePatients.length})`}
         icon={<Bed className="w-5 h-5 text-blue-600" />}

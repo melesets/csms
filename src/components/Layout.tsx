@@ -185,7 +185,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
               {currentPage === 'dashboard' && (
                 <div className="flex items-center space-x-2">
                   <label className="text-sm text-gray-600">Shift:</label>
-                  <span className="text-sm font-medium text-gray-800">{shift}</span>
+                  <select
+                    value={shift}
+                    onChange={e => setShift(e.target.value as any)}
+                    className="text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="All">All</option>
+                    <option value="Morning">Morning</option>
+                    <option value="Evening">Evening</option>
+                    <option value="Night">Night</option>
+                  </select>
                 </div>
               )}
               <span className="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
