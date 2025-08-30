@@ -71,6 +71,7 @@ interface PatientHandover {
   diagnosis: string;
   age: number;
   gender: 'M' | 'F';
+  shift: 'Morning' | 'Evening' | 'Night' | null;
   formData?: Record<string, unknown>;
   fieldLabels?: Record<string, string>;
   highlights?: { label: string; value: unknown }[];
@@ -148,6 +149,21 @@ interface Resource {
 }
 
 export const HealthcareDashboard: React.FC = () => {
+  const normalizeShift = (s: unknown): 'Morning' | 'Evening' | 'Night' | null => {
+    const v = String(s || '').trim().toLowerCase();
+    if (!v) return null;
+    if (v === 'morning' || v === 'am' || v === 'day' || v === 'm') return 'Morning';
+    if (v === 'evening' || v === 'pm' || v === 'e') return 'Evening';
+    if (v === 'night' || v === 'n') return 'Night';
+    if (v.includes('morning') || v.includes('am')) return 'Morning';
+    if (v.includes('evening') || v.includes('pm')) return 'Evening';
+    if (v.includes('night')) return 'Night';
+    if (v.startsWith('m')) return 'Morning';
+    if (v.startsWith('e')) return 'Evening';
+    if (v.startsWith('n')) return 'Night';
+    return null;
+  };
+
   const { user, getUserDepartmentFilter, impersonate } = useAuth();
   const { shift, setShift } = useShift();
   const { query } = useSearch();
@@ -266,6 +282,22 @@ export const HealthcareDashboard: React.FC = () => {
         const stabilityRaw = getByKeySmart(fd, (mapping as DashboardMapping)?.cardFields?.status, labelMap) || fd.stability || fd['Patient Stability'] || 'stable';
         const stabilityResolved = normalizeStability(stabilityRaw);
 
+        const shiftFromData = getByKeySmart(fd, 'shift');
+        let shiftName = normalizeShift(shiftFromData);
+      
+        if (!shiftName) {
+          const bd = sub.submitted_at as string;
+          if (bd) {
+            const d = parseDateSafe(bd);
+            const h = d.getHours();
+            if (!isNaN(h)) {
+              if (h >= 6 && h < 14) shiftName = 'Morning';
+              else if (h >= 14 && h < 22) shiftName = 'Evening';
+              else shiftName = 'Night';
+            }
+          }
+        }
+
         const card: PatientHandover = {
           id: String(sub.id || `${sub.template_id ?? sub.template_name}-${Math.random().toString(36).slice(2,8)}`),
           patientName: String(name),
@@ -273,6 +305,7 @@ export const HealthcareDashboard: React.FC = () => {
           bedNumber: String(bed),
           department: (sub.template_department || user?.department || 'General') as string,
           stability: stabilityResolved,
+          shift: shiftName,
           lastHandover: sub.submitted_at as string,
           assignedNurse: (() => {
             if (mapping) {
@@ -450,21 +483,6 @@ export const HealthcareDashboard: React.FC = () => {
       const resourceData = processResourceStatus(resources, departmentFilter);
       setResourceStatus(resourceData);
 
-      const normalizeShift = (s: unknown): 'Morning' | 'Evening' | 'Night' | null => {
-        const v = String(s || '').trim().toLowerCase();
-        if (!v) return null;
-        if (v === 'morning' || v === 'am' || v === 'day' || v === 'm') return 'Morning';
-        if (v === 'evening' || v === 'pm' || v === 'e') return 'Evening';
-        if (v === 'night' || v === 'n') return 'Night';
-        if (v.includes('morning') || v.includes('am')) return 'Morning';
-        if (v.includes('evening') || v.includes('pm')) return 'Evening';
-        if (v.includes('night')) return 'Night';
-        if (v.startsWith('m')) return 'Morning';
-        if (v.startsWith('e')) return 'Evening';
-        if (v.startsWith('n')) return 'Night';
-        return null;
-      };
-
       const effectiveDeptRaw = (filterDept && String(filterDept).trim()) || departmentFilter || (user?.department ? String(user.department) : '');
       const effectiveDept = String(effectiveDeptRaw || '').trim().toLowerCase();
       const deptScopedReports = (reports || []).filter((r: Record<string, unknown>) => {
@@ -519,15 +537,22 @@ export const HealthcareDashboard: React.FC = () => {
       }
 
       if (roundMappings.length > 0) {
+        const bestDate = (s: Record<string, unknown>): string => (s?.submitted_at || s?.submittedAt || s?.date || s?.updated_at || s?.created_at || s?.updatedAt) as string;
+
         const roundSubs = (submissions || []).filter((s: Record<string, unknown>) => {
           const tid = s.template_id != null ? String(s.template_id) : null;
           const tname = s.template_name ? String(s.template_name).toLowerCase() : null;
           const templateMatch = (tid && roundTemplateIdSet.has(tid)) || (tname && roundTemplateNameSet.has(tname));
           const deptOk = !departmentFilter || (String(s.template_department || s.department || '').toLowerCase().includes(String(departmentFilter).toLowerCase()));
-          return templateMatch && deptOk;
-        });
+          
+          if (!templateMatch || !deptOk) return false;
 
-        const bestDate = (s: Record<string, unknown>): string => (s?.submitted_at || s?.submittedAt || s?.date || s?.updated_at || s?.created_at || s?.updatedAt) as string;
+          const submissionDate = bestDate(s);
+          if (!submissionDate) return false; 
+
+          const sixteenHoursAgo = new Date(Date.now() - 16 * 60 * 60 * 1000);
+          return parseDateSafe(submissionDate) > sixteenHoursAgo;
+        });
 
         const toShift = (iso: string): 'Morning' | 'Evening' | 'Night' => {
           const d = parseDateSafe(iso);
@@ -719,16 +744,6 @@ export const HealthcareDashboard: React.FC = () => {
     return Date.now() - t <= hours * 60 * 60 * 1000;
   };
 
-  const fitsShift = (iso: string) => {
-    if (shift === 'All') return true;
-  const d = parseDateSafe(iso);
-  if (isNaN(d.getTime())) return true;
-    const hour = d.getHours();
-    if (shift === 'Morning') return hour >= 6 && hour < 14;
-    if (shift === 'Evening') return hour >= 14 && hour < 22;
-    return hour >= 22 || hour < 6;
-  };
-
   const matchesQuery = (p: PatientHandover) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -740,7 +755,11 @@ export const HealthcareDashboard: React.FC = () => {
   };
 
   const filteredByTimeShift = patients
-    .filter(p => isWithinLastNHours(p.lastHandover, Number(timeWindow)) && fitsShift(p.lastHandover));
+    .filter(p => {
+      const timeOk = isWithinLastNHours(p.lastHandover, Number(timeWindow));
+      if (shift === 'All') return timeOk;
+      return timeOk && p.shift === shift;
+    });
 
   const filteredByDept = filterDept
     ? filteredByTimeShift.filter(p => String(p.department || '').toLowerCase() === String(filterDept).toLowerCase())
