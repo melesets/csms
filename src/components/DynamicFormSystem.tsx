@@ -19,40 +19,81 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
 
   useEffect(() => {
     fetchTemplates();
+    // Log users for debugging
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch('/api/users');
+        if (res.ok) {
+          const users = await res.json();
+          console.log('All Users:', users);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    fetchUsers();
   }, [user]);
 
   const fetchTemplates = async () => {
     try {
       setLoading(true);
       const departmentFilter = getUserDepartmentFilter();
+      const normalizeProfession = (p: any) => {
+        const s = String(p ?? '').toLowerCase().trim();
+        if (!s) return '';
+        if (['gp','g.p','general practitioner','general-practitioner','generalpractitioner'].includes(s)) return 'general practitioner';
+        if (['sp','senior','senior physician','senior-physician','seniorphysician','physician'].includes(s)) return 'senior physician';
+        if (['nurse','nursing'].includes(s)) return 'nurse';
+        if (['midwife','midwifery'].includes(s)) return 'midwifery';
+        return s;
+      };
 
-      // Fetch active templates for department (+ profession when available)
+      // Strict query: department (when available) and profession (when available)
       let url = '/api/form-templates';
-      if (departmentFilter) {
-        url += `?department=${encodeURIComponent(departmentFilter)}`;
-        if (user?.profession) {
-          url += `&profession=${encodeURIComponent(user.profession)}`;
-        }
-      }
-      const templatesRes = await fetch(url);
+      const qs: string[] = [];
+      if (departmentFilter) qs.push(`department=${encodeURIComponent(departmentFilter)}`);
+      if (user?.profession) qs.push(`profession=${encodeURIComponent(user.profession)}`);
+      if (qs.length) url += `?${qs.join('&')}`;
 
-      if (templatesRes.ok) {
-        const data = await templatesRes.json();
-        const parsedTemplates = data.map((template: any) => ({
-          ...template,
-          fields: typeof template.fields === 'string' ? JSON.parse(template.fields) : (template.fields || []),
-          sections: template.sections === null ? [] : (typeof template.sections === 'string' ? JSON.parse(template.sections) : (template.sections || []))
-        }));
+      const res = await fetch(url);
+      const data = res.ok ? await res.json() : [];
+      console.debug('Templates fetch', { url, userDept: departmentFilter, userProf: user?.profession, count: Array.isArray(data) ? data.length : 'n/a' });
 
-        // Show all active templates for the user's department; backend already filters by profession when provided
-        const filteredTemplates = parsedTemplates.filter((template: any) => {
-          const isActive = template.isActive || template.is_active;
-          const departmentMatch = !departmentFilter || template.department === departmentFilter;
-          return isActive && departmentMatch;
+      const parsedTemplates = (Array.isArray(data) ? data : []).map((template: any) => ({
+        ...template,
+        fields: typeof template.fields === 'string' ? JSON.parse(template.fields) : (template.fields || []),
+        sections: template.sections === null ? [] : (typeof template.sections === 'string' ? JSON.parse(template.sections) : (template.sections || []))
+      }));
+
+      // Filter: active + department match (if departmentFilter exists) + profession match (strict when user.profession exists)
+      const filteredTemplates = parsedTemplates.filter((template: any) => {
+        const isActive = template.isActive || template.is_active;
+        // Department match
+        if (!departmentFilter) return false; // require department context
+        const norm = (s: any) => String(s ?? '').toLowerCase().trim();
+        const deptFilterNorm = norm(departmentFilter);
+        const legacyMatch = norm(template.department) === deptFilterNorm;
+        const arrayMatch = Array.isArray(template.departments) && template.departments.some((d: any) => norm(d) === deptFilterNorm);
+        const departmentMatch = legacyMatch || arrayMatch;
+        // Profession match (strict)
+        const professionMatch = user?.profession
+          ? normalizeProfession(template.profession) === normalizeProfession(user.profession)
+          : true;
+        return isActive && departmentMatch && professionMatch;
+      });
+
+      if (Array.isArray(data) && data.length > 0 && filteredTemplates.length === 0) {
+        // Diagnostics to surface likely mismatch causes
+        const sample = data.slice(0, 5).map((t: any) => ({ id: t.id, dept: t.department, depts: t.departments, prof: t.profession, active: t.is_active ?? t.isActive }));
+        console.warn('Templates filtered to zero after department/profession checks', {
+          userDept: departmentFilter,
+          userProf: user?.profession,
+          normalizedUserProf: normalizeProfession(user?.profession),
+          sample
         });
-
-        setTemplates(filteredTemplates);
       }
+
+      setTemplates(filteredTemplates);
     } catch (error) {
       console.error('Error fetching templates:', error);
     } finally {
@@ -74,6 +115,7 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
         submitted_by: user.username,
         submitted_by_name: user.name,
         submitted_by_department: user.department,
+        submitted_by_profession: user.profession,
         submitted_at: new Date().toISOString()
       };
 
@@ -189,9 +231,16 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <FileText className="w-6 h-6 text-blue-600" />
                   </div>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    v{template.version || 1}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    {(template.isActive || (template as any).is_active) && (
+                      <span className="text-[10px] uppercase tracking-wide font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded">
+                        Active
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      v{template.version || 1}
+                    </span>
+                  </div>
                 </div>
                 
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">

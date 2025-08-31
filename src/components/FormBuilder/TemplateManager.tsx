@@ -29,15 +29,19 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
   const [filterStatus, setFilterStatus] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [isImporting, setIsImporting] = useState(false);
 
-  // Filter templates based on user permissions and search criteria
+  // Filter templates based on user permissions and search criteria (supports multiple departments)
   const filteredTemplates = templates.filter(template => {
-    const matchesDepartment = userRole === 'admin' || template.department === userDepartment;
+    const hasDept = (dept: string) =>
+      (Array.isArray((template as any).departments) && (template as any).departments.includes(dept)) ||
+      template.department === dept;
+
+    const matchesDepartment = userRole === 'admin' || (userDepartment && hasDept(userDepartment));
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          template.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDeptFilter = filterDepartment === 'All' || template.department === filterDepartment;
+    const matchesDeptFilter = filterDepartment === 'All' || hasDept(filterDepartment);
     const matchesStatus = filterStatus === 'All' || 
-                         (filterStatus === 'Active' && (template.isActive || template.is_active)) ||
-                         (filterStatus === 'Inactive' && !(template.isActive || template.is_active));
+                         (filterStatus === 'Active' && Boolean(template.isActive)) ||
+                         (filterStatus === 'Inactive' && !Boolean(template.isActive));
     
     return matchesDepartment && matchesSearch && matchesDeptFilter && matchesStatus;
   });
@@ -759,8 +763,18 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
                 </p>
 
                 <div className="flex items-center justify-between mb-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDepartmentColor(template.department)}`}>
-                    {template.department}
+                  <span className="flex flex-wrap gap-1">
+                    {Array.isArray((template as any).departments) && (template as any).departments.length > 0 ? (
+                      (template as any).departments.map((dept: string) => (
+                        <span key={dept} className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDepartmentColor(dept)}`}>
+                          {dept}
+                        </span>
+                      ))
+                    ) : (
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDepartmentColor(template.department)}`}>
+                        {template.department}
+                      </span>
+                    )}
                   </span>
                   <span className="text-xs text-gray-500">
                     {template.fields?.length || 0} field{(template.fields?.length || 0) !== 1 ? 's' : ''}

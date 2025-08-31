@@ -35,7 +35,10 @@ export interface FormField {
 export interface FormTemplate {
   id: string;
   name: string;
+  // Legacy single department; kept for backward compatibility with existing UI/CSV
   department: string;
+  // New: support assigning a template to multiple departments
+  departments?: string[];
   profession?: string | null;
   description: string;
   version: number;

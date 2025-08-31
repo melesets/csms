@@ -12,6 +12,7 @@ router.post('/', async (req, res) => {
     submitted_by,
     submitted_by_name,
     submitted_by_department,
+    submitted_by_profession,
     submitted_at
   } = req.body;
   
@@ -25,8 +26,9 @@ router.post('/', async (req, res) => {
         submitted_by,
         submitted_by_name,
         submitted_by_department,
+        submitted_by_profession,
         submitted_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [
         template_id, 
         template_name,
@@ -35,22 +37,29 @@ router.post('/', async (req, res) => {
         submitted_by,
         submitted_by_name,
         submitted_by_department,
+        submitted_by_profession || null,
         submitted_at || new Date().toISOString()
       ]
     );
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[form-submissions][POST] Insert failed:', {
+      message: err?.message,
+      code: err?.code,
+      detail: err?.detail,
+      stack: err?.stack,
+    });
+    res.status(500).json({ error: err.message, code: err?.code, detail: err?.detail });
   }
 });
 
 // GET: Fetch submissions with filtering
 router.get('/', async (req, res) => {
-  const { formId, department, user, limit, timeframe } = req.query;
+  const { formId, department, user, limit, timeframe, profession } = req.query;
   
   try {
     let query = `
-      SELECT s.*, t.name as template_name, t.department as template_department
+      SELECT s.*, t.name as template_name, t.department as template_department, t.profession as template_profession
       FROM form_submissions s
       LEFT JOIN form_templates t ON s.template_id = t.id
       WHERE 1=1
@@ -73,6 +82,15 @@ router.get('/', async (req, res) => {
     if (user) {
       query += ` AND s.submitted_by = $${idx++}`;
       params.push(user);
+    }
+
+    if (profession) {
+      // Enforce strict profession isolation:
+      // - submission must have matching profession
+      // - template profession NULL means applies to all; otherwise must match
+      query += ` AND (s.submitted_by_profession = $${idx} AND (t.profession = $${idx} OR t.profession IS NULL))`;
+      params.push(profession);
+      idx += 1;
     }
 
     // Optional timeframe filter: week|month|quarter

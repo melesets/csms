@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Play } from 'lucide-react';
 import { FormTemplate } from '../../types/formBuilder';
 import { DynamicFormRenderer } from './DynamicFormRenderer';
+import { useAuth } from '../../hooks/useAuth';
 
 interface FormPreviewProps {
   template: FormTemplate | null;
@@ -10,6 +11,7 @@ interface FormPreviewProps {
 
 export const FormPreview: React.FC<FormPreviewProps> = ({ template, onBack }) => {
   const [isInteractive, setIsInteractive] = useState(false);
+  const { user } = useAuth();
 
   if (!template) {
     return (
@@ -74,8 +76,14 @@ export const FormPreview: React.FC<FormPreviewProps> = ({ template, onBack }) =>
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       template_id: template.id,
-                      data,
-                      submitted_by: 'preview-user' // Replace with real user if available
+                      template_name: template.name,
+                      template_department: template.department,
+                      form_data: data,
+                      submitted_by: user?.username || 'preview-user',
+                      submitted_by_name: user?.name || 'Preview User',
+                      submitted_by_department: user?.department || template.department,
+                      submitted_by_profession: user?.profession || null,
+                      submitted_at: new Date().toISOString(),
                     })
                   });
                   if (!res.ok) throw new Error('Failed to submit form');

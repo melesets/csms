@@ -24,7 +24,10 @@ export const FormBuilder = () => {
           ...t,
           id: t.id?.toString?.() ?? '',
           fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
-          sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || []))
+          sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || [])),
+          departments: Array.isArray((t as any).departments)
+            ? (t as any).departments
+            : (t.department ? [t.department] : [])
         })) : []);
       })
       .catch(() => setTemplates([]));
@@ -47,6 +50,7 @@ export const FormBuilder = () => {
       id: Math.random().toString(36).substr(2, 9),
       name: 'New Form Template',
       department: user?.department === 'All' ? 'Medical Ward' : user?.department || 'Medical Ward',
+      departments: [user?.department === 'All' ? 'Medical Ward' : user?.department || 'Medical Ward'],
       description: 'A new dynamic form template',
       version: 1,
       isActive: false,
@@ -110,36 +114,26 @@ export const FormBuilder = () => {
 
   const handleSaveTemplate = async (template: FormTemplate) => {
     try {
-      // Fetch latest templates to avoid stale comparisons
-      let latest: any[] = await fetch('/api/form-templates').then(r => r.ok ? r.json() : []);
-      if (!Array.isArray(latest)) latest = [];
-      latest = latest.map((t: any) => ({ ...t, id: t.id?.toString?.() ?? '' }));
-
-      // Find an existing template with same (name, department, profession)
-      const wantProf = template.profession ?? null;
-      const existing = latest.find(t => (
-        t.name === template.name &&
-        t.department === template.department &&
-        ((t.profession ?? null) === wantProf)
-      ));
-
       let url = '/api/form-templates';
       let method: 'POST' | 'PUT' = 'POST';
-      let body: any = { ...template };
+      // Ensure departments array and sync legacy department to first
+      const depts = Array.isArray((template as any).departments)
+        ? (template as any).departments
+        : (template.department ? [template.department] : []);
+      let body: any = { ...template, departments: depts, department: depts[0] || template.department };
 
-      if (existing) {
-        // Update the existing record when name+department matches
-        url = `/api/form-templates/${existing.id}`;
-        method = 'PUT';
-        body.id = existing.id;
-      } else if (template.id && latest.some(t => t.id === template.id)) {
-        // Editing by id (fallback when name/department changed but still want to overwrite this id)
+      // Decide update vs create strictly by id existence in backend
+      // Fetch minimal list to check if this id exists server-side
+      let latest: any[] = await fetch('/api/form-templates').then(r => r.ok ? r.json() : []);
+      latest = Array.isArray(latest) ? latest : [];
+      const idExists = template.id && latest.some((t: any) => String(t.id) === String(template.id));
+      if (idExists) {
         url = `/api/form-templates/${template.id}`;
         method = 'PUT';
       } else {
-        // Create new when no match by name+department
-        const { id, ...rest } = template;
-        body = rest;
+        // Create new; server will assign id. Do not send client-generated id to avoid accidental overwrite.
+        const { id, ...rest } = template as any;
+        body = { ...rest, departments: depts, department: depts[0] || rest.department };
       }
 
       const saveRes = await fetch(url, {
@@ -147,31 +141,49 @@ export const FormBuilder = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      if (!saveRes.ok) throw new Error('Failed to save template');
+      if (!saveRes.ok) {
+        let detail = '';
+        try {
+          const errBody = await saveRes.json();
+          detail = errBody?.error || JSON.stringify(errBody);
+        } catch {
+          try { detail = await saveRes.text(); } catch {}
+        }
+        throw new Error(`Failed to save template (status ${saveRes.status}): ${detail}`);
+      }
       const savedTemplate = await saveRes.json();
 
       // Activate saved/updated template
       const actRes = await fetch(`/api/form-templates/${savedTemplate.id}/set-active`, { method: 'PATCH' });
-      if (!actRes.ok) throw new Error('Failed to activate template');
+      if (!actRes.ok) {
+        let detail = '';
+        try {
+          const errBody = await actRes.json();
+          detail = errBody?.error || JSON.stringify(errBody);
+        } catch {
+          try { detail = await actRes.text(); } catch {}
+        }
+        throw new Error(`Failed to activate template (status ${actRes.status}): ${detail}`);
+      }
       const activeTemplate = await actRes.json();
 
       const parsedTemplate = {
         ...activeTemplate,
         id: activeTemplate.id?.toString?.() ?? '',
         fields: typeof activeTemplate.fields === 'string' ? JSON.parse(activeTemplate.fields) : (activeTemplate.fields || []),
-        sections: typeof activeTemplate.sections === 'string' ? JSON.parse(activeTemplate.sections) : (activeTemplate.sections || [])
+        sections: typeof activeTemplate.sections === 'string' ? JSON.parse(activeTemplate.sections) : (activeTemplate.sections || []),
+        departments: Array.isArray((activeTemplate as any).departments)
+          ? (activeTemplate as any).departments
+          : (activeTemplate.department ? [activeTemplate.department] : [])
       };
 
-      // Deduplicate: keep only one per (name, department), newest wins
-      setTemplates(prev => [
-        parsedTemplate,
-        ...prev.filter(t => !(
-          t.name === parsedTemplate.name &&
-          t.department === parsedTemplate.department &&
-          ((t as any).profession ?? null) === ((parsedTemplate as any).profession ?? null) &&
-          t.id !== parsedTemplate.id
-        ))
-      ]);
+      // Update local list: add or replace by id only (do not collapse by name/department)
+      setTemplates(prev => {
+        const exists = prev.some(t => t.id === parsedTemplate.id);
+        return exists
+          ? prev.map(t => (t.id === parsedTemplate.id ? parsedTemplate : t))
+          : [parsedTemplate, ...prev];
+      });
 
       setCurrentView('list');
       setCurrentTemplate(null);
@@ -329,10 +341,12 @@ export const FormBuilder = () => {
                 current = current.map((t: any) => ({
                   ...t,
                   id: t.id?.toString?.() ?? '',
+                  departments: Array.isArray(t.departments) ? t.departments : (t.department ? [t.department] : [])
                 }));
 
                 for (const t of importedTemplates) {
-                  const match = current.find((x: any) => x.name === t.name && x.department === t.department);
+                  const tDepts = Array.isArray((t as any).departments) ? (t as any).departments : (t.department ? [t.department] : []);
+                  const match = current.find((x: any) => x.name === t.name && x.department === (tDepts[0] || t.department));
                   if (match) {
                     // Update existing when name+department unchanged
                     await fetch(`/api/form-templates/${match.id}`, {
@@ -341,10 +355,11 @@ export const FormBuilder = () => {
                       body: JSON.stringify({
                         ...match,
                         name: t.name,
-                        department: t.department,
+                        department: tDepts[0] || t.department,
+                        departments: tDepts,
                         description: t.description,
                         version: t.version ?? match.version ?? 1,
-                        isActive: t.isActive ?? match.isActive ?? match.is_active ?? false,
+                        isActive: t.isActive ?? match.isActive ?? false,
                         fields: t.fields || [],
                         sections: t.sections || []
                       })
@@ -354,7 +369,7 @@ export const FormBuilder = () => {
                     await fetch('/api/form-templates', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ ...t, id: undefined })
+                      body: JSON.stringify({ ...t, id: undefined, departments: tDepts, department: tDepts[0] || t.department })
                     });
                   }
                 }
@@ -366,7 +381,8 @@ export const FormBuilder = () => {
                     ...t,
                     id: t.id?.toString?.() ?? '',
                     fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
-                    sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || []))
+                    sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || [])),
+                    departments: Array.isArray((t as any).departments) ? (t as any).departments : (t.department ? [t.department] : [])
                   })) : []));
               }}
               userRole={user?.role || 'user'}

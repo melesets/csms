@@ -78,6 +78,15 @@ export const DashboardFormMapping: React.FC = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (mappings.length > 0) {
+      console.log('All Mappings:', mappings);
+    }
+    if (templates.length > 0) {
+      console.log('All Templates:', templates);
+    }
+  }, [mappings, templates]);
+
   const fetchData = async () => {
     try {
       setLoading(true);

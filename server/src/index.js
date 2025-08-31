@@ -56,6 +56,16 @@ function startDbReadinessProbe({ intervalMs = 3000 } = {}) {
   }
 })();
 
+// Ensure form_submissions has submitted_by_profession to support profession-specific filtering
+(async () => {
+  try {
+    await pool.query(`ALTER TABLE IF EXISTS form_submissions ADD COLUMN IF NOT EXISTS submitted_by_profession VARCHAR(50);`);
+    console.log('Ensured form_submissions.submitted_by_profession column exists');
+  } catch (err) {
+    console.error('Error ensuring form_submissions.submitted_by_profession column:', err);
+  }
+})();
+
 const app = express();
 // Rewrite support: allow frontend served under /isbar to call /isbar/api/*
 // by rewriting it to /api/* so existing API routes work.

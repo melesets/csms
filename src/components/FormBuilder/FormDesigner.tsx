@@ -23,13 +23,18 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
       return {
         ...template,
         fields: template.fields || [],
-        sections: template.sections || []
+        sections: template.sections || [],
+        // Ensure departments array exists for multi-department support
+        departments: Array.isArray((template as any).departments)
+          ? (template as any).departments
+          : (template.department ? [template.department] : [])
       };
     }
     return {
       id: '',
       name: 'New Form Template',
       department: 'Medical Ward',
+      departments: ['Medical Ward'],
       profession: undefined as any,
       description: '',
       version: 1,
@@ -180,7 +185,29 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
   }, []);
 
   const handleSave = () => {
-    onSave(currentTemplate);
+    // Keep legacy single department synced to first selected department
+    const primaryDept = Array.isArray((currentTemplate as any).departments) && (currentTemplate as any).departments.length > 0
+      ? (currentTemplate as any).departments[0]
+      : currentTemplate.department;
+    onSave({ ...currentTemplate, department: primaryDept });
+  };
+
+  const handleDuplicate = () => {
+    // Prepare a new template by clearing id and appending (Copy) to the name
+    const depts = Array.isArray((currentTemplate as any).departments)
+      ? (currentTemplate as any).departments
+      : (currentTemplate.department ? [currentTemplate.department] : []);
+    const primaryDept = depts[0] || currentTemplate.department;
+    const baseName = currentTemplate.name || 'Untitled Template';
+    const copyName = baseName.endsWith(' (Copy)') ? baseName : `${baseName} (Copy)`;
+    const newTemplate = {
+      ...currentTemplate,
+      id: '',
+      name: copyName,
+      department: primaryDept,
+      departments: depts
+    } as FormTemplate;
+    onSave(newTemplate);
   };
 
   const handleTemplateChange = (updates: Partial<FormTemplate>) => {
@@ -323,17 +350,36 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Department
+                  Departments
                 </label>
-                <select
-                  value={currentTemplate.department}
-                  onChange={(e) => handleTemplateChange({ department: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {DEPARTMENTS.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {DEPARTMENTS.map((dept) => {
+                    const selected = Array.isArray((currentTemplate as any).departments) && (currentTemplate as any).departments.includes(dept);
+                    return (
+                      <label key={dept} className="inline-flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(e) => {
+                            const prev = Array.isArray((currentTemplate as any).departments) ? [...(currentTemplate as any).departments] : [];
+                            let next = prev;
+                            if (e.target.checked) {
+                              if (!prev.includes(dept)) next = [...prev, dept];
+                            } else {
+                              next = prev.filter(d => d !== dept);
+                            }
+                            // Keep legacy department synced to first selected if available
+                            const primary = next[0] || currentTemplate.department;
+                            handleTemplateChange({ departments: next, department: primary } as any);
+                          }}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                        />
+                        <span>{dept}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Select one or more departments. The first selected will be used for legacy compatibility.</p>
               </div>
 
               <div>
@@ -382,7 +428,9 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
                 <p className="text-sm text-gray-600">
                   {currentTemplate.fields.length} field{currentTemplate.fields.length !== 1 ? 's' : ''} • 
                   {currentTemplate.sections.length} section{currentTemplate.sections.length !== 1 ? 's' : ''} • 
-                  {currentTemplate.department}
+                  {(Array.isArray((currentTemplate as any).departments) && (currentTemplate as any).departments.length > 0)
+                    ? (currentTemplate as any).departments.join(', ')
+                    : currentTemplate.department}
                 </p>
               </div>
               
@@ -394,6 +442,13 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Preview
+                </button>
+                <button
+                  onClick={handleDuplicate}
+                  className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  <Layers className="w-4 h-4 mr-2" />
+                  Duplicate / Save as New
                 </button>
                 <button
                   onClick={handleSave}

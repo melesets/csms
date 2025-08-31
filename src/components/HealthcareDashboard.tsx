@@ -127,6 +127,7 @@ interface User {
     username: string;
     department?: string;
     role?: string;
+    profession?: 'General Practitioner' | 'Senior Physician' | 'Midwifery' | 'Nurse' | 'Admin' | string;
 }
 
 interface Report {
@@ -175,6 +176,9 @@ export const HealthcareDashboard: React.FC = () => {
   const [expandedResourceShift, setExpandedResourceShift] = useState<'Morning' | 'Evening' | 'Night' | null>(null);
   const [expandedRoundShift, setExpandedRoundShift] = useState<'Morning' | 'Evening' | 'Night' | null>(null);
   const [recentHandovers, setRecentHandovers] = useState<Record<string, unknown>[]>([]);
+  const [recentAuditsByMrn, setRecentAuditsByMrn] = useState<Record<string, Record<string, unknown>[]>>({});
+  
+  const [openMrn, setOpenMrn] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const [mostRecentShift, setMostRecentShift] = useState<'Morning' | 'Evening' | 'Night' | null>(null);
   const [mostRecentRoundShift, setMostRecentRoundShift] = useState<'Morning' | 'Evening' | 'Night' | null>(null);
@@ -222,35 +226,7 @@ export const HealthcareDashboard: React.FC = () => {
       return 'stable';
     };
 
-    const extractNurseName = (data: Record<string, unknown>, labelMap?: Record<string, string>): string | undefined => {
-      if (!data) return undefined;
-      const candidates = ['Name of the nurse', 'Name of nurse', 'nurseName', 'nurse', 'assignedNurse', 'nurse_name', 'submitted_nurse'];
-      for (const key of candidates) {
-        const val = getByKeySmart(data, key, labelMap) ?? data[key as keyof typeof data];
-        if (val !== undefined && val !== null && String(val).trim() !== '') return String(val);
-      }
-      return undefined;
-    };
-
-    const extractPhysicianName = (data: Record<string, unknown>, labelMap?: Record<string, string>): string | undefined => {
-      if (!data) return undefined;
-      const candidates = ['Name of Physician', 'physicianName', 'physician', 'doctorName', 'doctor', 'assignedPhysician', 'physician_name'];
-      for (const key of candidates) {
-        const val = getByKeySmart(data, key, labelMap) ?? data[key as keyof typeof data];
-        if (val !== undefined && val !== null && String(val).trim() !== '') return String(val);
-      }
-      return undefined;
-    };
-
-    const extractMidwifeName = (data: Record<string, unknown>, labelMap?: Record<string, string>): string | undefined => {
-      if (!data) return undefined;
-      const candidates = ['Name of Midwife', 'midwifeName', 'midwife', 'assignedMidwife', 'midwife_name'];
-      for (const key of candidates) {
-        const val = getByKeySmart(data, key, labelMap) ?? data[key as keyof typeof data];
-        if (val !== undefined && val !== null && String(val).trim() !== '') return String(val);
-      }
-      return undefined;
-    };
+    // removed unused extract*Name helpers to satisfy lints
 
     const findMappedFieldKey = (labelMap: Record<string, string> | undefined, candidates: string[]) => {
       if (!labelMap) return undefined;
@@ -274,7 +250,9 @@ export const HealthcareDashboard: React.FC = () => {
           const nameMatch = (m.formTemplateName || m.form_template_name) && sub.template_name && String(m.formTemplateName || m.form_template_name).toLowerCase() === String(sub.template_name).toLowerCase();
           return idMatch || nameMatch;
         });
-        const labelMap = mapping ? (mapping as DashboardMapping).__labelMap : {};
+        // Only render submissions that match a mapping for this department/profession
+        if (!mapping) return;
+        const labelMap = (mapping as DashboardMapping).__labelMap || {};
 
         const name = getByKeySmart(fd, (mapping as DashboardMapping)?.cardFields?.primary, labelMap) || fd.patientName || fd['Patient name'] || fd.patient_name || (sub.patientName || 'Unknown Patient');
         const mrn = getByKeySmart(fd, (mapping as DashboardMapping)?.cardFields?.secondary, labelMap) || fd.mrn || fd.MRN || fd['MRN'] || 'N/A';
@@ -308,28 +286,19 @@ export const HealthcareDashboard: React.FC = () => {
           shift: shiftName,
           lastHandover: sub.submitted_at as string,
           assignedNurse: (() => {
-            if (mapping) {
-              const mapped = findMappedFieldKey(labelMap, ['nurse', 'name of nurse']);
-              if (mapped) return String(getByKeySmart(fd, mapped, labelMap) || sub.submitted_by_name || sub.submitted_by || 'Unknown');
-              return String(sub.submitted_by_name || sub.submitted_by || 'Unknown');
-            }
-            return String(extractNurseName(fd, labelMap) || sub.submitted_by_name || sub.submitted_by || 'Unknown');
+            const mapped = findMappedFieldKey(labelMap, ['nurse', 'name of nurse']);
+            if (mapped) return String(getByKeySmart(fd, mapped, labelMap) || sub.submitted_by_name || sub.submitted_by || 'Unknown');
+            return String(sub.submitted_by_name || sub.submitted_by || 'Unknown');
           })(),
           assignedPhysician: (() => {
-            if (mapping) {
-              const mapped = findMappedFieldKey(labelMap, ['physician', 'doctor']);
-              if (mapped) return String(getByKeySmart(fd, mapped, labelMap) || '');
-              return undefined;
-            }
-            return extractPhysicianName(fd, labelMap) || undefined;
+            const mapped = findMappedFieldKey(labelMap, ['physician', 'doctor']);
+            if (mapped) return String(getByKeySmart(fd, mapped, labelMap) || '');
+            return undefined;
           })(),
           assignedMidwife: (() => {
-            if (mapping) {
-              const mapped = findMappedFieldKey(labelMap, ['midwife']);
-              if (mapped) return String(getByKeySmart(fd, mapped, labelMap) || '');
-              return undefined;
-            }
-            return extractMidwifeName(fd, labelMap) || undefined;
+            const mapped = findMappedFieldKey(labelMap, ['midwife']);
+            if (mapped) return String(getByKeySmart(fd, mapped, labelMap) || '');
+            return undefined;
           })(),
           diagnosis: (fd.diagnosis || fd.background || fd.situation || 'Not specified') as string,
           age: (fd.age || Math.floor(Math.random() * 80) + 20) as number,
@@ -379,15 +348,15 @@ export const HealthcareDashboard: React.FC = () => {
         const parsedFields = typeof m.fields === 'string' ? safeParseJSON(m.fields, []) : (m.fields || []);
         const parsedSections = typeof m.sections === 'string' ? safeParseJSON(m.sections, []) : (m.sections || []);
         const labelMap: Record<string, string> = {};
-        const addLabels = (flds: unknown[], parentLabel?: string) => {
-          (flds || []).forEach((f: Record<string, unknown>) => {
+        const addLabels = (flds: any[], parentLabel?: string) => {
+          (flds || []).forEach((f: any) => {
             const nm = f?.name || f?.id;
             const lb = f?.label || nm;
-            if (nm) labelMap[nm as string] = parentLabel ? `${parentLabel} > ${lb}` : lb as string;
-            if (Array.isArray(f?.fields)) addLabels(f.fields, lb as string);
+            if (nm) labelMap[String(nm)] = parentLabel ? `${parentLabel} > ${lb}` : String(lb);
+            if (Array.isArray(f?.fields)) addLabels(f.fields as any[], String(lb));
           });
         };
-        addLabels(parsedFields as unknown[]);
+        addLabels(parsedFields as any[]);
         return {
           ...m,
           fields: parsedFields,
@@ -404,9 +373,10 @@ export const HealthcareDashboard: React.FC = () => {
       setResourceMappings(resourceMappingsNormalized);
 
       let submissionsUrl = '/api/form-submissions';
-      if (departmentFilter) {
-        submissionsUrl += `?department=${encodeURIComponent(departmentFilter)}`;
-      }
+      const subsParams: string[] = [];
+      if (departmentFilter) subsParams.push(`department=${encodeURIComponent(departmentFilter)}`);
+      if (user?.profession) subsParams.push(`profession=${encodeURIComponent(user.profession)}`);
+      if (subsParams.length) submissionsUrl += `?${subsParams.join('&')}`;
 
       const [submissionsRes, resourcesRes, reportsRes] = await Promise.all([
         fetch(submissionsUrl),
@@ -449,7 +419,7 @@ export const HealthcareDashboard: React.FC = () => {
       const reports = reportsRes.ok ? await reportsRes.json() : [];
 
       const roundMappings = ([...(patientMappingsNormalized || []), ...(resourceMappingsNormalized || [])]).filter((m: DashboardMapping) => {
-        const ident = String((m as DashboardMapping).identifier || '').trim().toLowerCase();
+        const ident = String((m as any).identifier || '').trim().toLowerCase();
         const disp = String(m.displayName || m.display_name || '').trim().toLowerCase();
         const tname = String(m.formTemplateName || (m as DashboardMapping).form_template_name || '').trim().toLowerCase();
         return ident === 'round' || disp === 'round' || tname.includes('round');
@@ -469,11 +439,26 @@ export const HealthcareDashboard: React.FC = () => {
           .map((v) => String(v).toLowerCase())
       );
 
+      // Only keep submissions that correspond to mapped patient templates
+      const allowedTemplateIds = new Set(
+        (patientMappingsNormalized || [])
+          .map(m => m.formTemplateId ?? (m as DashboardMapping).form_template_id)
+          .filter((v) => v !== undefined && v !== null)
+          .map((v) => String(v))
+      );
+      const allowedTemplateNames = new Set(
+        (patientMappingsNormalized || [])
+          .map(m => m.formTemplateName ?? (m as DashboardMapping).form_template_name)
+          .filter((v) => !!v)
+          .map((v) => String(v).toLowerCase())
+      );
+
       const patientSubmissions = (submissions || []).filter((s: Record<string, unknown>) => {
         const tid = s.template_id != null ? String(s.template_id) : null;
         const tname = s.template_name ? String(s.template_name).toLowerCase() : null;
         const isRound = (tid && roundTemplateIdSet.has(tid)) || (tname && roundTemplateNameSet.has(tname));
-        return !isRound;
+        const isAllowed = (tid && allowedTemplateIds.has(tid)) || (tname && allowedTemplateNames.has(tname));
+        return isAllowed && !isRound;
       });
 
       const patientData = processPatientHandovers(patientSubmissions, patientMappingsNormalized);
@@ -543,7 +528,7 @@ export const HealthcareDashboard: React.FC = () => {
           const tid = s.template_id != null ? String(s.template_id) : null;
           const tname = s.template_name ? String(s.template_name).toLowerCase() : null;
           const templateMatch = (tid && roundTemplateIdSet.has(tid)) || (tname && roundTemplateNameSet.has(tname));
-          const deptOk = !departmentFilter || (String(s.template_department || s.department || '').toLowerCase().includes(String(departmentFilter).toLowerCase()));
+          const deptOk = !departmentFilter || (String(s.template_department || s.department || '').toLowerCase() === String(departmentFilter).toLowerCase());
           
           if (!templateMatch || !deptOk) return false;
 
@@ -621,8 +606,8 @@ export const HealthcareDashboard: React.FC = () => {
 
         for (const shift in roundsGrouped) {
           roundsGrouped[shift as keyof typeof roundsGrouped].sort((a: Round, b: Round) => {
-            const dateA = parseDateSafe(a.date || (a as Record<string, unknown>).updated_at as string || (a as Record<string, unknown>).created_at as string);
-            const dateB = parseDateSafe(b.date || (b as Record<string, unknown>).updated_at as string || (b as Record<string, unknown>).created_at as string);
+            const dateA = parseDateSafe(a.date || '');
+            const dateB = parseDateSafe(b.date || '');
             return dateB.getTime() - dateA.getTime();
           });
         }
@@ -646,12 +631,126 @@ export const HealthcareDashboard: React.FC = () => {
         setMostRecentRoundShift(null);
       }
 
+      // Build Senior Chart Audit list (last 24 hours), grouped by MRN, for department-scoped view
+      const auditMappings = ([...(patientMappingsNormalized || []), ...(resourceMappingsNormalized || [])]).filter((m: DashboardMapping) => {
+        const ident = String((m as any).identifier || '').trim().toLowerCase();
+        const disp = String(m.displayName || m.display_name || '').trim().toLowerCase();
+        const tname = String(m.formTemplateName || (m as DashboardMapping).form_template_name || '').trim().toLowerCase();
+        const hay = `${ident} ${disp} ${tname}`;
+        return hay.includes('audit') || hay.includes('senior chart') || hay.includes('chart audit') || hay.includes('sca');
+      });
+      {
+        // IMPORTANT: The main submissions fetch may include a profession filter (e.g., GP),
+        // which would exclude Senior-submitted audits. To avoid that, build a pool for audits
+        // that is department-scoped but NOT profession-scoped.
+        let auditPool: Record<string, unknown>[] = submissions || [];
+        const deptFilterRaw = getUserDepartmentFilter();
+        const hadProfessionFilter = !!user?.profession;
+        try {
+          if (deptFilterRaw) {
+            const auditUrl = `/api/form-submissions?department=${encodeURIComponent(deptFilterRaw)}`;
+            const resAudit = await fetch(auditUrl);
+            if (resAudit.ok) {
+              const deptSubs = await resAudit.json();
+              if (Array.isArray(deptSubs) && deptSubs.length >= (auditPool?.length || 0)) {
+                auditPool = deptSubs;
+              }
+            }
+          } else if (hadProfessionFilter) {
+            // No explicit department, but we still want a broader pool without profession filter
+            const resAll = await fetch('/api/form-submissions');
+            if (resAll.ok) {
+              const all = await resAll.json();
+              if (Array.isArray(all) && all.length >= (auditPool?.length || 0)) {
+                auditPool = all;
+              }
+            }
+          }
+        } catch {
+          // ignore audit pool broadening failures; fall back to existing submissions
+        }
+        const auditTemplateIdSet = new Set(
+          auditMappings
+            .map((m: DashboardMapping) => m.formTemplateId ?? (m as DashboardMapping).form_template_id)
+            .filter((v) => v !== undefined && v !== null)
+            .map((v) => String(v))
+        );
+        const auditTemplateNameSet = new Set(
+          auditMappings
+            .map((m: DashboardMapping) => m.formTemplateName ?? (m as DashboardMapping).form_template_name)
+            .filter((v) => !!v)
+            .map((v) => String(v).toLowerCase())
+        );
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const bestDate = (s: Record<string, unknown>): string => (s?.submitted_at || s?.submittedAt || s?.date || s?.updated_at || s?.created_at || s?.updatedAt) as string;
+        // Reuse dept filter, possibly overridden for GP to mirror Senior dept
+        let deptFilter = deptFilterRaw;
+        if (user?.profession === 'General Practitioner') {
+          const seniors = (allUsers || []).filter(u => u.profession === 'Senior Physician' && u.department);
+          // Prefer a senior whose dept matches GP's own dept; otherwise take the first senior's dept
+          const match = seniors.find(s => String(s.department || '').toLowerCase() === String(deptFilterRaw || '').toLowerCase());
+          const seniorDept = (match?.department || seniors[0]?.department || deptFilterRaw) ?? null;
+          deptFilter = seniorDept;
+        }
+        const normDept = (x: unknown) => String(x ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        // Compute all audits in last 24h regardless of department (for debug)
+        const auditSubsAll = (auditPool || []).filter((s: Record<string, unknown>) => {
+          const tid = s.template_id != null ? String(s.template_id) : null;
+          const tname = s.template_name ? String(s.template_name).toLowerCase() : null;
+          const nameHasAudit = !!(tname && (tname.includes('audit') || tname.includes('senior chart') || tname.includes('chart audit') || tname.includes('sca')));
+          const templateMatch = (tid && auditTemplateIdSet.has(tid)) || (tname && auditTemplateNameSet.has(tname)) || nameHasAudit;
+          if (!templateMatch) return false;
+          const dStr = bestDate(s);
+          if (!dStr) return false;
+          const d = parseDateSafe(dStr);
+          if (!(d > twentyFourHoursAgo)) return false;
+          return true;
+        });
+        const auditSubs = auditSubsAll.filter((s: Record<string, unknown>) => {
+          if (!deptFilter) return true;
+          const fd = (s.form_data as Record<string, unknown>) || {};
+          const mapping = auditMappings.find((m: DashboardMapping) => {
+            const idMatch = m.formTemplateId != null && s.template_id != null && String(m.formTemplateId) === String(s.template_id);
+            const nameMatch = (m.formTemplateName || (m as DashboardMapping).form_template_name) && s.template_name && String(m.formTemplateName || (m as DashboardMapping).form_template_name).toLowerCase() === String(s.template_name).toLowerCase();
+            return idMatch || nameMatch;
+          });
+          const labelMap = mapping ? (mapping as DashboardMapping).__labelMap : {};
+          const subDept = (s as any).template_department || (s as any).department || getByKeySmart(fd, 'department', labelMap) || (fd as any).department || '';
+          return normDept(subDept) === normDept(deptFilter);
+        });
+        // Group by MRN
+        const grouped: Record<string, Record<string, unknown>[]> = {};
+        auditSubs.forEach((s: Record<string, unknown>) => {
+          const fd = (s.form_data as Record<string, unknown>) || {};
+          const mapping = auditMappings.find((m: DashboardMapping) => {
+            const idMatch = m.formTemplateId != null && s.template_id != null && String(m.formTemplateId) === String(s.template_id);
+            const nameMatch = (m.formTemplateName || (m as DashboardMapping).form_template_name) && s.template_name && String(m.formTemplateName || (m as DashboardMapping).form_template_name).toLowerCase() === String(s.template_name).toLowerCase();
+            return idMatch || nameMatch;
+          });
+          const labelMap = mapping ? (mapping as DashboardMapping).__labelMap : {};
+          const mrn = (getByKeySmart(fd, 'mrn', labelMap) || fd.mrn || fd.MRN || fd['MRN'] || 'N/A') as string;
+          const key = String(mrn || 'N/A');
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(s);
+        });
+        // Sort each MRN group by date desc
+        Object.values(grouped).forEach((arr) => arr.sort((a, b) => parseDateSafe(bestDate(b)).getTime() - parseDateSafe(bestDate(a)).getTime()));
+        // Remove groups with missing MRN
+        const cleaned: Record<string, Record<string, unknown>[]> = {};
+        Object.entries(grouped).forEach(([k, v]) => {
+          const kk = String(k || '').trim();
+          if (!kk || kk.toLowerCase() === 'n/a' || kk === 'undefined' || kk === 'null') return;
+          cleaned[kk] = v;
+        });
+        setRecentAuditsByMrn(cleaned);
+      }
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
-  }, [user, getUserDepartmentFilter, filterDept, processPatientHandovers]);
+  }, [user, allUsers, getUserDepartmentFilter, filterDept, processPatientHandovers]);
 
   useEffect(() => {
     if (user) {
@@ -662,7 +761,6 @@ export const HealthcareDashboard: React.FC = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        if (user?.role !== 'admin') return;
         const res = await fetch('/api/users');
         if (!res.ok) return;
         const list = await res.json();
@@ -733,6 +831,7 @@ export const HealthcareDashboard: React.FC = () => {
   };
 
   const isNurseOrMidwife = user?.profession === 'Nurse' || user?.profession === 'Midwifery';
+  const isSeniorPhysicianOrGP = user?.profession === 'Senior Physician' || user?.profession === 'General Practitioner';
 
   if (loading) {
     return <IsbarLoader overlay message="Loading ISBAR Dashboard..." size={96} />;
@@ -1197,12 +1296,12 @@ export const HealthcareDashboard: React.FC = () => {
                       )}
                     </div>
                     {latest && (
-                      <span className={`text-xs text-gray-500`}>{new Date(latest.date || (latest as Record<string, unknown>).created_at as string || Date.now()).toLocaleTimeString()}</span>
+                      <span className={`text-xs text-gray-500`}>{new Date(latest.date || Date.now()).toLocaleTimeString()}</span>
                     )}
                   </div>
                   <div className={`text-xs mt-1 text-gray-600`}>
                     {latest ? (
-                      <>Saved by {(latest.staffName || (latest as Record<string, unknown>).staff_name || 'Unknown')} on {new Date(latest.date || (latest as Record<string, unknown>).created_at as string || Date.now()).toLocaleDateString()}</>
+                      <>Saved by {(latest.staffName || 'Unknown')} on {new Date(latest.date || Date.now()).toLocaleDateString()}</>
                     ) : (
                       <>No rounds yet</>
                     )}
@@ -1228,7 +1327,7 @@ export const HealthcareDashboard: React.FC = () => {
                     </div>
                     {list[0] && (
                       <span className={`text-xs text-gray-500`}>
-                        {new Date(list[0].date || (list[0] as Record<string, unknown>).created_at as string || Date.now()).toLocaleString()} • {list[0].staffName || (list[0] as Record<string, unknown>).staff_name}
+                        {new Date(list[0].date || Date.now()).toLocaleString()} • {list[0].staffName || 'Unknown'}
                       </span>
                     )}
                   </button>
@@ -1248,7 +1347,7 @@ export const HealthcareDashboard: React.FC = () => {
                                       {patient.title || 'Nursing Round'}
                                     </div>
                                     <div className="text-xs text-gray-500">
-                                      By {patient.staffName || 'Unknown'} • {new Date(patient.date || (patient as Record<string, unknown>).created_at as string || Date.now()).toLocaleString()}
+                                      By {patient.staffName || 'Unknown'} • {new Date(patient.date || Date.now()).toLocaleString()}
                                     </div>
                                   </div>
                                 </div>
@@ -1280,43 +1379,138 @@ export const HealthcareDashboard: React.FC = () => {
         </>
       ) : (
       <DashboardSection
-        title="Recent Handover Activity"
+        title="Senior chart audit feedback"
         icon={<Activity className="w-5 h-5 text-purple-600" />}
       >
-        <div className="space-y-3">
-          {recentHandovers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No recent handover activity
-            </div>
-          ) : (
-            recentHandovers.map((handover, index) => {
-              const formData = (handover.form_data as Record<string, unknown>) || {};
-              const patientName = formData.patientName || formData['Patient name'] || 'Unknown Patient';
-              const mrn = formData.mrn || formData.MRN || 'N/A';
-              
-              return (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-blue-100 rounded-lg mr-3">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 text-sm">
-                        {handover.template_name as string || 'Patient Handover'}
+        {isSeniorPhysicianOrGP ? (
+          <div className="space-y-3">
+            {Object.keys(recentAuditsByMrn).length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No senior chart audits in the last 24 hours</div>
+            ) : (
+              Object.entries(recentAuditsByMrn).map(([mrn, records]) => {
+                const latest = records[0];
+                const formData = (latest.form_data as Record<string, unknown>) || {};
+                const patientName = (formData.patientName || formData['Patient name'] || 'Unknown Patient') as string;
+                const isOpen = openMrn === mrn;
+                return (
+                  <div key={mrn} className="bg-gray-50 rounded-lg border border-gray-100">
+                    <button onClick={() => setOpenMrn(isOpen ? null : mrn)} className="w-full flex items-center justify-between p-3">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                          <div className="font-medium text-gray-900 text-sm">MRN: {mrn}</div>
+                          <div className="text-xs text-gray-500">{patientName} • {records.length} record(s) in last 24h</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {patientName as string} (MRN: {mrn as string}) • by {handover.submitted_by_name as string || handover.submitted_by as string}
+                      <div className="text-xs text-gray-500">{parseDateSafe((latest.submitted_at as string) || (latest.updated_at as string) || '').toLocaleString()}</div>
+                    </button>
+                    {isOpen && (
+                      <div className="px-4 pb-3">
+                        <div className="border border-gray-100 rounded-lg p-3 bg-white">
+                          <div className="text-xs text-gray-500 mb-2">Minute Book</div>
+                          <div className="space-y-2">
+                            {records.map((rec, idx) => {
+                              const fd = (rec.form_data as Record<string, unknown>) || {};
+                              const staff = (rec.submitted_by_name as string) || (rec.submitted_by as string) || 'Unknown';
+                              const when = parseDateSafe((rec.submitted_at as string) || (rec.updated_at as string) || '').toLocaleString();
+                              const title = (rec.template_name as string) || 'Senior Chart Audit';
+                              const agenda = Object.entries(fd)
+                                .filter(([k, v]) => {
+                                  const val = Array.isArray(v) ? v.join(', ').trim() : String(v ?? '').trim();
+                                  if (!val) return false;
+                                  const skipKeys = new Set([
+                                    'id','patientId','patientName','mrn','bed','bedNumber','stability','department','submitted_by','submitted_by_name','created_at','updated_at'
+                                  ].map(s => s.toLowerCase()));
+                                  return !skipKeys.has(String(k).toLowerCase());
+                                })
+                                .map(([k, v]) => ({
+                                  label: prettifyLabel(String(k)),
+                                  value: Array.isArray(v) ? v.join(', ') : String(v)
+                                }));
+
+                              // Order agenda items by clinical importance
+                              const desiredOrder = [
+                                'Name Of The Senior',
+                                'HPI',
+                                'Physical Examination',
+                                'Diagnosis',
+                                'Investigations',
+                                'Management',
+                                'Order Sheet',
+                                'Immediately, Less Than 10min, Less Than 60min Or Less Than 240min',
+                                'Nursing Assessment, Progress And Vital Sign Documented',
+                                'Feedback!'
+                              ];
+                              const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+                              const rank = (label: string) => {
+                                const n = norm(label);
+                                for (let i = 0; i < desiredOrder.length; i++) {
+                                  if (n === norm(desiredOrder[i]) || n.includes(norm(desiredOrder[i]))) return i;
+                                }
+                                return desiredOrder.length + 1;
+                              };
+                              const orderedAgenda = agenda.slice().sort((a, b) => {
+                                const ra = rank(a.label);
+                                const rb = rank(b.label);
+                                if (ra !== rb) return ra - rb;
+                                return String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' });
+                              });
+
+                              return (
+                                <div key={idx} className="bg-gray-50 rounded-md px-3 py-2 border border-gray-100">
+                                  <div className="text-sm font-medium text-gray-800">{title}</div>
+                                  <div className="text-xs text-gray-500">By {staff} • {when}</div>
+                                  {orderedAgenda.length > 0 && (
+                                    <ul className="mt-2 space-y-1">
+                                      {orderedAgenda.map((ln, i) => (
+                                        <li key={i} className="text-sm">
+                                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-2 align-middle"></span>
+                                          <span className="font-medium text-gray-700">{ln.label}:</span> <span className="text-gray-700">{ln.value}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentHandovers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No recent handover activity</div>
+            ) : (
+              recentHandovers.map((handover, index) => {
+                const formData = (handover.form_data as Record<string, unknown>) || {};
+                const patientName = formData.patientName || formData['Patient name'] || 'Unknown Patient';
+                const mrn = formData.mrn || formData.MRN || 'N/A';
+                return (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                        <FileText className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">{handover.template_name as string || 'Patient Handover'}</div>
+                        <div className="text-xs text-gray-500">{patientName as string} (MRN: {mrn as string}) • by {handover.submitted_by_name as string || handover.submitted_by as string}</div>
                       </div>
                     </div>
+                    <div className="text-xs text-gray-500">{parseDateSafe(handover.submitted_at as string).toLocaleString()}</div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {parseDateSafe(handover.submitted_at as string).toLocaleString()}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </DashboardSection>
       )}
     </div>

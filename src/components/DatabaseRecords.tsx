@@ -58,6 +58,7 @@ function toGregorianDateFromEthiopianInput(ethDate: string): Date | null {
 
 export const DatabaseRecords = () => {
   const { user } = useAuth() || { user: null };
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   const [records, setRecords] = useState<any[]>([]);
   // Removed resourceRecords, only dynamic records are used
   // Only show dynamic form records
@@ -153,7 +154,7 @@ export const DatabaseRecords = () => {
       setError(null);
       try {
         let url = '/api/form-submissions';
-        let params: any = {};
+        const params: Record<string, string> = {};
         if (selectedTemplateId) {
           // Only pass numeric formId to backend if selection is numeric; otherwise rely on client-side filter
           const maybeNum = Number(selectedTemplateId);
@@ -180,29 +181,42 @@ export const DatabaseRecords = () => {
             params.dateTo = `${y}-${m}-${d}`;
           }
         }
-        // Avoid passing department param due to backend filter issues; rely on strict client-side filter below
-        // if (user && user.department && user.role !== 'admin') params.department = user.department;
-        const query = Object.keys(params).length
+        // Server-side scoping for non-admins
+        if (!isAdmin && user?.department) params.department = String(user.department);
+        if (!isAdmin && user?.profession) params.profession = String(user.profession);
+
+        const queryStr = Object.keys(params).length
           ? '?' + new URLSearchParams(params).toString()
           : '';
-        const fullUrl = url + query;
+        const fullUrl = url + queryStr;
         console.log('Fetching dynamic form submissions from:', fullUrl);
         const res = await fetch(fullUrl);
         if (!res.ok) throw new Error('Failed to fetch records');
         const data = await res.json();
-        // Enforce department scoping on the client as a safety net
-        const isAdmin = user?.role === 'admin';
-        const dept = user?.department;
-        const scoped = Array.isArray(data)
-          ? (isAdmin || !dept)
-            ? data
-            : data.filter((rec: any) =>
-                rec?.template_department === dept ||
-                rec?.submitted_by_department === dept ||
-                rec?.department === dept
-              )
-          : [];
-        setRecords(scoped);
+
+        // Client-side safety net: enforce department and profession, if present
+        const dept = user?.department ? String(user.department).toLowerCase() : null;
+        const prof = user?.profession ? String(user.profession).toLowerCase() : null;
+        const deptScoped = (isAdmin || !dept)
+          ? data
+          : data.filter((rec: any) =>
+              [rec.template_department, rec.submitted_by_department, rec.department]
+                .map((v: any) => (v ? String(v).toLowerCase() : ''))
+                .includes(String(dept).toLowerCase())
+            );
+
+        const finalScoped = (!prof || isAdmin)
+          ? deptScoped
+          : deptScoped.filter((rec: any) => {
+              const tp = rec.template_profession ? String(rec.template_profession).toLowerCase() : null;
+              const sp = rec.submitted_by_profession ? String(rec.submitted_by_profession).toLowerCase() : null;
+              // Template profession null means applies to all; submission profession null is legacy, allow only if template matches
+              const templateOk = !tp || tp === prof;
+              const submissionOk = !sp || sp === prof;
+              return templateOk && submissionOk;
+            });
+
+        setRecords(finalScoped);
       } catch (err: any) {
         setError(err.message || 'Error fetching records');
       } finally {
@@ -617,36 +631,85 @@ export const DatabaseRecords = () => {
 
       {/* View Record Modal */}
       {viewRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full relative">
-            <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
-              onClick={() => setViewRecord(null)}
-            >
-              &times;
-            </button>
-            <h3 className="text-xl font-bold mb-4">ISBAR Record Details</h3>
-            <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">
-              {JSON.stringify(viewRecord, null, 2)}
-            </pre>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 sm:p-6">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl relative max-h-[90vh] flex flex-col">
+            <div className="sticky top-0 bg-white border-b rounded-t-lg pl-6 pr-12 py-3">
+              <h3 className="text-xl font-bold">ISBAR Record Details</h3>
+              <button
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
+                onClick={() => setViewRecord(null)}
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              {/* Summary */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-sm">
+                <div>
+                  <div className="text-gray-500">Template</div>
+                  <div className="font-medium text-gray-900">{viewRecord?.template_name || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Department</div>
+                  <div className="font-medium text-gray-900">{viewRecord?.template_department || viewRecord?.submitted_by_department || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Submitted By</div>
+                  <div className="font-medium text-gray-900">{viewRecord?.submitted_by_name || viewRecord?.submitted_by || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Submitted At</div>
+                  <div className="font-medium text-gray-900">{viewRecord?.submitted_at ? new Date(viewRecord.submitted_at).toLocaleString() : '—'}</div>
+                </div>
+              </div>
+
+              {/* Form Fields */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Form Details</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {Object.entries(viewRecord?.form_data || {}).map(([key, val]) => (
+                    <div key={key} className="border rounded-lg p-3 bg-gray-50">
+                      <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">{key}</div>
+                      <div className="text-sm text-gray-900 break-words">
+                        {Array.isArray(val)
+                          ? (val as any[]).join(', ')
+                          : typeof val === 'boolean'
+                            ? (val ? 'Yes' : 'No')
+                            : val === null || val === undefined
+                              ? '—'
+                              : typeof val === 'object'
+                                ? <code className="text-xs">{JSON.stringify(val)}</code>
+                                : String(val)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Raw JSON Modal */}
       {rawRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full relative">
-            <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
-              onClick={() => setRawRecord(null)}
-            >
-              &times;
-            </button>
-            <h3 className="text-xl font-bold mb-4">Raw Record Data</h3>
-            <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto max-h-96">
-              {JSON.stringify(rawRecord, null, 2)}
-            </pre>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 sm:p-6">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl relative max-h-[90vh] flex flex-col">
+            <div className="sticky top-0 bg-white border-b rounded-t-lg pl-6 pr-12 py-3">
+              <h3 className="text-xl font-bold">Raw JSON</h3>
+              <button
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
+                onClick={() => setRawRecord(null)}
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-6 overflow-auto">
+              <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto">
+                {JSON.stringify(rawRecord, null, 2)}
+              </pre>
+            </div>
           </div>
         </div>
       )}
