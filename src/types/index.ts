@@ -1,26 +1,43 @@
-export interface ISBARRecord {
-  id: string;
-  patientName: string;
+// src/types/index.ts
+export interface Patient {
+  id: number;
+  name: string;
   age: number;
-  mrn: string;
+  gender: 'Male' | 'Female' | 'Other';
   bedNumber: string;
-  department: string;
-  nurseName: string;
-  shift: 'Day' | 'Evening' | 'Night';
-  timestamp: string;
-  situation: string;
-  background: string;
-  assessment: string;
-  recommendation: string;
-  vitalSigns: {
-    temperature: number;
+  triageCategory: 'Resuscitation' | 'Emergency' | 'Urgent' | 'Semi-urgent' | 'Non-urgent';
+  oxygenation: {
+    spO2: number;
+    flowRateLpm: number;
+    deliverySystem: string;
+  };
+  ventilation: {
+    etCO2: number;
+    respiratoryRate: number;
+  };
+  circulation: {
     heartRate: number;
     bloodPressure: string;
-    respiratoryRate: number;
-    oxygenSaturation: number;
+    temperature: number;
   };
-  stability: 'Stable' | 'Unstable' | 'Critical';
+  disability: {
+    gcs: number;
+    pupilResponse: string;
+    bloodGlucose: number;
+  };
+  exposure: {
+    injuries: string[];
+    allergies: string[];
+  };
+  fullISBAR: {
+    identity: string;
+    situation: string;
+    background: string;
+    assessment: string;
+    recommendation: string;
+  };
 }
+
 
 export interface Staff {
   id: string;

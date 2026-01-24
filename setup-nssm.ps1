@@ -4,16 +4,36 @@
 
 # ===== Paths =====
 $NssmPath = "C:\nssm-2.24\win64\nssm.exe"  # Adjust if using 32-bit
-$PM2Runtime = "$env:APPDATA\npm\pm2-runtime.cmd"
-$Ecosystem = "C:\ISBAR_4\ISBAR_4\server\ecosystem.config.cjs"
-$AppDir = "C:\ISBAR_4\ISBAR_4\server"
+# Prefer running Node directly as a service (avoids pm2/wmic issues under LocalSystem)
+# Auto-detect Node path; fall back to default install location
+$NodeExe = (Get-Command node -ErrorAction SilentlyContinue).Source
+if (-not $NodeExe) { $NodeExe = "C:\Program Files\nodejs\node.exe" }
+$ServerScriptRel = "src\index.js"
+$AppDir = "C:\App file\ISBAR_4\server"
+# Backend port (adjust as needed)
+$BackendPort = 4000
 $NginxExe = "C:\nginx-1.28.0\nginx.exe"
 $NginxDir = "C:\nginx-1.28.0"
 
+# Ensure log directories exist
+New-Item -ItemType Directory -Path "$AppDir\logs" -Force | Out-Null
+New-Item -ItemType Directory -Path "$NginxDir\logs" -Force | Out-Null
+
 # ===== 1. Install ISBAR-API Service =====
-Write-Host "`n[1/2] Setting up ISBAR-API service..." -ForegroundColor Cyan
-& $NssmPath install ISBAR-API $PM2Runtime $Ecosystem | Out-Null
+Write-Host "`n[1/2] Setting up ISBAR-API service (Node)..." -ForegroundColor Cyan
+# Remove any existing service to ensure a clean reset
+& $NssmPath remove ISBAR-API confirm 2>$null | Out-Null
+# Validate Node executable
+if (!(Test-Path $NodeExe)) {
+  Write-Error "Node not found at $NodeExe. Please install Node.js (https://nodejs.org/) or adjust NodeExe path."
+  exit 1
+}
+# Install if missing, otherwise update settings
+& $NssmPath install ISBAR-API $NodeExe | Out-Null
 & $NssmPath set ISBAR-API AppDirectory $AppDir | Out-Null
+# Use relative script path so spaces in 'C:\App file' do not break parameter parsing
+& $NssmPath set ISBAR-API AppParameters "$ServerScriptRel" | Out-Null
+& $NssmPath set ISBAR-API AppEnvironmentExtra "NODE_ENV=production","PORT=$BackendPort" | Out-Null
 & $NssmPath set ISBAR-API Start SERVICE_AUTO_START | Out-Null
 & $NssmPath set ISBAR-API AppThrottle 1500 | Out-Null
 & $NssmPath set ISBAR-API AppRestartDelay 5000 | Out-Null
@@ -24,9 +44,12 @@ Write-Host "`n[1/2] Setting up ISBAR-API service..." -ForegroundColor Cyan
 
 # ===== 2. Install Nginx Service =====
 Write-Host "`n[2/2] Setting up Nginx service..." -ForegroundColor Cyan
+# Remove and re-install Nginx service to ensure parameters are applied
+& $NssmPath remove Nginx confirm 2>$null | Out-Null
 & $NssmPath install Nginx $NginxExe | Out-Null
 & $NssmPath set Nginx AppDirectory $NginxDir | Out-Null
-& $NssmPath set Nginx AppParameters "-p `"$NginxDir`" -c `"conf\nginx.conf`"" | Out-Null
+# Use absolute nginx.conf in workspace to keep config versioned and set prefix for logs/pid
+& $NssmPath set Nginx AppParameters "-p `"$NginxDir`" -c `"C:\App file\nginx.conf\nginx.conf`"" | Out-Null
 & $NssmPath set Nginx Start SERVICE_AUTO_START | Out-Null
 & $NssmPath set Nginx AppThrottle 1500 | Out-Null
 & $NssmPath set Nginx AppRestartDelay 3000 | Out-Null
@@ -46,10 +69,17 @@ Get-Service ISBAR-API, Nginx -ErrorAction SilentlyContinue | Select-Object Name,
 
 Write-Host "`nVerifying endpoints..." -ForegroundColor Yellow
 try {
-    $depts = Invoke-RestMethod "http://localhost/api/departments" -ErrorAction Stop
-    Write-Host "✓ API is running: $($depts -join ', ')" -ForegroundColor Green
+    $healthDirect = Invoke-RestMethod "http://localhost:$BackendPort/api/health" -ErrorAction Stop -TimeoutSec 5
+    Write-Host "✓ Direct API ($BackendPort) health: $($healthDirect | ConvertTo-Json -Compress)" -ForegroundColor Green
 } catch {
-    Write-Host "✗ API check failed: $_" -ForegroundColor Red
+    Write-Host "✗ Direct API health check failed: $_" -ForegroundColor Red
+}
+
+try {
+    $healthViaNginx = Invoke-RestMethod "http://localhost:8080/isbar/api/health" -ErrorAction Stop -TimeoutSec 5
+    Write-Host "✓ Via Nginx (:8080/isbar) health: $($healthViaNginx | ConvertTo-Json -Compress)" -ForegroundColor Green
+} catch {
+    Write-Host "✗ Nginx proxy health check failed: $_" -ForegroundColor Red
 }
 
 Write-Host "`nSetup complete! Access your application at: http://localhost/isbar/" -ForegroundColor Green

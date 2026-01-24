@@ -96,7 +96,7 @@ app.get('/api/form-templates/department/:department', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 4000;
 
 // --- ISBAR Dynamic Records API ---
 // Place this after app and pool are initialized
@@ -165,6 +165,16 @@ app.get('/api/health', async (req, res) => {
     return res.json({ ready: true });
   } catch (e) {
     return res.status(503).json({ ready: false, error: String(e?.message || e) });
+  }
+});
+
+// Test database connection endpoint
+app.get('/api/test-db', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ success: true, message: 'Database connection successful.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 app.use('/api/isbar-records', isbarRecordsRouter);
@@ -347,16 +357,6 @@ app.delete('/api/records/:id', async (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('ISBAR Backend Server Running');
-});
-
-// Test database connection endpoint
-app.get('/api/test-db', async (req, res) => {
-  try {
-    await pool.query('SELECT 1');
-    res.json({ success: true, message: 'Database connection successful.' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
 });
 
 // Departments list endpoint (distinct departments across tables)

@@ -18,6 +18,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useShift } from '../hooks/useShift';
 import { Search } from 'lucide-react';
 import { useSearch } from '../hooks/useSearch';
+import { EthiopianDateDisplay } from './EthiopianDateDisplay';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -180,7 +181,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
                 </div>
               )}
               <div className="hidden md:flex items-center text-sm text-gray-600">
-                {new Date().toLocaleDateString()}
+                <EthiopianDateDisplay date={new Date()} format="long" />
               </div>
               {currentPage === 'dashboard' && (
                 <div className="flex items-center space-x-2">

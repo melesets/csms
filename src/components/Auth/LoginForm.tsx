@@ -71,7 +71,7 @@ export const LoginForm = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 border-2 border-white bg-[#003153] text-white">
             <Stethoscope className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">AGH-HMS</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">AGH-CSMS</h1>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
 

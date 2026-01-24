@@ -251,7 +251,7 @@ export const fieldTemplates = [
       required: true,
       options: [
         { value: 'stable', label: 'Stable' },
-        { value: 'unstable', label: 'Unstable' },
+        { value: 'subcritical', label: 'Sub-critical' },
         { value: 'critical', label: 'Critical' }
       ],
       validation: {}

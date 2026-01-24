@@ -2,23 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { apiPost, apiGet } from '../api';
 import { Package, Pen, Flag, AlertTriangle, MinusCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useShift } from '../hooks/useShift';
 import { Resource } from '../types';
+import { EthiopianDateDisplay } from './EthiopianDateDisplay';
 // import { Layout } from './Layout';
 function ResourceManagement() {
   const { user } = useAuth();
   const [resources, setResources] = useState<Resource[]>([]);
   // (removed duplicate filteredResources, see below for correct version)
   const [staff, setStaff] = useState<{ id: string; name: string; department?: string; role?: string }[]>([]);
-  // Sync selectedShift with global shift context (tabs)
-  const { shift: globalShift } = useShift();
   const [selectedShift, setSelectedShift] = useState('Morning');
-  useEffect(() => {
-    // If tabs set shift to 'All', keep user's manual selection; otherwise follow tab
-    const resolved = globalShift && globalShift !== 'All' ? globalShift : selectedShift;
-    setSelectedShift(resolved as any);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [globalShift]);
   const [selectedStaff, setSelectedStaff] = useState('');
   // Admin-only filters for viewing inventory
   const [deptFilter, setDeptFilter] = useState<string>('');
@@ -319,8 +311,8 @@ function ResourceManagement() {
                       // Save report to backend
                       const selectedStaffData = staff.find(s => s.name === selectedStaff);
                       const deptResources = resources.filter(r => r.department === user?.department);
-                      // Determine shift to save: prefer tab's shift when not 'All', else dropdown selection
-                      const shiftToSave = (globalShift && globalShift !== 'All') ? globalShift : selectedShift;
+                      // Determine shift to save: ALWAYS use the user's dropdown selection
+                      const shiftToSave = selectedShift;
                       const report = {
                         shift: shiftToSave,
                         staffName: selectedStaff,
@@ -518,12 +510,13 @@ function ResourceManagement() {
                 {newResource.type === 'Drug' && (
                   <>
                     <div className="flex flex-col">
-                      <label className="text-sm font-medium text-gray-700 mb-1">Expired Date</label>
+                      <label className="text-sm font-medium text-gray-700 mb-1">Expired Date (Gregorian)</label>
                       <input
                         type="date"
                         name="expiredDate"
                         value={newResource.expiredDate}
                         onChange={handleInputChange}
+                        required
                         className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-gray-50"
                       />
                     </div>
@@ -633,7 +626,7 @@ function ResourceManagement() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span>{resource.quantity}</span>
+                          <span>{(() => { const q = Number(resource.quantity); return isNaN(q) ? 0 : q; })()}</span>
                           <button
                             className="text-blue-600 hover:text-blue-800"
                             title="Edit Quantity"
@@ -645,13 +638,17 @@ function ResourceManagement() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {resource.standard_quantity !== undefined ? resource.standard_quantity : ''}
+                      {(() => { const s = Number(resource.standard_quantity as any); return isNaN(s) ? 0 : s; })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {resource.unit}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {resource.type === 'Drug' && resource.expiry_date ? resource.expiry_date : '-'}
+                      {resource.type === 'Drug' && resource.expiry_date ? (
+                        <EthiopianDateDisplay date={resource.expiry_date as any} format="long" />
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {resource.type === 'Drug' && resource.batch_number ? resource.batch_number : '-'}
@@ -662,7 +659,10 @@ function ResourceManagement() {
                         const stdNumRaw = (resource.standard_quantity as any);
                         const stdNum = stdNumRaw !== undefined && stdNumRaw !== null ? Number(stdNumRaw) : NaN;
                         // Low stock only when qty < 2 AND standard >= 2; if standard missing, fallback to qty < 2
-                        const isLowStock = !isNaN(qtyNum) && (!isNaN(stdNum) ? (qtyNum < 2 && stdNum >= 2) : (qtyNum < 2));
+                        const isLowStock = !isNaN(qtyNum) && (
+                          qtyNum <= 0 ||
+                          (!isNaN(stdNum) ? (qtyNum < 2 && stdNum >= 2) : (qtyNum < 2))
+                        );
                         let isExpired = false;
                         let isNearExpired = false;
                         if (resource.type === 'Drug' && resource.expiry_date) {
@@ -670,8 +670,10 @@ function ResourceManagement() {
                           if (!isNaN(d.getTime())) {
                             const now = new Date();
                             const diffDays = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                            isExpired = d < now;
-                            isNearExpired = !isExpired && diffDays >= 0 && diffDays <= 7;
+                            // Only consider expiry statuses when quantity > 0
+                            const hasStock = !isNaN(qtyNum) && qtyNum > 0;
+                            isExpired = hasStock && d < now;
+                            isNearExpired = hasStock && !isExpired && diffDays >= 0 && diffDays <= 7;
                           }
                         }
                         const badges: any[] = [];

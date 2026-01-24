@@ -4,6 +4,7 @@ import { ExpandablePatientCard } from './ExpandablePatientCard';
 import IsbarLoader from './IsbarLoader';
 import DashboardSection from './common/DashboardSection';
 import { useShift } from '../hooks/useShift';
+import { EthiopianDateDisplay } from './EthiopianDateDisplay';
 import { 
   Bed, 
   Clock, 
@@ -344,19 +345,25 @@ export const HealthcareDashboard: React.FC = () => {
         });
       }
 
-      const normalize = (arr: DashboardMapping[]): DashboardMapping[] => (arr || []).map((m: DashboardMapping) => {
+            const normalize = (arr: DashboardMapping[]): DashboardMapping[] => (arr || []).map((m: DashboardMapping) => {
         const parsedFields = typeof m.fields === 'string' ? safeParseJSON(m.fields, []) : (m.fields || []);
         const parsedSections = typeof m.sections === 'string' ? safeParseJSON(m.sections, []) : (m.sections || []);
         const labelMap: Record<string, string> = {};
-        const addLabels = (flds: any[], parentLabel?: string) => {
-          (flds || []).forEach((f: any) => {
+        interface Field {
+          name?: string;
+          id?: string;
+          label?: string;
+          fields?: Field[];
+        }
+        const addLabels = (flds: Field[], parentLabel?: string) => {
+          (flds || []).forEach((f: Field) => {
             const nm = f?.name || f?.id;
             const lb = f?.label || nm;
             if (nm) labelMap[String(nm)] = parentLabel ? `${parentLabel} > ${lb}` : String(lb);
-            if (Array.isArray(f?.fields)) addLabels(f.fields as any[], String(lb));
+            if (Array.isArray(f?.fields)) addLabels(f.fields, String(lb));
           });
         };
-        addLabels(parsedFields as any[]);
+        addLabels(parsedFields as Field[]);
         return {
           ...m,
           fields: parsedFields,
@@ -1116,7 +1123,7 @@ export const HealthcareDashboard: React.FC = () => {
                   </div>
                   <div className={`text-xs mt-1 text-gray-600`}>
                     {latest ? (
-                      <>Saved by {latest.staffName} on {new Date(latest.date).toLocaleDateString()}</>
+                      <>Saved by {latest.staffName} on <EthiopianDateDisplay date={latest.date} format="long" /></>
                     ) : (
                       <>No reports yet</>
                     )}
@@ -1146,7 +1153,7 @@ export const HealthcareDashboard: React.FC = () => {
                     </div>
                     {list[0] && (
                       <span className={`text-xs text-gray-500`}>
-                        {new Date(list[0].date).toLocaleString()} • {list[0].staffName}
+                        <EthiopianDateDisplay date={list[0].date} format="long" /> • {list[0].staffName}
                       </span>
                     )}
                   </button>
@@ -1163,7 +1170,7 @@ export const HealthcareDashboard: React.FC = () => {
                                   Current Report - Saved by {report.staffName}
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                  {new Date(report.date).toLocaleString()}
+                                  <EthiopianDateDisplay date={report.date} format="long" />
                                 </div>
                               </div>
                               
@@ -1187,11 +1194,14 @@ export const HealthcareDashboard: React.FC = () => {
                                         <tr key={`${report.id}-${idx}`} className="hover:bg-gray-50">
                                           <td className="px-3 py-2 border-b">{item.name as string || '-'}</td>
                                           <td className="px-3 py-2 border-b">{item.type as string || '-'}</td>
-                                          <td className="px-3 py-2 border-b">{item.quantity as string || '-'}</td>
+                                          <td className="px-3 py-2 border-b">{(() => { const q = Number(item.quantity); return isNaN(q) ? '0' : (q >= 1 ? String(q) : '0'); })()}</td>
                                           <td className="px-3 py-2 border-b">{(item.standard_quantity || item.standard) as string || '-'}</td>
                                           <td className="px-3 py-2 border-b">{item.unit as string || '-'}</td>
                                           <td className="px-3 py-2 border-b">
-                                            {item.expiry_date ? new Date(item.expiry_date as string).toLocaleDateString() : (item.expiry as string || '-')}
+                                            {(() => {
+                                              const ex = (item.expiry_date || item.expiry) as string | undefined;
+                                              return ex ? <EthiopianDateDisplay date={ex} format="long" /> : '-';
+                                            })()}
                                           </td>
                                           <td className="px-3 py-2 border-b">{(item.batch_number || item.batch) as string || '-'}</td>
                                           <td className="px-3 py-2 border-b">
@@ -1199,7 +1209,10 @@ export const HealthcareDashboard: React.FC = () => {
                                               const qtyNum = Number(item.quantity);
                                               const stdNumRaw = (item.standard_quantity ?? item.standard);
                                               const stdNum = stdNumRaw !== undefined && stdNumRaw !== null ? Number(stdNumRaw) : NaN;
-                                              const isLowStock = !isNaN(qtyNum) && (!isNaN(stdNum) ? (qtyNum < 2 && stdNum >= 2) : (qtyNum < 2));
+                                              const isLowStock = !isNaN(qtyNum) && (
+                                                qtyNum <= 0 ||
+                                                (!isNaN(stdNum) ? (qtyNum < 2 && stdNum >= 2) : (qtyNum < 2))
+                                              );
                                               let isExpired = false;
                                               let isNearExpired = false;
                                               const expiry = item.expiry_date || item.expiry;
@@ -1301,7 +1314,7 @@ export const HealthcareDashboard: React.FC = () => {
                   </div>
                   <div className={`text-xs mt-1 text-gray-600`}>
                     {latest ? (
-                      <>Saved by {(latest.staffName || 'Unknown')} on {new Date(latest.date || Date.now()).toLocaleDateString()}</>
+                      <>Saved by {(latest.staffName || 'Unknown')} on <EthiopianDateDisplay date={latest.date || new Date()} /></>
                     ) : (
                       <>No rounds yet</>
                     )}
@@ -1327,7 +1340,7 @@ export const HealthcareDashboard: React.FC = () => {
                     </div>
                     {list[0] && (
                       <span className={`text-xs text-gray-500`}>
-                        {new Date(list[0].date || Date.now()).toLocaleString()} • {list[0].staffName || 'Unknown'}
+                        <EthiopianDateDisplay date={list[0].date || new Date()} format="long" /> • {list[0].staffName || 'Unknown'}
                       </span>
                     )}
                   </button>
@@ -1347,21 +1360,59 @@ export const HealthcareDashboard: React.FC = () => {
                                       {patient.title || 'Nursing Round'}
                                     </div>
                                     <div className="text-xs text-gray-500">
-                                      By {patient.staffName || 'Unknown'} • {new Date(patient.date || Date.now()).toLocaleString()}
+                                      By {patient.staffName || 'Unknown'} • <EthiopianDateDisplay date={patient.date || new Date()} format="long" />
                                     </div>
                                   </div>
                                 </div>
                                 {Array.isArray(patient.agenda) && patient.agenda.length > 0 && (
                                   <div className="mt-2 border-t border-gray-100 pt-2">
-                                    <ul className="space-y-1">
-                                      {patient.agenda.map((ln: {label: string, value: string}, idx: number) => (
-                                        <li key={idx} className="text-sm">
-                                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-2 align-middle"></span>
-                                          <span className="font-medium text-gray-700">{ln.label}:</span>{' '}
-                                          <span className="text-gray-700">{String(ln.value)}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
+                                    {(() => {
+                                      const norm = (s: string) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+                                      const findVal = (labels: string[]) => {
+                                        const set = new Set(labels.map(norm));
+                                        const found = patient.agenda.find((x: any) => set.has(norm(x.label)));
+                                        return found ? String(found.value) : '';
+                                      };
+                                      const capWords = (s: string) => s.replace(/\b([a-z])(\w*)/gi, (_: any, a: string, b: string) => a.toUpperCase() + b.toLowerCase());
+                                      const items: { label: string; value: string; highlight?: boolean }[] = [];
+                                      const patientName = findVal(['Patient name','Patient Name','name','patient_name','patientname']);
+                                      const age = findVal(['Age']);
+                                      const bn = findVal(['BN','Bed Number','bed number','bed','bed no','bedno']);
+                                      const gender = findVal(['Gender','Sex']);
+                                      const pain = findVal(['Pain']);
+                                      const orient = findVal(['Patient Orientation/Behavior','Patient Orientation Behavior','Orientation']);
+                                      const tasks = findVal(['Performed Tasks']);
+                                      const position = findVal(['Position']);
+                                      const possessions = findVal(['Possessions']);
+                                      const potty = findVal(['Potty']);
+                                      const info = findVal(['Provision of Information','Provision Of Information']);
+                                      const shift = findVal(['Shift']);
+
+                                      if (patientName) items.push({ label: 'Patient name', value: capWords(patientName), highlight: true });
+                                      if (age) items.push({ label: 'Age', value: age });
+                                      if (bn) items.push({ label: 'BN', value: bn });
+                                      if (gender) items.push({ label: 'Gender', value: gender });
+                                      if (pain) items.push({ label: 'Pain', value: pain });
+                                      if (orient) items.push({ label: 'Patient Orientation/Behavior', value: orient });
+                                      if (tasks) items.push({ label: 'Performed Tasks', value: tasks });
+                                      if (position) items.push({ label: 'Position', value: position });
+                                      if (possessions) items.push({ label: 'Possessions', value: possessions });
+                                      if (potty) items.push({ label: 'Potty', value: potty });
+                                      if (info) items.push({ label: 'Provision of Information', value: info });
+                                      if (shift) items.push({ label: 'Shift', value: shift });
+
+                                      return (
+                                        <ul className="space-y-1">
+                                          {items.map((it, idx) => (
+                                            <li key={idx} className="text-sm">
+                                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-2 align-middle"></span>
+                                              <span className={`font-medium ${it.highlight ? 'text-blue-700' : 'text-gray-700'}`}>{it.label}:</span>{' '}
+                                              <span className={`${it.highlight ? 'text-blue-800 font-semibold' : 'text-gray-700'}`}>{it.value}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      );
+                                    })()}
                                   </div>
                                 )}
                               </div>
@@ -1404,7 +1455,7 @@ export const HealthcareDashboard: React.FC = () => {
                           <div className="text-xs text-gray-500">{patientName} • {records.length} record(s) in last 24h</div>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">{parseDateSafe((latest.submitted_at as string) || (latest.updated_at as string) || '').toLocaleString()}</div>
+                      <div className="text-xs text-gray-500"><EthiopianDateDisplay date={parseDateSafe((latest.submitted_at as string) || (latest.updated_at as string) || '')} format="long" /></div>
                     </button>
                     {isOpen && (
                       <div className="px-4 pb-3">
@@ -1414,7 +1465,7 @@ export const HealthcareDashboard: React.FC = () => {
                             {records.map((rec, idx) => {
                               const fd = (rec.form_data as Record<string, unknown>) || {};
                               const staff = (rec.submitted_by_name as string) || (rec.submitted_by as string) || 'Unknown';
-                              const when = parseDateSafe((rec.submitted_at as string) || (rec.updated_at as string) || '').toLocaleString();
+                              const whenDate = parseDateSafe((rec.submitted_at as string) || (rec.updated_at as string) || '');
                               const title = (rec.template_name as string) || 'Senior Chart Audit';
                               const agenda = Object.entries(fd)
                                 .filter(([k, v]) => {
@@ -1461,7 +1512,7 @@ export const HealthcareDashboard: React.FC = () => {
                               return (
                                 <div key={idx} className="bg-gray-50 rounded-md px-3 py-2 border border-gray-100">
                                   <div className="text-sm font-medium text-gray-800">{title}</div>
-                                  <div className="text-xs text-gray-500">By {staff} • {when}</div>
+                                  <div className="text-xs text-gray-500">By {staff} • <EthiopianDateDisplay date={whenDate} format="long" /></div>
                                   {orderedAgenda.length > 0 && (
                                     <ul className="mt-2 space-y-1">
                                       {orderedAgenda.map((ln, i) => (
@@ -1504,7 +1555,7 @@ export const HealthcareDashboard: React.FC = () => {
                         <div className="text-xs text-gray-500">{patientName as string} (MRN: {mrn as string}) • by {handover.submitted_by_name as string || handover.submitted_by as string}</div>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500">{parseDateSafe(handover.submitted_at as string).toLocaleString()}</div>
+                    <div className="text-xs text-gray-500"><EthiopianDateDisplay date={parseDateSafe(handover.submitted_at as string)} format="long" /></div>
                   </div>
                 );
               })

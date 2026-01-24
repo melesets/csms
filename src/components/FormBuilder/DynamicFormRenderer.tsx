@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Save, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { FormTemplate, FormField } from '../../types/formBuilder';
 import { MinimalistMultiSelect } from './MinimalistMultiSelect';
+import { EthiopianDateInput } from '../EthiopianDateInput';
 
 // Color schemes for sections (same as SectionedFormCanvas)
 const SECTION_COLORS = {
@@ -480,18 +481,15 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       case 'date':
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <input
-              type="date"
+            <EthiopianDateInput
+              label={field.label}
               value={value}
-              onChange={(e) => handleInputChange(field.name, e.target.value)}
+              onChange={(gregorianDate) => handleInputChange(field.name, gregorianDate)}
+              name={field.name}
+              required={field.required}
               disabled={disabled}
-              className={baseInputClass}
+              error={error}
             />
-            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
 

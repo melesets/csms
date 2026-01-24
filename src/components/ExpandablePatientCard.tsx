@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { EthiopianDateDisplay } from './EthiopianDateDisplay';
+import { gregorianToEthiopian, formatEthiopianDate } from '../utils/ethiopianCalendar';
 import IsbarLoader from './IsbarLoader';
 import { 
   Bed, 
@@ -52,6 +54,149 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     const first = parts[0]?.[0] || '';
     const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
     return (first + last).toUpperCase();
+  };
+
+  const getPatientGenderCode = (): '' | 'M' | 'F' => {
+    const primaryFd: Record<string, unknown> = patient.formData || {};
+    const latestHandoverFd: Record<string, unknown> = (history && history[0] && (history[0] as any).form_data) ? ((history[0] as any).form_data as Record<string, unknown>) : {};
+    const sources: Record<string, unknown>[] = [primaryFd, latestHandoverFd];
+
+    const getByKeys = (keys: string[]): unknown => {
+      for (const src of sources) {
+        for (const k of Object.keys(src)) {
+          const kl = k.toLowerCase();
+          if (keys.some(t => kl === t.toLowerCase())) return (src as any)[k];
+        }
+      }
+      return undefined;
+    };
+
+    const getByLabelContains = (phrases: string[]): unknown => {
+      const labels = patient.fieldLabels || {};
+      const entries = Object.entries(labels);
+      for (const [key, lbl] of entries) {
+        const l = String(lbl || '').toLowerCase();
+        if (phrases.some(p => l.includes(p.toLowerCase()))) {
+          for (const src of sources) {
+            if (key in src) return (src as any)[key];
+            const ci = Object.keys(src).find(k => k.toLowerCase() === key.toLowerCase());
+            if (ci) return (src as any)[ci];
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const raw = getByKeys(['gender','sex','patient_gender','patient_sex']) ?? getByLabelContains(['gender','sex']);
+    if (raw === undefined || raw === null) return '';
+    const s = String(raw).trim().toLowerCase();
+    if (!s) return '';
+    if (s.startsWith('f') || s.includes('female') || s === 'girl' || s === 'woman' || s === 'f') return 'F';
+    if (s.startsWith('m') || s.includes('male') || s === 'boy' || s === 'man' || s === 'm') return 'M';
+    return '';
+  };
+
+  // Derive patient age text from form data with priorities:
+  // 1) Explicit Age field (by key or label), parsing values like '2 months', '3 days', '4y'
+  // 2) DOB fields -> compute y/m/d
+  // 3) Separate age fields (years/months/days)
+  // 4) Fallback to patient.age
+  const getPatientAgeText = (): string => {
+    const primaryFd: Record<string, unknown> = patient.formData || {};
+    const latestHandoverFd: Record<string, unknown> = (history && history[0] && (history[0] as any).form_data) ? ((history[0] as any).form_data as Record<string, unknown>) : {};
+    const sources: Record<string, unknown>[] = [primaryFd, latestHandoverFd];
+
+    const getByKeys = (keys: string[]): unknown => {
+      for (const src of sources) {
+        for (const k of Object.keys(src)) {
+          const kl = k.toLowerCase();
+          if (keys.some(t => kl === t.toLowerCase())) return (src as any)[k];
+        }
+      }
+      return undefined;
+    };
+
+    const getByLabelContains = (phrases: string[]): unknown => {
+      const labels = patient.fieldLabels || {};
+      const entries = Object.entries(labels);
+      for (const [key, lbl] of entries) {
+        const l = String(lbl || '').toLowerCase();
+        if (phrases.some(p => l.includes(p.toLowerCase()))) {
+          for (const src of sources) {
+            if (key in src) return (src as any)[key];
+            const ci = Object.keys(src).find(k => k.toLowerCase() === key.toLowerCase());
+            if (ci) return (src as any)[ci];
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const parseNum = (v: unknown): number | null => {
+      const n = Number(String(v).replace(/[^0-9.\-]/g, ''));
+      return isNaN(n) ? null : n;
+    };
+
+    const parseAgeText = (v: unknown): { unit: 'y'|'m'|'d', value: number } | null => {
+      const s = String(v ?? '').trim().toLowerCase();
+      if (!s) return null;
+      // Match number (int/float) followed by unit keywords or shorthand
+      const m = s.match(/([0-9]*\.?[0-9]+)\s*(years?|yrs?|y|months?|mos?|m|days?|d)/);
+      if (m) {
+        const num = Number(m[1]);
+        const unitRaw = m[2];
+        if (!isNaN(num)) {
+          if (/^y/.test(unitRaw)) return { unit: 'y', value: Math.floor(num) };
+          if (/^m/.test(unitRaw)) return { unit: 'm', value: Math.floor(num) };
+          if (/^d/.test(unitRaw)) return { unit: 'd', value: Math.floor(num) };
+        }
+      }
+      // If only a number provided, assume years
+      const onlyNum = parseNum(s);
+      if (onlyNum !== null) return { unit: 'y', value: Math.floor(onlyNum) };
+      return null;
+    };
+
+    // 1) Prefer explicit 'Age' field (by key or label)
+    const ageExplicit = getByKeys(['age']) ?? getByLabelContains(['age']);
+    const parsedExplicit = parseAgeText(ageExplicit);
+    if (parsedExplicit) return `${parsedExplicit.value}${parsedExplicit.unit}`;
+
+    // 2) DOB if present
+    const dobRaw = getByKeys(['dob','date_of_birth','dateofbirth','birthdate','birth_date']);
+    const now = new Date();
+    if (dobRaw) {
+      const dob = parseDateSafe(String(dobRaw));
+      if (!isNaN(dob.getTime())) {
+        let years = now.getFullYear() - dob.getFullYear();
+        const hasHadBirthday = (now.getMonth() > dob.getMonth()) || (now.getMonth() === dob.getMonth() && now.getDate() >= dob.getDate());
+        if (!hasHadBirthday) years -= 1;
+
+        if (years >= 1) return `${years}y`;
+
+        // Months for infants
+        let months = (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
+        if (now.getDate() < dob.getDate()) months -= 1;
+        if (months >= 1) return `${months}m`;
+
+        // Days for neonates
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const days = Math.max(0, Math.floor((now.getTime() - dob.getTime()) / msPerDay));
+        return `${days}d`;
+      }
+    }
+
+    // 3) Separate age fields
+    const ageYr = parseNum(getByKeys(['age','age_years','ageyrs','patient_age','age (years)']));
+    if (ageYr !== null) return `${Math.floor(ageYr)}y`;
+    const ageMo = parseNum(getByKeys(['age_months','age (months)','months']));
+    if (ageMo !== null) return `${Math.floor(ageMo)}m`;
+    const ageDy = parseNum(getByKeys(['age_days','age (days)','days']));
+    if (ageDy !== null) return `${Math.floor(ageDy)}d`;
+
+    // 4) Fallback to provided patient.age
+    if (typeof patient.age === 'number' && !isNaN(patient.age)) return `${Math.floor(patient.age)}y`;
+    return '';
   };
 
   const parseDateSafe = (iso: string | number | Date | null | undefined): Date => {
@@ -140,56 +285,55 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
     }
   };
 
-  // Derive Patient Condition (Critical, Subcritical, Stable) from form data or fallback to existing stability
+  // Derive Patient Condition (Critical, Subcritical, Stable) strictly from explicit field across sources; fallback only if missing
   const getPatientCondition = (): 'critical' | 'subcritical' | 'stable' => {
-    const fd: Record<string, unknown> = patient.formData || {};
+    const primaryFd: Record<string, unknown> = patient.formData || {};
+    const latestHandoverFd: Record<string, unknown> = (history && history[0] && (history[0] as any).form_data) ? ((history[0] as any).form_data as Record<string, unknown>) : {};
+    const sources: Record<string, unknown>[] = [primaryFd, latestHandoverFd];
     const labels = patient.fieldLabels || {};
-    // Helper: find a key in formData by label includes
-    const findKeyByLabel = (cands: string[]): string | undefined => {
-      const entries = Object.entries(labels || {});
-      for (const [k, lbl] of entries) {
-        const l = String(lbl || '').toLowerCase();
-        for (const c of cands) {
-          if (l.includes(c.toLowerCase())) return k;
-        }
+
+    const normalizeKey = (k: string) => String(k || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const targets = new Set(['patientcondition']);
+
+    // Helper: find a key in a given source by normalized key name
+    const findKeyIn = (src: Record<string, unknown>): string | undefined => {
+      for (const k of Object.keys(src || {})) {
+        if (targets.has(normalizeKey(k))) return k;
       }
       return undefined;
     };
-    // Try common key variants directly
-    const directKeys = [
-      'Patient Condition',
-      'patient_condition',
-      'patientCondition',
-      'condition',
-      'Patient status',
-      'patient_status',
-      'status'
-    ];
+
+    // First try label mapping to a concrete key in primary source
+    const labelMappedKey = (() => {
+      for (const [k, lbl] of Object.entries(labels || {})) {
+        const l = String(lbl || '').toLowerCase();
+        if (l.includes('patient condition')) return k;
+      }
+      return undefined;
+    })();
+
     let raw: unknown = undefined;
-    for (const key of directKeys) {
-      if (key in fd) { raw = fd[key]; break; }
-      const ci = Object.keys(fd).find(k => k.toLowerCase() === String(key).toLowerCase());
-      if (ci) { raw = fd[ci]; break; }
-    }
-    // If not found, try via label map
+    // Prefer label-mapped key in primary
+    if (labelMappedKey && labelMappedKey in primaryFd) raw = (primaryFd as any)[labelMappedKey];
+    // Otherwise scan sources for normalized key match
     if (raw === undefined) {
-      const mappedKey = findKeyByLabel(['patient condition', 'condition', 'status']);
-      if (mappedKey && mappedKey in fd) raw = fd[mappedKey];
+      for (const src of sources) {
+        const key = findKeyIn(src);
+        if (key) { raw = (src as any)[key]; break; }
+      }
     }
-    if (raw !== undefined) {
+    // Accept value only if exact - map form values to display values
+    if (raw !== undefined && raw !== null) {
       const norm = String(raw).trim().toLowerCase();
-      if (/(^|\b)critical(\b|$)/.test(norm) || /\bcode\s*red\b/.test(norm)) return 'critical';
-      if (/(^|\b)sub[-\s]?critical(\b|$)/.test(norm) || /\bamber\b/.test(norm) || /\byellow\b/.test(norm)) return 'subcritical';
-      if (/(^|\b)stable(\b|$)/.test(norm) || /\bcode\s*green\b/.test(norm)) return 'stable';
-      // Map alternative synonyms to closest
-      if (/(^|\b)unstable(\b|$)/.test(norm)) return 'subcritical';
-      const n = Number(norm);
-      if (!isNaN(n)) { if (n >= 3) return 'critical'; if (n === 2) return 'subcritical'; return 'stable'; }
+      if (norm === 'critical') return 'critical';
+      if (norm === 'subcritical' || norm === 'unstable' || norm === 'sub-critical') return 'subcritical';
+      if (norm === 'stable') return 'stable';
     }
-    // Fallback from existing stability field
-    switch (patient.stability) {
+    // Fallback: existing stability only if already exact
+    switch ((patient.stability || '').toLowerCase()) {
       case 'critical':
         return 'critical';
+      case 'subcritical':
       case 'unstable':
         return 'subcritical';
       case 'stable':
@@ -240,9 +384,17 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
       // Fetch all submissions (across all departments) to show complete history for this patient
       const res = await fetch('/api/form-submissions');
       const data: Record<string, unknown>[] = res.ok ? await res.json() : [];
+      // Only include ISBAR patient handover submissions; exclude rounds and audits
+      const isHandoverTemplate = (name: unknown) => {
+        const n = String(name || '').toLowerCase();
+        if (!n) return false;
+        if (n.includes('round') || n.includes('audit')) return false;
+        return n.includes('handover') || n.includes('isbar');
+      };
+
       const filtered = (data || []).filter((s: Record<string, unknown>) => {
         const fd = (s?.form_data as Record<string, unknown>) || {};
-        return matchesPatient(fd);
+        return matchesPatient(fd) && isHandoverTemplate(s?.template_name);
       }).sort((a: Record<string, unknown>, b: Record<string, unknown>) => new Date(b.submitted_at as string).getTime() - new Date(a.submitted_at as string).getTime());
       setHistory(filtered);
     } catch {
@@ -294,7 +446,9 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
             <div key={sub.id as string || idx} className="bg-white border border-gray-200 rounded-md p-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-gray-700 font-medium">{sub.template_name as string || 'Submission'}</div>
-                <div className="text-[10px] text-gray-500">{parseDateSafe(sub.submitted_at as string).toLocaleString()} • {sub.submitted_by_name as string || sub.submitted_by as string || 'Unknown'}</div>
+                <div className="text-[10px] text-gray-500">
+                  <EthiopianDateDisplay date={parseDateSafe(sub.submitted_at as string)} format="long" /> • {sub.submitted_by_name as string || sub.submitted_by as string || 'Unknown'}
+                </div>
               </div>
               <div className="mt-2 grid grid-cols-1 gap-1">
                 {entries.map(([k, v]) => (
@@ -352,8 +506,8 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
           </div>
           
           <div className="flex items-center justify-between text-[11px] text-white/80">
-            <span>{patient.age}y, {patient.gender}</span>
-            <span title={(() => { const d = parseDateSafe(patient.lastHandover); return isNaN(d.getTime()) ? 'Unknown' : d.toLocaleString(); })()}>
+            <span>{(() => { const age = getPatientAgeText(); const g = getPatientGenderCode(); return g ? `${age}, ${g}` : age; })()}</span>
+            <span title={(() => { const d = parseDateSafe(patient.lastHandover); if (isNaN(d.getTime())) return 'Unknown'; const eth = gregorianToEthiopian(d); return formatEthiopianDate(eth, 'long'); })()}>
               {timeAgo(patient.lastHandover)}
             </span>
           </div>
@@ -429,7 +583,7 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
                     <div className="flex items-center">
                       <User className="w-3 h-3 text-white/80 mr-2" />
                       <span className="text-xs text-white">
-                        {patient.age}y, {patient.gender === 'M' ? 'Male' : 'Female'}
+                        {(() => { const age = getPatientAgeText(); const g = getPatientGenderCode(); if (!g) return age; return `${age}, ${g === 'M' ? 'Male' : 'Female'}`; })()}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -446,7 +600,7 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
                   </label>
                   <div className="mt-1 flex items-center">
                     <Clock className="w-3 h-3 text-white/80 mr-2" />
-                    <span className="text-xs text-white" title={parseDateSafe(patient.lastHandover).toLocaleString()}>
+                    <span className="text-xs text-white" title={(() => { const d = parseDateSafe(patient.lastHandover); if (isNaN(d.getTime())) return 'Unknown'; const eth = gregorianToEthiopian(d); return formatEthiopianDate(eth, 'long'); })()}>
                       {timeAgo(patient.lastHandover)}
                     </span>
                   </div>
@@ -470,10 +624,10 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
             {/* Level 2: Full Details - Only shown on second expand */}
             {expandLevel >= 2 && (
               <>
-                {/* Submission History */}
+                {/* Handover History */}
                 <div className="pt-2 border-t border-white/10">
                   <label className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
-                    Submission History
+                    Handover History
                   </label>
                   <div className="mt-2">
                     {renderHistory()}

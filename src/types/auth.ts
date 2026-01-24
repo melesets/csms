@@ -39,7 +39,10 @@ export const DEPARTMENTS = [
   'AEOPD',
   'PEOPD',
   'TFU',
-  'Recovery'
+  'Recovery',
+  'Liaison',
+  'OBGYN Emergency',
+  'Radiology'
 ];
 
 // Central list of professions used across the app (login, form builder, mappings)
