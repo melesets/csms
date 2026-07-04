@@ -1,0 +1,60 @@
+/* IsbarLoader.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ring {
+  position: relative;
+}
+
+.baseRing {
+  border-radius: 50%;
+  border-color: #dbeafe;
+}
+
+.outerArc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.innerArc {
+  position: absolute;
+  border-radius: 50%;
+  animation: spin 2s linear infinite reverse;
+}
+
+.icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.message {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  text-align: center;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

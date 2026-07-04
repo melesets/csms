@@ -1,16 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env copy
+backend/.env
+frontend/.env
+ai-service/.env
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*
@@ -22,4 +33,24 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Temp files
+tmp/
+*.tmp
+
+# Archive (historical backups)
+archive/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Uploads (user-generated content)
+backend/uploads/profiles/*
+!backend/uploads/profiles/.gitkeep

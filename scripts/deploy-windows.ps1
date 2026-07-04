@@ -25,8 +25,8 @@ function Invoke-NpmInstall {
 
 # Resolve paths
 $projectRoot  = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$serverRoot   = Join-Path $projectRoot "server"
-$frontendRoot = $projectRoot
+$frontendRoot = Join-Path $projectRoot "frontend"
+$backendRoot  = Join-Path $projectRoot "backend"
 $nginxExe     = Join-Path $NginxRoot "nginx.exe"
 
 Write-Host "[1/6] Install deps and build frontend..." -ForegroundColor Cyan
@@ -36,7 +36,8 @@ npm run build
 Pop-Location
 
 Write-Host "[2/6] Ensure dist is readable by Nginx (one-time)..." -ForegroundColor Cyan
-icacls "$($projectRoot)\dist" /grant "Users:(OI)(CI)(RX)" /T | Out-Null
+$distPath = Join-Path $frontendRoot "dist"
+icacls "$distPath" /grant "Users:(OI)(CI)(RX)" /T | Out-Null
 
 Write-Host "[3/6] Validate Nginx config..." -ForegroundColor Cyan
 & $nginxExe -p ("{0}\" -f $NginxRoot) -t
@@ -47,7 +48,6 @@ try {
   & $nginxExe -p ("{0}\" -f $NginxRoot) -s reload
 } catch {
   Write-Warning "Reload failed or Nginx not running. Starting fresh..."
-  # Stop all and start with explicit config
   taskkill /F /IM nginx.exe 2>$null | Out-Null
   & $nginxExe -p ("{0}\" -f $NginxRoot) -c "conf\nginx.conf"
 }
@@ -56,16 +56,14 @@ Write-Host "[5/6] Ensure PM2 and (re)start backend..." -ForegroundColor Cyan
 if (-not (Get-Command pm2 -ErrorAction SilentlyContinue)) {
   npm i -g pm2
 }
-Push-Location $serverRoot
-# Install server deps if needed
-if (-not (Test-Path (Join-Path $serverRoot "node_modules"))) {
+Push-Location $backendRoot
+if (-not (Test-Path (Join-Path $backendRoot "node_modules"))) {
   Invoke-NpmInstall
 }
-# Start/update from ecosystem (PORT=5001 is set there)
 if (pm2 list | Select-String -Quiet "isbar-server") {
   pm2 restart isbar-server --update-env
 } else {
-  pm2 start "$serverRoot\ecosystem.config.cjs" --update-env
+  pm2 start "$backendRoot\ecosystem.config.cjs" --update-env
 }
 pm2 save | Out-Null
 Pop-Location
