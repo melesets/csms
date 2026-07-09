@@ -72,9 +72,10 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-8 bg-white/50 rounded-xl border border-gray-100 italic">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600 mr-3"></div>
-                <span className="text-sm text-gray-500">Retrieving activity records...</span>
+            <div className="p-8 bg-white/50 rounded-xl border border-gray-100">
+                <div className="h-4 bg-gray-100 rounded w-1/3 mb-3" />
+                <div className="h-3 bg-gray-50 rounded w-full mb-2" />
+                <div className="h-3 bg-gray-50 rounded w-2/3" />
             </div>
         );
     }

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { fieldTemplates } from '../../data/fieldTemplates';
 import * as LucideIcons from 'lucide-react';
-import { Search, Loader2, Plus, Database } from 'lucide-react';
+import { Search, Plus, Database } from 'lucide-react';
+import { Spinner } from '../../components/shared';
 import { TerminologyService } from '../../services/terminologyService';
 import { CodedValue } from '../../types/formBuilder';
 
@@ -159,7 +160,7 @@ export const FieldLibrary: React.FC<FieldLibraryProps> = ({ onAddField }) => {
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                 {searching && (
                   <div className="absolute right-3 top-2.5">
-                    <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                    <Spinner size="xs" />
                   </div>
                 )}
               </div>

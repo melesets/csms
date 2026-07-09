@@ -386,7 +386,7 @@ export const EthiopianDateTimePicker: React.FC<EthiopianDateTimePickerProps> = (
                       day === null
                         ? 'invisible'
                         : day === ethDate.day && viewMonth === ethDate.month && viewYear === ethDate.year
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        ? 'bg-brand text-white hover:bg-brand-600'
                         : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -435,7 +435,7 @@ export const EthiopianDateTimePicker: React.FC<EthiopianDateTimePickerProps> = (
                       onClick={() => handleTimeChange(ethTime.hour, ethTime.minute, p.value)}
                       className={`py-2 px-4 rounded-lg text-sm font-medium transition-all ${
                         ethTime.period === p.value
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-brand text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -457,7 +457,7 @@ export const EthiopianDateTimePicker: React.FC<EthiopianDateTimePickerProps> = (
                       onClick={() => handleTimeChange(h, ethTime.minute, ethTime.period)}
                       className={`py-2 rounded-lg text-sm font-medium transition-all ${
                         ethTime.hour === h
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-brand text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -478,7 +478,7 @@ export const EthiopianDateTimePicker: React.FC<EthiopianDateTimePickerProps> = (
                       onClick={() => handleTimeChange(ethTime.hour, m, ethTime.period)}
                       className={`py-2 rounded-lg text-sm font-medium transition-all ${
                         ethTime.minute === m
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-brand text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -501,7 +501,7 @@ export const EthiopianDateTimePicker: React.FC<EthiopianDateTimePickerProps> = (
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    className="flex items-center gap-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 text-sm font-medium"
                   >
                     <Check className="w-4 h-4" />
                     Done

@@ -30,6 +30,9 @@ export async function findAllUsers(department) {
 export async function createUser(data) {
   const { username, password, pin, name, email, role, department, isActive, permissions, profession, createdBy, shiftType } = data;
   
+  // Hash password with bcrypt (10 salt rounds)
+  const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+
   let pinHash = null;
   let hasPin = false;
   if (pin && String(pin).length === 4) {
@@ -41,7 +44,7 @@ export async function createUser(data) {
     `INSERT INTO users (username, password, pin_hash, has_pin, name, email, role, department, isactive, permissions, profession, created_by, shift_type, created_at) 
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW()) 
      RETURNING id, username, name, email, role, department, isactive AS "isActive", has_pin, permissions, profession, shift_type AS "shiftType", created_by AS "createdBy", created_at AS "createdAt"`,
-    [username, password, pinHash, hasPin, name, email ?? null, role, department, isActive ?? true, permissions ? JSON.stringify(permissions) : null, profession ?? null, createdBy ?? null, shiftType ?? 'TID']
+    [username, hashedPassword, pinHash, hasPin, name, email ?? null, role, department, isActive ?? true, permissions ? JSON.stringify(permissions) : null, profession ?? null, createdBy ?? null, shiftType ?? 'TID']
   );
 
   const user = result.rows[0];
@@ -51,6 +54,9 @@ export async function createUser(data) {
 
 export async function updateUser(id, data) {
   const { username, password, pin, removePin, email, role, name, department, isActive, profession, permissions, shiftType } = data;
+
+  // Hash password if provided
+  const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
   let pinHashUpdate = null;
   let hasPinUpdate = null;
@@ -78,7 +84,7 @@ export async function updateUser(id, data) {
       has_pin = CASE WHEN $11::boolean = true THEN false WHEN $13::boolean IS NOT NULL THEN $13::boolean ELSE has_pin END
     WHERE id = $14
     RETURNING id, username, name, email, role, department, profession, permissions, shift_type AS "shiftType", isactive AS "isActive", has_pin, created_at AS "createdAt", created_by AS "createdBy"`,
-    [username ?? null, password ?? null, email ?? null, role ?? null, name ?? null, department ?? null, isActive ?? null, profession ?? null, permissions ? JSON.stringify(permissions) : null, shiftType ?? null, removePin ? true : false, pinHashUpdate, hasPinUpdate, id]
+    [username ?? null, hashedPassword, email ?? null, role ?? null, name ?? null, department ?? null, isActive ?? null, profession ?? null, permissions ? JSON.stringify(permissions) : null, shiftType ?? null, removePin ? true : false, pinHashUpdate, hasPinUpdate, id]
   );
 
   if (result.rows.length === 0) return null;

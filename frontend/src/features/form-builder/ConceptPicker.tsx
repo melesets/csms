@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Check, Loader2 } from 'lucide-react';
+import { Search, X, Check } from 'lucide-react';
+import { Spinner } from '../../components/shared';
 import { CodedValue, TerminologyConfig } from '../../types/formBuilder';
 import { TerminologyService } from '../../services/terminologyService';
 
@@ -138,7 +139,7 @@ export const ConceptPicker: React.FC<ConceptPickerProps> = ({
 
                     {loading && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                            <Spinner size="xs" />
                         </div>
                     )}
                 </div>

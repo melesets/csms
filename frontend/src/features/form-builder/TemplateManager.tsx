@@ -628,7 +628,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
           <button
             onClick={downloadCSV}
             disabled={filteredTemplates.length === 0}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Templates CSV

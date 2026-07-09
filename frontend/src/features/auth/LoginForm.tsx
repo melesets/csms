@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, LogIn, Stethoscope } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { Spinner } from '../../components/shared';
 import { apiGet } from '../../api';
 import { PROFESSIONS } from '../../types/auth';
 
@@ -152,10 +153,10 @@ export const LoginForm = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+            className="w-full bg-brand hover:bg-brand-600 disabled:bg-brand-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
           >
             {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <Spinner size="md" color="white" />
             ) : (
               <>
                 <LogIn className="w-5 h-5 mr-2" />

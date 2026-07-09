@@ -45,6 +45,11 @@ export const ETHIOPIAN_MONTHS_SHORT = [
   'Meg', 'Mia', 'Gin', 'Sen', 'Ham', 'Neh', 'Pag'
 ];
 
+export const ETHIOPIAN_MONTHS_AMHARIC = [
+  'መስከረም', 'ጥቅምት', 'ኅዳር', 'ταход', 'ጥር', 'የካቲት',
+  'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ', 'ጳጉሜ'
+];
+
 export const ETHIOPIAN_WEEKDAYS = [
   'Ehud',      // Sunday
   'Segno',     // Monday
@@ -124,11 +129,15 @@ export function ethiopianToGregorian(ethDate: EthiopianDate): Date {
 /**
  * Format Ethiopian date as string
  */
-export function formatEthiopianDate(ethDate: EthiopianDate, format: 'short' | 'long' = 'short'): string {
+export function formatEthiopianDate(ethDate: EthiopianDate, format: 'short' | 'long' | 'amharic' = 'short'): string {
   const { year, month, day } = ethDate;
   
   if (format === 'long') {
     return `${ETHIOPIAN_MONTHS[month - 1]} ${day}, ${year}`;
+  }
+  
+  if (format === 'amharic') {
+    return `${day} ${ETHIOPIAN_MONTHS_AMHARIC[month - 1]} ${year}`;
   }
   
   return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;

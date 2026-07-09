@@ -452,7 +452,7 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   Save Template

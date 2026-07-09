@@ -1,5 +1,5 @@
 // Field editor - edit individual form field properties and validation
-import React from 'react';
+import React, { useState } from 'react';
 import { Trash2, Settings, Eye, Calculator, Plus, X, AlertCircle, Database, Search } from 'lucide-react';
 import { FormField, FormSection, SkipLogic, SkipCondition, CalculatedField, TerminologyConfig } from '../../types/formBuilder';
 import { FormulaBuilder } from './FormulaBuilder';
@@ -28,6 +28,7 @@ const OPERATORS = [
 ];
 
 export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFields = [], onUpdate, onDelete }) => {
+  const [showOptionSearch, setShowOptionSearch] = useState(false);
   const handleChange = (updates: Partial<FormField>) => {
     onUpdate({ ...field, ...updates });
   };

@@ -2,6 +2,7 @@
 
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import * as ftService from './formTemplates.service.js';
+import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const getTemplates = asyncHandler(async (req, res) => {
   const templates = await ftService.findAllTemplates(req.query.department, req.query.profession);
@@ -34,5 +35,6 @@ export const setActive = asyncHandler(async (req, res) => {
 export const deleteTemplate = asyncHandler(async (req, res) => {
   const deleted = await ftService.deleteTemplate(req.params.id);
   if (!deleted) return res.status(404).json({ error: 'Template not found' });
+  logAdminAction({ action: 'delete', module: 'form-templates', targetId: req.params.id, performedBy: req.user?.username, ip: req.ip });
   res.json({ success: true });
 });

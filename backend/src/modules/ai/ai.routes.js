@@ -1,9 +1,16 @@
-// AI routes - /ai/* endpoints for chat, handover analysis, report generation, and streaming
+// AI routes - /ai/* endpoints for chat, handover analysis, report generation, patient analysis, and streaming
 
 import { Router } from 'express';
 import * as aiController from './ai.controller.js';
+import * as aiAnalysis from './aiPatientAnalysis.controller.js';
 
 const router = Router();
+
+router.get('/patients/analyze', aiAnalysis.getPatientAnalysis);
+router.get('/patients/stored', aiAnalysis.getStoredAnalysis);
+router.get('/patients/vitals', aiAnalysis.getVitalsHistory);
+router.get('/patients/insights', aiAnalysis.generateInsights);
+router.post('/patients/chat', aiAnalysis.clinicalChat);
 
 router.get('/providers', aiController.getProviders);
 router.post('/handover/analyze', aiController.handoverAnalyze);

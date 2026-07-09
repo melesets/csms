@@ -406,7 +406,7 @@ export const FormBuilder = () => {
         {hasPermission('form-builder', 'create') && (
           <button
             onClick={handleCreateTemplate}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
+            className="bg-brand hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
             Create New Form

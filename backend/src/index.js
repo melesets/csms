@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import pool from './config/database.js';
 import routes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { requireAuth } from './middleware/auth.js';
 
 dotenv.config({ override: true });
 
@@ -45,6 +46,7 @@ app.get('/', (req, res) => {
   res.send('ISBAR Backend is Running! Access API at /api/');
 });
 
+app.use(requireAuth);
 app.use(routes);
 
 app.get('/api/test-db', async (req, res) => {

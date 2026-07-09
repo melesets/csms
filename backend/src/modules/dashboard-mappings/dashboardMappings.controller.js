@@ -1,6 +1,7 @@
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import * as dmService from './dashboardMappings.service.js';
 import { validateCreateMapping, validateDashboardType } from './dashboardMappings.validation.js';
+import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const getMappings = asyncHandler(async (req, res) => {
   const mappings = await dmService.findAllMappings();
@@ -34,11 +35,13 @@ export const updateMapping = asyncHandler(async (req, res) => {
 export const deleteMapping = asyncHandler(async (req, res) => {
   const deleted = await dmService.deleteMapping(req.params.id);
   if (!deleted) return res.status(404).json({ error: 'Dashboard mapping not found' });
+  logAdminAction({ action: 'delete', module: 'dashboard-mappings', targetId: req.params.id, performedBy: req.user?.username, ip: req.ip });
   res.json({ success: true, id: req.params.id });
 });
 
 export const toggleMapping = asyncHandler(async (req, res) => {
   const mapping = await dmService.toggleMapping(req.params.id);
   if (!mapping) return res.status(404).json({ error: 'Dashboard mapping not found' });
+  logAdminAction({ action: 'toggle', module: 'dashboard-mappings', targetId: req.params.id, detail: `enabled=${mapping.enabled}`, performedBy: req.user?.username, ip: req.ip });
   res.json(mapping);
 });

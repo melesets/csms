@@ -151,7 +151,7 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                   onNewHandover();
                   onClose();
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center"
+                className="px-4 py-2 bg-brand hover:bg-brand-600 text-white rounded-lg transition-colors flex items-center"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 New Handover

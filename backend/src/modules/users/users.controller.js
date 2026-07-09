@@ -2,6 +2,7 @@
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import * as usersService from './users.service.js';
 import { validateCreateUser, validateSetPin } from './users.validation.js';
+import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const getUsers = asyncHandler(async (req, res) => {
   const users = await usersService.findAllUsers(req.query.department);
@@ -26,6 +27,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 export const deleteUser = asyncHandler(async (req, res) => {
   const deleted = await usersService.deleteUser(req.params.id);
   if (!deleted) return res.status(404).json({ error: 'User not found' });
+  logAdminAction({ action: 'delete', module: 'users', targetId: req.params.id, performedBy: req.user?.username, ip: req.ip });
   res.json({ success: true });
 });
 

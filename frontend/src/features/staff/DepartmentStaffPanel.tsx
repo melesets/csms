@@ -121,58 +121,59 @@ export const DepartmentStaffPanel = () => {
           setPin('');
           setError('');
         }}
-        className={`group relative flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border transition-all duration-200 
+        className={`group relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-200
           hover:-translate-y-0.5 active:translate-y-0 text-left w-full
           ${isOnline
-              ? 'border-indigo-400 bg-indigo-50 shadow-sm ring-1 ring-indigo-300'
-              : 'border-gray-200 bg-white hover:bg-gray-50 shadow-sm'
+              ? 'border-indigo-200 bg-gradient-to-br from-indigo-50 to-white shadow-sm hover:shadow-md ring-1 ring-indigo-100'
+              : 'border-gray-200 bg-white hover:bg-gray-50/80 shadow-sm hover:shadow-md'
           }`}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            {s.profile_picture && s.profile_picture !== 'null' && s.profile_picture !== 'undefined' && s.profile_picture.length > 5 ? (
-              <img
-                src={getMediaUrl(s.profile_picture)}
-                alt={s.name}
-                className="w-8 h-8 rounded-full object-cover shadow-sm ring-2 ring-white"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="28" r="16" fill="%23c7d2fe"/><ellipse cx="40" cy="68" rx="26" ry="16" fill="%23e0e7ff"/></svg>'; }}
-              />
-            ) : (
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center shadow-inner overflow-hidden ring-2 ring-white"
-                style={{ background: bg }}
-              >
-                <svg viewBox="0 0 80 80" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="40" cy="28" r="16" fill={fg} opacity="0.3" />
-                  <ellipse cx="40" cy="68" rx="26" ry="16" fill={fg} opacity="0.2" />
-                  <text x="40" y="34" textAnchor="middle" fontSize="22" fontWeight="bold" fill={fg}>
-                    {s.name.charAt(0).toUpperCase()}
-                  </text>
-                  <rect x="34" y="44" width="12" height="7" rx="2" fill="white" opacity="0.8" />
-                  <path d="M36 48h8M40 46v4" stroke={fg} strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-            )}
-            {/* Status dot */}
-            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white
-              ${isOnline ? 'bg-emerald-400' : 'bg-gray-300'}`}>
-              {isOnline && <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-60" />}
-            </span>
-          </div>
-
-          {/* Name & role */}
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800 leading-tight truncate">{s.name}</p>
-            <p className="text-[11px] text-gray-500 font-medium truncate mt-0.5">{s.profession}</p>
-          </div>
+        {/* Avatar */}
+        <div className="relative shrink-0">
+          {s.profile_picture && s.profile_picture !== 'null' && s.profile_picture !== 'undefined' && s.profile_picture.length > 5 ? (
+            <img
+              src={getMediaUrl(s.profile_picture)}
+              alt={s.name}
+              className={`w-10 h-10 rounded-full object-cover ring-2 ${isOnline ? 'ring-indigo-200' : 'ring-gray-100'}`}
+              onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="28" r="16" fill="%23c7d2fe"/><ellipse cx="40" cy="68" rx="26" ry="16" fill="%23e0e7ff"/></svg>'; }}
+            />
+          ) : (
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center ring-2 ${isOnline ? 'ring-indigo-200' : 'ring-gray-100'}`}
+              style={{ background: bg }}
+            >
+              <svg viewBox="0 0 80 80" className="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="28" r="16" fill={fg} opacity="0.3" />
+                <ellipse cx="40" cy="68" rx="26" ry="16" fill={fg} opacity="0.2" />
+                <text x="40" y="34" textAnchor="middle" fontSize="22" fontWeight="bold" fill={fg}>
+                  {s.name.charAt(0).toUpperCase()}
+                </text>
+                <rect x="34" y="44" width="12" height="7" rx="2" fill="white" opacity="0.8" />
+                <path d="M36 48h8M40 46v4" stroke={fg} strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </div>
+          )}
+          {/* Status dot */}
+          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white
+            ${isOnline ? 'bg-emerald-400' : 'bg-gray-300'}`}>
+            {isOnline && <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-50" />}
+          </span>
         </div>
 
-        {/* Removed redundant operator badge to ensure equal styling for all active shift members */}
-        <div className="shrink-0 flex items-center">
-          <span className="text-gray-300">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          </span>
+        {/* Name, profession & status */}
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold leading-tight truncate ${isOnline ? 'text-gray-900' : 'text-gray-700'}`}>{s.name}</p>
+          <p className="text-[11px] text-gray-500 font-medium truncate mt-0.5">{s.profession}</p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full
+              ${isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+              {isOnline ? 'On Duty' : 'Off Duty'}
+            </span>
+            {s.shift_name && (
+              <span className="text-[10px] font-medium text-gray-400">{s.shift_name}</span>
+            )}
+          </div>
         </div>
       </button>
     );
@@ -180,8 +181,19 @@ export const DepartmentStaffPanel = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6 flex justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gray-100 rounded-xl" />
+          <div>
+            <div className="h-4 bg-gray-100 rounded w-32 mb-1" />
+            <div className="h-3 bg-gray-50 rounded w-24" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 bg-gray-50 rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -193,8 +205,8 @@ export const DepartmentStaffPanel = () => {
         title={`Active Staff — ${user.department}`}
         icon={<Users className="w-5 h-5 text-indigo-600" />}
         subtitle="Tap a name to clock in or out"
-        collapsible={true}
-        defaultCollapsed={true}
+        collapsible={false}
+        defaultCollapsed={false}
         actions={
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -210,12 +222,12 @@ export const DepartmentStaffPanel = () => {
         <div className="p-4">
           {/* On Duty */}
           {onlineStaff.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">On Duty ({onlineStaff.length})</span>
+                <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">On Duty ({onlineStaff.length})</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
                 {onlineStaff.map(s => <StaffCard key={s.id} s={s} isOnline />)}
               </div>
             </div>
@@ -224,12 +236,12 @@ export const DepartmentStaffPanel = () => {
           {/* Off Duty */}
           {offlineStaff.length > 0 && (
             <div>
-              {onlineStaff.length > 0 && <div className="border-t border-gray-100 mb-3" />}
-              <div className="flex items-center gap-2 mb-3">
+              {onlineStaff.length > 0 && <div className="border-t border-gray-100 my-4" />}
+              <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="w-2 h-2 rounded-full bg-gray-300" />
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Off Duty ({offlineStaff.length})</span>
+                <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Off Duty ({offlineStaff.length})</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
                 {offlineStaff.map(s => <StaffCard key={s.id} s={s} isOnline={false} />)}
               </div>
             </div>

@@ -1,7 +1,7 @@
 // Patient detail page - full patient view with history and handover options
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { EthiopianDateDisplay, IsbarLoader } from '../../components/shared';
+import { EthiopianDateDisplay } from '../../components/shared';
 import { gregorianToEthiopian, formatEthiopianDate } from '../../utils/ethiopianCalendar';
 import {
   Bed, User, Clock, AlertTriangle, CheckCircle, Heart, Activity,
@@ -349,8 +349,16 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({ patient, o
 
           <div className="p-6">
             {loadingHistory ? (
-              <div className="py-8 flex justify-center">
-                <IsbarLoader message="Loading handover history..." size={64} />
+              <div className="py-8 space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full" />
+                    <div className="flex-1">
+                      <div className="h-3 bg-gray-100 rounded w-2/3 mb-1" />
+                      <div className="h-2 bg-gray-50 rounded w-1/3" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : !submissionHistory || submissionHistory.length === 0 ? (
               <div className="text-center py-12">

@@ -122,7 +122,7 @@ export const FormulaBuilder: React.FC<FormulaBuilderProps> = ({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleTest}
-                        className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                        className="px-3 py-1 bg-brand text-white text-xs rounded hover:bg-brand-600"
                     >
                         Calculate
                     </button>

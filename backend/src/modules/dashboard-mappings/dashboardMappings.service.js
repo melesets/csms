@@ -20,13 +20,47 @@ const createTableQuery = `
   );
 `;
 
-pool.query(createTableQuery).catch(err => {
-  console.error('Error creating dashboard_mappings table:', err);
-});
+let tableInitialized = false;
 
-pool.query(`ALTER TABLE IF EXISTS dashboard_mappings ADD COLUMN IF NOT EXISTS profession VARCHAR(50);`).catch(() => {});
-pool.query(`ALTER TABLE IF EXISTS dashboard_mappings ADD COLUMN IF NOT EXISTS departments TEXT[];`).catch(() => {});
-pool.query(`ALTER TABLE IF EXISTS dashboard_mappings ADD COLUMN IF NOT EXISTS identifier VARCHAR(100);`).catch(() => {});
+async function ensureTable() {
+  if (tableInitialized) return;
+  try {
+    await pool.query(createTableQuery);
+    await pool.query(`ALTER TABLE IF EXISTS dashboard_mappings ADD COLUMN IF NOT EXISTS profession VARCHAR(50);`);
+    await pool.query(`ALTER TABLE IF EXISTS dashboard_mappings ADD COLUMN IF NOT EXISTS departments TEXT[];`);
+    await pool.query(`ALTER TABLE IF EXISTS dashboard_mappings ADD COLUMN IF NOT EXISTS identifier VARCHAR(100);`);
+    tableInitialized = true;
+  } catch (err) {
+    console.error('Error creating dashboard_mappings table:', err.message);
+  }
+}
+
+ensureTable();
+
+function toCamel(row) {
+  if (!row) return row;
+  return {
+    id: row.id,
+    formTemplateId: row.form_template_id,
+    formTemplateName: row.form_template_name,
+    department: row.department,
+    departments: row.departments,
+    profession: row.profession,
+    dashboardType: row.dashboard_type,
+    displayName: row.display_name,
+    identifier: row.identifier,
+    cardFields: row.card_fields,
+    groupByField: row.group_by_field,
+    isEnabled: row.is_enabled,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    currentTemplateName: row.current_template_name,
+    templateIsActive: row.template_is_active,
+    fields: row.fields,
+    sections: row.sections,
+  };
+}
 
 export async function findAllMappings() {
   const result = await pool.query(`
@@ -35,7 +69,7 @@ export async function findAllMappings() {
     LEFT JOIN form_templates ft ON dm.form_template_id = ft.id
     ORDER BY dm.sort_order, dm.created_at DESC
   `);
-  return result.rows;
+  return result.rows.map(toCamel);
 }
 
 export async function findByDepartment(department, type, profession) {
@@ -57,7 +91,7 @@ export async function findByDepartment(department, type, profession) {
   }
   query += ' ORDER BY dm.sort_order, dm.created_at DESC';
   const result = await pool.query(query, params);
-  return result.rows;
+  return result.rows.map(toCamel);
 }
 
 export async function createMapping(data) {
@@ -80,7 +114,7 @@ export async function createMapping(data) {
     profession ?? null, dashboardType, displayName, identifier ?? null,
     JSON.stringify(cardFields), groupByField, isEnabled, sortOrder,
   ]);
-  return result.rows[0];
+  return toCamel(result.rows[0]);
 }
 
 export async function updateMapping(id, data) {
@@ -112,7 +146,7 @@ export async function updateMapping(id, data) {
     profession, dashboardType, displayName, identifier ?? null,
     cardFields ? JSON.stringify(cardFields) : null, groupByField, isEnabled, sortOrder, id,
   ]);
-  return result.rows[0] || null;
+  return toCamel(result.rows[0]) || null;
 }
 
 export async function deleteMapping(id) {
@@ -125,5 +159,5 @@ export async function toggleMapping(id) {
     UPDATE dashboard_mappings SET is_enabled = NOT is_enabled, updated_at = NOW()
     WHERE id = $1 RETURNING *
   `, [id]);
-  return result.rows[0] || null;
+  return toCamel(result.rows[0]) || null;
 }

@@ -3,6 +3,7 @@
 export * from './Layout';
 export { default as IsbarLoader } from './IsbarLoader';
 export { default as DashboardSection } from './DashboardSection';
+export { default as Spinner } from './Spinner';
 export * from './ErrorBoundary';
 export * from './date/EthiopianDateDisplay';
 export { default as EthiopianDateTimeDisplay } from './date/EthiopianDateTimeDisplay';

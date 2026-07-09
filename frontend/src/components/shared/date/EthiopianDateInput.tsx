@@ -168,7 +168,7 @@ export const EthiopianDateInput: React.FC<EthiopianDateInputProps> = ({
 
             <button
               onClick={() => setShowPicker(false)}
-              className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              className="mt-3 w-full px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 text-sm"
             >
               Done
             </button>

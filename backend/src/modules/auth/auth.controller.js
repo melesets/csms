@@ -2,6 +2,8 @@
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import * as authService from './auth.service.js';
 import { validateLogin } from './auth.validation.js';
+import { signToken } from '../../middleware/auth.js';
+import bcrypt from 'bcryptjs';
 
 export const login = asyncHandler(async (req, res) => {
   const validation = validateLogin(req.body);
@@ -14,7 +16,22 @@ export const login = asyncHandler(async (req, res) => {
 
   const user = await authService.findUserByUsername(username);
 
-  if (!user || user.password !== password) {
+  if (!user) {
+    console.warn(`[Auth] Login failed: Invalid credentials for user "${username}"`);
+    return res.status(401).json({ error: 'Invalid username or password' });
+  }
+
+  // Support both hashed and plain-text passwords during migration
+  let passwordValid = false;
+  if (user.password && user.password.startsWith('$2')) {
+    // Hashed password — verify with bcrypt
+    passwordValid = await bcrypt.compare(password, user.password);
+  } else {
+    // Plain-text fallback (legacy) — compare directly
+    passwordValid = user.password === password;
+  }
+
+  if (!passwordValid) {
     console.warn(`[Auth] Login failed: Invalid credentials for user "${username}"`);
     return res.status(401).json({ error: 'Invalid username or password' });
   }
@@ -32,6 +49,9 @@ export const login = asyncHandler(async (req, res) => {
     permissions = authService.getDefaultPermissions(user.role);
   }
 
+  const tokenPayload = { id: user.id, username: user.username, role: user.role, department: user.department };
+  const token = signToken(tokenPayload);
+
   console.log(`[Auth] Login successful: "${username}"`);
   res.json({
     id: user.id,
@@ -44,6 +64,7 @@ export const login = asyncHandler(async (req, res) => {
     isactive: user.isactive,
     permissions,
     created_by: user.created_by,
+    token,
   });
 });
 

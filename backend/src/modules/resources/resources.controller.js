@@ -3,6 +3,7 @@
 
 import { asyncHandler } from '../../middleware/errorHandler.js';
 import * as resourcesService from './resources.service.js';
+import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const getResources = asyncHandler(async (req, res) => {
   const resources = await resourcesService.findAllResources();
@@ -23,5 +24,6 @@ export const updateResource = asyncHandler(async (req, res) => {
 export const deleteResource = asyncHandler(async (req, res) => {
   const deleted = await resourcesService.deleteResource(req.params.id);
   if (!deleted) return res.status(404).json({ error: 'Resource not found' });
+  logAdminAction({ action: 'delete', module: 'resources', targetId: req.params.id, performedBy: req.user?.username, ip: req.ip });
   res.json({ success: true });
 });

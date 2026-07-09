@@ -1,6 +1,6 @@
 // Main application layout - sidebar navigation, header, and content area
 // Provides responsive sidebar with role-based menu items and global search
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Home,
   ClipboardList,
@@ -16,7 +16,9 @@ import {
   User,
   Stethoscope,
   UserCircle,
-  Shield
+  Shield,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
@@ -33,10 +35,28 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, activeOperator, logout, hasPermission, revertImpersonation } = useAuth();
   const { shift, setShift, activeSession } = useShift();
   const isAdminImpersonating = !!localStorage.getItem('isbar_admin_impersonator');
   const { query, setQuery } = useSearch();
+
+  const handleSidebarEnter = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setIsHovering(true);
+  }, []);
+
+  const handleSidebarLeave = useCallback(() => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setIsHovering(false);
+    }, 300);
+  }, []);
+
+  const sidebarExpanded = isCollapsed ? isHovering : true;
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
@@ -63,13 +83,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 ${isCollapsed ? 'w-20' : 'w-64'} bg-[#003153] text-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform lg:translate-x-0 lg:static lg:inset-0`}>
+      <div
+        onMouseEnter={handleSidebarEnter}
+        onMouseLeave={handleSidebarLeave}
+        className={`fixed inset-y-0 left-0 z-50 ${sidebarExpanded ? 'w-64' : 'w-20'} bg-[#003153] text-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 lg:translate-x-0 lg:static lg:inset-0`}
+      >
         <div className="flex items-center justify-between h-16 px-6 bg-[#003153] text-white border-b border-white/10">
           <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white flex items-center justify-center mr-3">
+            <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white flex items-center justify-center mr-3 flex-shrink-0">
               <Stethoscope className="w-6 h-6 text-white" />
             </div>
-            <h1 className={`text-lg font-semibold ${isCollapsed ? 'hidden' : ''}`}>AGH-CSMS</h1>
+            <h1 className={`text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>AGH-CSMS</h1>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -82,6 +106,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
         <nav className="mt-6">
           {filteredMenuItems.map((item) => {
             const Icon = item.icon;
+            const isActive = currentPage === item.id;
             return (
               <button
                 key={item.id}
@@ -89,11 +114,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
                   onNavigate(item.id);
                   setIsSidebarOpen(false);
                 }}
-                className={`group w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'px-6'} py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${currentPage === item.id ? 'bg-white/20 text-white border-l-4 border-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
+                className={`group w-full flex items-center ${sidebarExpanded ? 'px-6' : 'justify-center px-0'} py-3 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${isActive ? 'bg-white/20 text-white border-l-4 border-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
                   }`}
+                title={!sidebarExpanded ? item.label : undefined}
               >
-                <Icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'} ${currentPage === item.id ? 'text-white' : 'text-white/80 group-hover:text-white'}`} />
-                <span className={`${isCollapsed ? 'hidden' : ''}`}>{item.label}</span>
+                <Icon className={`w-5 h-5 flex-shrink-0 ${sidebarExpanded ? 'mr-3' : ''} ${isActive ? 'text-white' : 'text-white/80 group-hover:text-white'}`} />
+                <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>{item.label}</span>
               </button>
             );
           })}
@@ -102,10 +128,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
         {/* User Info */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
           <div className="flex items-center mb-2">
-            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center mr-3">
+            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
               <User className="w-4 h-4 text-white" />
             </div>
-            <div className={`flex-1 min-w-0 ${isCollapsed ? 'hidden' : ''}`}>
+            <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
               <p className="text-sm font-medium text-white truncate">{user?.name}</p>
               <p className="text-xs text-white/70">{user?.department}</p>
             </div>
@@ -115,10 +141,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
               logout();
             }}
             className="w-full flex items-center justify-center px-3 py-2 text-sm text-white hover:bg-white/10 rounded-lg transition-colors"
+            title={!sidebarExpanded ? 'Sign Out' : undefined}
           >
-            <LogOut className={`w-4 h-4 ${isCollapsed ? '' : 'mr-2'}`} />
-            <span className={`${isCollapsed ? 'hidden' : ''}`}>Sign Out</span>
+            <LogOut className={`w-4 h-4 flex-shrink-0 ${sidebarExpanded ? 'mr-2' : ''}`} />
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>Sign Out</span>
           </button>
+          <p className={`text-center text-[10px] text-white/30 mt-3 transition-all duration-300 ${sidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>v2.0.0</p>
         </div>
       </div>
 
@@ -165,11 +193,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
               </button>
               <button
                 onClick={() => setIsCollapsed(prev => !prev)}
-                className="hidden lg:inline-flex text-gray-500 hover:text-gray-700"
+                className="hidden lg:inline-flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
                 aria-label="Toggle sidebar"
                 aria-expanded={!isCollapsed}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <Menu className="w-6 h-6" />
+                {isCollapsed ? <ChevronsRight className="w-5 h-5" /> : <ChevronsLeft className="w-5 h-5" />}
               </button>
               <h2 className="text-xl font-semibold text-[#003366] capitalize ml-2">
                 {(() => {

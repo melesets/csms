@@ -4,7 +4,7 @@ import { Save, ChevronDown, ChevronRight, Search, Calculator, X, AlertTriangle, 
 import { FormTemplate, FormField, SkipLogic } from '../../types/formBuilder';
 import { ConceptPicker } from './ConceptPicker';
 import { MinimalistMultiSelect } from './MinimalistMultiSelect';
-import { EthiopianDateInput } from '../../components/shared';
+import { EthiopianDateInput, Spinner } from '../../components/shared';
 import { useAI } from '../../hooks/useAI';
 import { Sparkles, Activity, Wand2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -44,6 +44,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   
   const [formData, setFormData] = useState<Record<string, any>>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [aiGeneratedFields, setAiGeneratedFields] = useState<Set<string>>(new Set());
 
   // State for section collapse/expand
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -425,7 +426,9 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      onSubmit(formData);
+      const cleanData = { ...formData };
+      aiGeneratedFields.forEach(f => delete cleanData[f]);
+      onSubmit(cleanData);
       if (onSuccess) onSuccess();
     }
   };
@@ -489,15 +492,17 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       if (generated && typeof generated === 'object' && Object.keys(generated).length > 0) {
         const newFormData = { ...formData };
         let updatedCount = 0;
+        const aiFields = new Set<string>();
         
         // Loop over all template fields and if the AI returned a value for it, append or set it
         templateFields.forEach(f => {
-          // Check for exact name, or clean it up just in case
-          const key = Object.keys(generated).find(k => k === f.name || k.includes(f.name) || f.name.includes(k));
+          // Only match exact field name — no loose substring matching
+          const key = Object.keys(generated).find(k => k === f.name);
           if (key) {
             const val = generated[key as keyof typeof generated];
             if (val && typeof val === 'string' && val.trim() !== '') {
               newFormData[f.name] = (newFormData[f.name] ? newFormData[f.name] + '\n\n' : '') + val;
+              aiFields.add(f.name);
               updatedCount++;
             }
           }
@@ -505,6 +510,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
         
         if (updatedCount > 0) {
           setFormData(newFormData);
+          setAiGeneratedFields(prev => new Set([...prev, ...aiFields]));
         } else {
           alert("AI returned data, but it didn't match the form fields. Please provide more context.");
         }
@@ -524,14 +530,19 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       if (generated && typeof generated === 'object') {
         const newFormData = { ...formData };
         let updatedCount = 0;
+        const aiFields = new Set<string>();
         templateFields.forEach(f => {
-          const key = Object.keys(generated).find(k => k === f.name || k.includes(f.name) || f.name.includes(k));
+          const key = Object.keys(generated).find(k => k === f.name);
           if (key && generated[key]) {
             newFormData[f.name] = generated[key];
+            aiFields.add(f.name);
             updatedCount++;
           }
         });
-        if (updatedCount > 0) setFormData(newFormData);
+        if (updatedCount > 0) {
+          setFormData(newFormData);
+          setAiGeneratedFields(prev => new Set([...prev, ...aiFields]));
+        }
         setShowNoteModal(false);
         setRawNoteText('');
       }
@@ -590,15 +601,18 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       if (res && typeof res === 'object') {
         const newFormData = { ...formData };
         let updatedCount = 0;
+        const aiFields = new Set<string>();
         templateFields.forEach(f => {
           // If field is currently empty, and AI suggested something for it
           if (!newFormData[f.name] && res[f.name]) {
             newFormData[f.name] = res[f.name];
+            aiFields.add(f.name);
             updatedCount++;
           }
         });
         if (updatedCount > 0) {
           setFormData(newFormData);
+          setAiGeneratedFields(prev => new Set([...prev, ...aiFields]));
         } else {
           alert('No missing fields to suggest for, or AI had no suggestions.');
         }
@@ -663,7 +677,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               />
               {isMrnField && mrnLookupLoading && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <Spinner size="sm" />
                 </div>
               )}
             </div>
@@ -776,6 +790,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                       const currentVal = String(value || '').trim();
                       const newVal = currentVal ? currentVal + '\n\n' + aiSuggestion.text : aiSuggestion.text;
                       handleInputChange(field.name, newVal);
+                      setAiGeneratedFields(prev => new Set([...prev, field.name]));
                       setAiSuggestion(null);
                     }}
                     className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow-sm transition-colors flex items-center gap-1.5"
@@ -1463,7 +1478,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           </button>
           <button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center shadow-sm"
+            className="bg-brand hover:bg-brand-600 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center shadow-sm"
           >
             <Save className="w-5 h-5 mr-2" />
             Submit Record

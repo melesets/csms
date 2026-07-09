@@ -38,7 +38,7 @@ export async function getDepartmentActivity(department) {
     FROM form_submissions fs LEFT JOIN shift_sessions ss ON fs.shift_session_id::text = ss.id::text`;
   let resourcesQuery = `SELECT r.id, r.name, r.type, r.quantity, r.unit, r.updated_at, r.last_updated_by, ss.shift_name
     FROM resources r LEFT JOIN shift_sessions ss ON r.shift_session_id::text = ss.id::text`;
-  let reportsQuery = `SELECT ir.id, ir.shift, ir."staffName", ir.date, ir.shift_session_id, ss.shift_name as session_shift_name
+  let reportsQuery = `SELECT ir.id, ir.shift, ir.staffname AS "staffName", ir.date, ir.shift_session_id, ss.shift_name as session_shift_name
     FROM inventory_reports ir LEFT JOIN shift_sessions ss ON ir.shift_session_id::text = ss.id::text`;
 
   const params = [];

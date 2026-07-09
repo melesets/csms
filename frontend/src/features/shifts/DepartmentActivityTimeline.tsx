@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { apiGet } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
 import { FileText, Package, ClipboardCheck, Clock, User, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
-import { EthiopianDateDisplay, IsbarLoader } from '../../components/shared';
+import { EthiopianDateDisplay } from '../../components/shared';
 
 interface ActivityItem {
   id: number | string;
@@ -83,7 +83,22 @@ export const DepartmentActivityTimeline: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="p-12 flex justify-center"><IsbarLoader size={48} message="Loading activity feed..." /></div>;
+  if (loading) return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="h-5 bg-gray-100 rounded w-40 mb-4" />
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-100 rounded-xl" />
+            <div className="flex-1">
+              <div className="h-3 bg-gray-100 rounded w-3/4 mb-1" />
+              <div className="h-2 bg-gray-50 rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

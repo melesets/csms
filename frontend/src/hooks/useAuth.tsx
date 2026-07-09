@@ -48,34 +48,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string, profession?: string): Promise<boolean> => {
     try {
-      // Hardcoded limited-admin login: username 'admin' and password 'admin1954'
-      if (username === 'admin' && password === 'admin1954') {
-        const userData: any = {
-          id: 'limited-admin-local',
-          username: 'admin',
-          name: 'Limited Admin',
-          email: 'limited.admin@local',
-          role: 'admin',
-          department: 'All',
-          profession: 'Admin',
-          isActive: true,
-          // Mark this session as limited admin without changing role union
-          limitedAdmin: true,
-          permissions: [
-            { module: 'dashboard', actions: ['view'] },
-            { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
-            { module: 'staff', actions: ['view', 'create', 'edit', 'delete'] },
-            { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
-            { module: 'database', actions: ['view', 'export'] },
-            { module: 'trends', actions: ['view'] }
-            // excluded: form-builder, user-management, dashboard-mappings
-          ],
-          createdAt: new Date().toISOString()
-        };
-        setUser(userData);
-        localStorage.setItem('isbar_user', JSON.stringify(userData));
-        return true;
-      }
       const userData = await apiPost('/login', { username, password, profession });
       setUser(userData);
       localStorage.setItem('isbar_user', JSON.stringify(userData));
@@ -196,21 +168,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const hasPermission = (module: string, action?: string): boolean => {
     if (!user) return false;
 
-    // 1. Limited admin (hardcoded session) has its own rules
-    if ((user as any).limitedAdmin) {
-      const blocked = new Set(['form-builder', 'dashboard-mappings', 'user-management']);
-      if (blocked.has(module)) return false;
-      return true;
-    }
-
-    // 2. If explicit permissions exist, they are the source of truth
+    // 1. If explicit permissions exist, they are the source of truth
     const modulePermission = (user.permissions || []).find(p => p.module === module);
     if (modulePermission) {
       if (!action) return modulePermission.actions.length > 0;
       return modulePermission.actions.includes(action);
     }
 
-    // 3. Fallback: Role-based defaults if no explicit permissions defined for this module
+    // 2. Fallback: Role-based defaults if no explicit permissions defined for this module
     if (user.role === 'admin') return true;
 
     // Special profession-based rule for resources (existing logic)
@@ -228,7 +193,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const canAccessPage = (page: string): boolean => {
     if (!user) return false;
 
-    // Define page access rules based on roles
     const pageAccess: Record<string, string[]> = {
       'dashboard': ['admin', 'user', 'staff', 'viewer'],
       'reports': ['admin', 'user', 'staff'],
@@ -239,11 +203,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       'form-builder': ['admin'],
       'user-management': ['admin']
     };
-
-    // Hardcoded limited admin: block specific pages regardless of role
-    if ((user as any).limitedAdmin) {
-      if (['form-builder', 'user-management', 'dashboard-mappings'].includes(page)) return false;
-    }
 
     const allowedRoles = pageAccess[page] || [];
     return allowedRoles.includes(user.role);

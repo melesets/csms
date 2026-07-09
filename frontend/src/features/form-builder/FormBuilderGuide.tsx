@@ -26,7 +26,7 @@ export const FormBuilderGuide: React.FC<FormBuilderGuideProps> = ({
         
         <div className="max-w-md mx-auto space-y-4 text-left">
           <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-            <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+            <div className="flex-shrink-0 w-6 h-6 bg-brand text-white rounded-full flex items-center justify-center text-xs font-bold">
               1
             </div>
             <div>
@@ -64,7 +64,7 @@ export const FormBuilderGuide: React.FC<FormBuilderGuideProps> = ({
         
         <button
           onClick={onAddSection}
-          className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mt-6"
+          className="inline-flex items-center px-6 py-3 bg-brand text-white rounded-lg hover:bg-brand-600 mt-6"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create First Section

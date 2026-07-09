@@ -14,38 +14,15 @@ export const UserManagement = () => {
   const { departments } = useDepartments();
   const [users, setUsers] = useState<User[]>([]);
 
-  // Hardcoded limited admin user
-  const limitedAdminUser = {
-    id: 'limited-admin-local',
-    username: 'admin',
-    name: 'Limited Admin',
-    email: 'limited.admin@local',
-    role: 'admin',
-    department: 'All',
-    profession: 'Admin',
-    isActive: true,
-    limitedAdmin: true,
-    lastLogin: new Date().toISOString(),
-    permissions: [
-      { module: 'dashboard', actions: ['view'] },
-      { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
-      { module: 'staff', actions: ['view', 'create', 'edit', 'delete'] },
-      { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
-      { module: 'database', actions: ['view', 'export'] },
-      { module: 'trends', actions: ['view'] }
-    ]
-  };
-
-  const canManageAllDepartments = currentUser?.role === 'admin' && !(currentUser as any).limitedAdmin;
+  const canManageAllDepartments = currentUser?.role === 'admin';
 
   const getUserDepartmentFilter = () => {
     if (canManageAllDepartments) {
-      return null; // Admin can see all departments
+      return null;
     }
-    return currentUser?.department || null; // Non-admin or limited admin sees only their department
+    return currentUser?.department || null;
   };
 
-  // Fetch users from backend on mount and add hardcoded limited admin
   React.useEffect(() => {
     const dept = getUserDepartmentFilter();
     const url = dept ? `/api/users?department=${encodeURIComponent(dept)}` : '/api/users';
@@ -54,14 +31,7 @@ export const UserManagement = () => {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          // Filter out any existing limited admin to avoid duplicates
-          const filteredData = data.filter((u: any) => u.id !== 'limited-admin-local');
-          // Add the hardcoded limited admin if the current user can manage all departments
-          if (canManageAllDepartments) {
-            setUsers([limitedAdminUser, ...filteredData]);
-          } else {
-            setUsers(filteredData);
-          }
+          setUsers(data);
         }
       });
   }, [canManageAllDepartments, currentUser?.department]);
@@ -253,7 +223,7 @@ export const UserManagement = () => {
         {hasPermission('user-management', 'create') && (
           <button
             onClick={handleAddUser}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
+            className="bg-brand hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
             Add User

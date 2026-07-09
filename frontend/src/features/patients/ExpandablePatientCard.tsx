@@ -1,6 +1,6 @@
 // Expandable patient card - shows patient summary with inline handover form
 import React, { useState, useEffect, useCallback } from 'react';
-import { EthiopianDateDisplay, IsbarLoader } from '../../components/shared';
+import { EthiopianDateDisplay } from '../../components/shared';
 import { gregorianToEthiopian, formatEthiopianDate } from '../../utils/ethiopianCalendar';
 import {
   Bed,
@@ -480,8 +480,16 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
   const renderHistory = () => {
     if (loadingHistory) {
       return (
-        <div className="py-2">
-          <IsbarLoader message="Loading handover history..." size={56} />
+        <div className="py-2 space-y-2">
+          {[1, 2].map(i => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-white/10 rounded-full" />
+              <div className="flex-1">
+                <div className="h-2 bg-white/10 rounded w-2/3 mb-1" />
+                <div className="h-1.5 bg-white/5 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
         </div>
       );
     }

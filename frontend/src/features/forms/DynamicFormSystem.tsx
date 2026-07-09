@@ -5,7 +5,7 @@ import { FormTemplate } from '../../types/formBuilder';
 import { DynamicFormRenderer } from '../form-builder';
 import { FileText, Clock, User } from 'lucide-react';
 import { useShift } from '../../hooks/useShift';
-import { IsbarLoader } from '../../components/shared';
+
 
 interface DynamicFormSystemProps {
   onFormSubmit?: (data: any) => void;
@@ -179,7 +179,15 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
   };
 
   if (loading) {
-    return <div className="py-12 flex items-center justify-center"><IsbarLoader message="Loading forms..." size={72} /></div>;
+    return (
+      <div className="py-12 space-y-4 max-w-2xl mx-auto">
+        <div className="h-8 bg-gray-100 rounded w-1/3" />
+        <div className="h-4 bg-gray-50 rounded w-2/3" />
+        <div className="space-y-3 mt-6">
+          {[1,2,3].map(i => <div key={i} className="h-12 bg-gray-50 rounded-lg" />)}
+        </div>
+      </div>
+    );
   }
 
   if (submitSuccess) {
@@ -240,8 +248,9 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
 
         {submitting && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6">
-              <IsbarLoader message="Submitting form..." size={64} />
+            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl">
+              <span className="w-8 h-8 border-3 border-brand/20 border-t-brand rounded-full animate-spin" />
+              <span className="text-sm font-medium text-gray-600">Submitting...</span>
             </div>
           </div>
         )}

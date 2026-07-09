@@ -2,6 +2,13 @@
 // Provides a reusable pool for direct SQL queries outside of Sequelize models.
 // Configured via environment variables for host, credentials, and SSL.
 
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '../../.env'), override: true });
+
 import pg from 'pg';
 const { Pool } = pg;
 

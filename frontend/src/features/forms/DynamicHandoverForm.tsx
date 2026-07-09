@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { FormTemplate } from '../../types/formBuilder';
 import { DynamicFormRenderer } from '../form-builder/DynamicFormRenderer';
-import { Shield, Loader2, FileText, AlertCircle } from 'lucide-react';
+import { Shield, FileText, AlertCircle } from 'lucide-react';
 import { useShift } from '../../hooks/useShift';
 
 interface DynamicHandoverFormProps {
@@ -110,9 +110,14 @@ export const DynamicHandoverForm: React.FC<DynamicHandoverFormProps> = ({
 
     if (loading) {
         return (
-            <div className="bg-white rounded-2xl p-12 flex flex-col items-center justify-center shadow-xl border border-gray-100 max-w-md w-full">
-                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-                <p className="text-gray-600 font-medium">Loading handover format...</p>
+            <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-100 max-w-md w-full">
+                <div className="h-6 bg-gray-100 rounded w-1/2 mb-6" />
+                <div className="space-y-4">
+                    <div className="h-10 bg-gray-50 rounded-lg" />
+                    <div className="h-10 bg-gray-50 rounded-lg" />
+                    <div className="h-20 bg-gray-50 rounded-lg" />
+                    <div className="h-10 bg-gray-50 rounded-lg" />
+                </div>
             </div>
         );
     }
@@ -134,7 +139,7 @@ export const DynamicHandoverForm: React.FC<DynamicHandoverFormProps> = ({
                     </button>
                     <button
                         onClick={() => window.location.href = '/form-builder'}
-                        className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg"
+                        className="flex-1 py-3 px-4 bg-brand hover:bg-brand-600 text-white font-bold rounded-xl transition-all shadow-lg"
                     >
                         Go to Builder
                     </button>
@@ -164,7 +169,7 @@ export const DynamicHandoverForm: React.FC<DynamicHandoverFormProps> = ({
 
             <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50">
                 <div className="mb-6 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-                    <div className="p-2 bg-blue-600 rounded-lg shrink-0">
+                    <div className="p-2 bg-brand rounded-lg shrink-0">
                         <FileText className="w-4 h-4 text-white" />
                     </div>
                     <div>

@@ -1,8 +1,8 @@
 // Database records - searchable table of all form submissions with filtering
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { IsbarLoader } from '../../components/shared';
 import { Search, Calendar, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import ExcelJS from 'exceljs';
 import { EthiopianDateDisplay } from '../../components/shared/date/EthiopianDateDisplay';
 import { ethiopianStringToGregorianString, ETHIOPIAN_MONTHS, gregorianToEthiopian, formatEthiopianDate } from '../../utils/ethiopianCalendar';
 
@@ -106,11 +106,8 @@ export const DatabaseRecords = () => {
   const { user } = useAuth() || { user: null };
   const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   const [records, setRecords] = useState<any[]>([]);
-  // Removed resourceRecords, only dynamic records are used
   // Only show dynamic form records
   const [searchTerm, setSearchTerm] = useState('');
-  const [mrnSearch, setMrnSearch] = useState('');
-  // Remove stability filter
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [viewRecord, setViewRecord] = useState<any | null>(null);
@@ -122,9 +119,9 @@ export const DatabaseRecords = () => {
   const [pageSize, setPageSize] = useState<number>(50);
   const PAGE_SIZE = pageSize;
   const [smartQuery, setSmartQuery] = useState<string>('');
-  const [deepRecords, setDeepRecords] = useState<any[] | null>(null);
-  const [deepLoading, setDeepLoading] = useState(false);
-  const [deepPageFetched, setDeepPageFetched] = useState(0);
+  const [totalServerRecords, setTotalServerRecords] = useState(0);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ fetched: 0, total: 0 });
 
   // Enforce non-admin max page size to 1000
   useEffect(() => {
@@ -212,13 +209,7 @@ export const DatabaseRecords = () => {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, mrnSearch, dateFrom, dateTo, selectedTemplateId, selectedDepartment, selectedUser]);
-
-  // Clear deep search cache when filters change
-  useEffect(() => {
-    setDeepRecords(null);
-    setDeepPageFetched(0);
-  }, [searchTerm, mrnSearch, dateFrom, dateTo, selectedTemplateId, selectedDepartment, selectedUser, pageSize]);
+  }, [searchTerm, dateFrom, dateTo, selectedTemplateId, selectedDepartment, selectedUser]);
 
   // Fetch records from backend API (server-side paginated where supported)
   useEffect(() => {
@@ -229,14 +220,12 @@ export const DatabaseRecords = () => {
         let url = '/api/form-submissions';
         const params: Record<string, string> = {};
         if (selectedTemplateId) {
-          // Only pass numeric formId to backend if selection is numeric; otherwise rely on client-side filter
           const maybeNum = Number(selectedTemplateId);
           if (!isNaN(maybeNum) && isFinite(maybeNum)) {
             params.formId = selectedTemplateId;
           }
         }
         if (searchTerm) params.search = searchTerm;
-        if (mrnSearch) params.mrn = mrnSearch;
         if (dateFrom) {
           const fromDate = toGregorianDateFromEthiopianInput(dateFrom);
           if (fromDate && !isNaN(fromDate.getTime())) {
@@ -256,59 +245,24 @@ export const DatabaseRecords = () => {
           }
         }
         // Pagination params (server-side). Backend may ignore; client will still cap as fallback.
-        const filtersActive = Boolean(searchTerm || mrnSearch || dateFrom || dateTo);
         params.limit = String(PAGE_SIZE);
         params.page = String(page);
         // Server-side scoping for non-admins
         if (!isAdmin && user?.department) params.department = String(user.department);
         if (!isAdmin && user?.profession) params.profession = String(user.profession);
 
-        // Helpers to try page-based first, then offset-based as compatibility fallback
         const buildQuery = (obj: Record<string, string>) => url + '?' + new URLSearchParams(obj).toString();
         const fetchWithQuery = async (queryObj: Record<string, string>) => {
           const res = await fetch(buildQuery(queryObj));
           if (!res.ok) throw new Error('Failed to fetch records');
-          return await res.json();
+          const totalCount = res.headers.get('X-Total-Count');
+          const data = await res.json();
+          return { data: Array.isArray(data) ? data : [], total: totalCount ? parseInt(totalCount) : 0 };
         };
 
-        // Try standard page-based pagination
-        let data: any[] = await fetchWithQuery({ ...params, page: String(page), limit: String(PAGE_SIZE) });
-        // If requesting page > 1 returns empty (or identical set length as page 1 repeatedly), try offset fallback
-        if (page > 1 && (!Array.isArray(data) || data.length === 0)) {
-          const offset = String((page - 1) * PAGE_SIZE);
-          const altParams = { ...params };
-          delete (altParams as any).page;
-          (altParams as any).offset = offset;
-          (altParams as any).limit = String(PAGE_SIZE);
-          const alt = await fetchWithQuery(altParams);
-          if (Array.isArray(alt) && alt.length > 0) {
-            data = alt;
-          }
-        }
-
-        // Client-side safety net: enforce department and profession, if present
-        const dept = user?.department ? String(user.department).toLowerCase() : null;
-        const prof = user?.profession ? String(user.profession).toLowerCase() : null;
-        const deptScoped = (isAdmin || !dept)
-          ? data
-          : data.filter((rec: any) =>
-            [rec.template_department, rec.submitted_by_department, rec.department]
-              .map((v: any) => (v ? String(v).toLowerCase() : ''))
-              .includes(String(dept).toLowerCase())
-          );
-
-        const finalScoped = (!prof || isAdmin)
-          ? deptScoped
-          : deptScoped.filter((rec: any) => {
-            const tp = rec.template_profession ? String(rec.template_profession).toLowerCase() : null;
-            const sp = rec.submitted_by_profession ? String(rec.submitted_by_profession).toLowerCase() : null;
-            // Template profession null means applies to all; submission profession null is legacy, allow only if template matches
-            const templateOk = !tp || tp === prof;
-            const submissionOk = !sp || sp === prof;
-            return templateOk && submissionOk;
-          });
-
-        setRecords(finalScoped);
+        const { data, total } = await fetchWithQuery(params);
+        setRecords(data);
+        setTotalServerRecords(total);
       } catch (err: any) {
         setError(err.message || 'Error fetching records');
       } finally {
@@ -316,7 +270,7 @@ export const DatabaseRecords = () => {
       }
     };
     fetchRecords();
-  }, [searchTerm, mrnSearch, dateFrom, dateTo, user, selectedTemplateId, page, refreshKey]);
+  }, [searchTerm, dateFrom, dateTo, user, selectedTemplateId, page, refreshKey]);
 
   // Helper: Ethiopian string DD-MM-YYYY from Gregorian Date
   const toEthInput = (g: Date): string => {
@@ -327,12 +281,11 @@ export const DatabaseRecords = () => {
     return `${dd}-${mm}-${yy}`;
   };
 
-  // Apply Smart Search: parses MRN, Ethiopian date range, or free text
+  // Apply Smart Search: parses Ethiopian date range or free text (MRN/name handled by backend search)
   const applySmartSearch = () => {
     const q = String(smartQuery || '').trim();
     if (!q) return;
     // Reset current filters
-    setMrnSearch('');
     setSearchTerm('');
     setDateFrom('');
     setDateTo('');
@@ -376,22 +329,14 @@ export const DatabaseRecords = () => {
       return;
     }
 
-    // Numeric looks like MRN (>=4 digits)
-    if (/^\d{4,}$/.test(q)) {
-      setMrnSearch(q);
-      setPage(1);
-      return;
-    }
-
-    // Fallback: general text search
+    // Everything else (MRN, patient name, free text) → general search
     setSearchTerm(q);
     setPage(1);
   };
 
   let baseRecords: any[] = records;
-  if (deepRecords) baseRecords = deepRecords;
 
-  // Filter by selected template if set
+  // Filter by selected template if set (client-side for non-numeric template names)
   let filteredRecords = baseRecords;
   if (selectedTemplateId) {
     const selectedNum = Number(selectedTemplateId);
@@ -402,25 +347,24 @@ export const DatabaseRecords = () => {
       if (isNumericSel) {
         return Number(recId) === selectedNum;
       }
-      // Non-numeric selection: match by template_name (case-insensitive)
       return typeof recName === 'string' && recName.toLowerCase() === selectedTemplateId.toLowerCase();
     });
   }
-  // Filter by selected department
+  // Filter by selected department (client-side for dropdown)
   if (selectedDepartment) {
     filteredRecords = filteredRecords.filter((rec: any) => {
       const dept = rec?.template_department || rec?.submitted_by_department || rec?.department;
       return typeof dept === 'string' && dept.toLowerCase() === selectedDepartment.toLowerCase();
     });
   }
-  // Filter by selected user
+  // Filter by selected user (client-side for dropdown)
   if (selectedUser) {
     filteredRecords = filteredRecords.filter((rec: any) => {
       const userName = rec?.submitted_by || rec?.created_by || rec?.createdBy || rec?.submittedBy || rec?.user;
       return typeof userName === 'string' && userName.toLowerCase() === selectedUser.toLowerCase();
     });
   }
-  // Sort by newest for stable display; server already limits to 50 if supported
+  // Sort by newest for stable display
   filteredRecords = filteredRecords
     .slice()
     .sort((a, b) => {
@@ -465,84 +409,10 @@ export const DatabaseRecords = () => {
     ...formDataKeys
   ];
 
-  // Frontend date filtering as a fallback, using submitted_at/created_at field and Gregorian range
-  let dateFilteredRecords = filteredRecords;
-  if (dateFrom || dateTo) {
-    let fromDate: Date | null = null;
-    let toDate: Date | null = null;
-    if (dateFrom) {
-      fromDate = toGregorianDateFromEthiopianInput(dateFrom);
-      if (fromDate) fromDate.setHours(0, 0, 0, 0);
-    }
-    if (dateTo) {
-      toDate = toGregorianDateFromEthiopianInput(dateTo);
-      if (toDate) toDate.setHours(23, 59, 59, 999);
-    }
-    dateFilteredRecords = filteredRecords.filter((rec: any) => {
-      // Prefer submitted_at, then created_at/createdAt/timestamp and other common fields
-      const dateField = rec.submitted_at || rec.submittedAt || rec.updated_at || rec.updatedAt || rec.created_at || rec.createdAt || rec.date || rec.timestamp;
-      if (!dateField) {
-        console.log('Record missing date field:', rec);
-        return false;
-      }
-      const recordDate = new Date(dateField);
-      // console.log('Filtering:', { dateField, recordDate, fromDate, toDate });
-      let fromOK = true, toOK = true;
-      if (fromDate) fromOK = recordDate >= fromDate;
-      if (toDate) toOK = recordDate <= toDate;
-      return fromOK && toOK;
-    });
-  }
-  // Client-side general search fallback if backend ignores 'search'
-  let textFilteredRecords = dateFilteredRecords;
-  if (searchTerm) {
-    const q = String(searchTerm).trim().toLowerCase();
-    textFilteredRecords = dateFilteredRecords.filter((rec: any) => {
-      const inTopLevel = Object.values(rec || {}).some((v: any) =>
-        typeof v === 'string' && v.toLowerCase().includes(q)
-      );
-      const fd = rec?.form_data && typeof rec.form_data === 'object' ? rec.form_data : null;
-      const inForm = fd ? Object.values(fd).some((v: any) =>
-        (typeof v === 'string' && v.toLowerCase().includes(q)) ||
-        (Array.isArray(v) && v.join(', ').toLowerCase().includes(q))
-      ) : false;
-      // Also search Ethiopian long date representation of submitted_at
-      let inEthiopianSubmittedAt = false;
-      const dtRaw = rec.submitted_at || rec.submittedAt || rec.created_at || rec.createdAt || rec.timestamp;
-      if (dtRaw) {
-        const dObj = new Date(dtRaw);
-        if (!isNaN(dObj.getTime())) {
-          const eth = gregorianToEthiopian(dObj);
-          const longStr = formatEthiopianDate(eth, 'long').toLowerCase();
-          inEthiopianSubmittedAt = longStr.includes(q);
-        }
-      }
-      return inTopLevel || inForm || inEthiopianSubmittedAt;
-    });
-  }
-
-  // Client-side MRN fallback filter if backend ignores mrn param
-  let mrnFilteredRecords = textFilteredRecords;
-  if (mrnSearch) {
-    const norm = (s: any) => String(s ?? '').trim().toLowerCase();
-    mrnFilteredRecords = textFilteredRecords.filter((rec: any) => {
-      const direct = rec.MRN ?? rec.mrn ?? rec.patient_mrn ?? rec.patientMrn ?? rec._mrn;
-      const fromForm = rec.form_data ? (
-        rec.form_data.MRN ?? rec.form_data.mrn ?? rec.form_data.patient_mrn ?? rec.form_data.patientMrn ?? rec.form_data._mrn
-      ) : undefined;
-      const val = norm(direct ?? fromForm);
-      return val.includes(norm(mrnSearch));
-    });
-  }
-
-  // Determine if server likely paginated (page > 1 and result size <= PAGE_SIZE)
-  const serverPaginated = page > 1 && mrnFilteredRecords.length <= PAGE_SIZE;
-  // Client-side pagination fallback when server doesn't paginate
-  const totalAfterFilter = mrnFilteredRecords.length;
-  const startIdx = (page - 1) * PAGE_SIZE;
-  const endIdx = startIdx + PAGE_SIZE;
-  const displayedRecords = serverPaginated ? mrnFilteredRecords : mrnFilteredRecords.slice(startIdx, endIdx);
-  const hasNextPage = serverPaginated ? (displayedRecords.length === PAGE_SIZE) : (endIdx < totalAfterFilter);
+  // Server-side pagination: backend handles date/search/MRN filtering
+  const totalAfterFilter = totalServerRecords || filteredRecords.length;
+  const displayedRecords = filteredRecords;
+  const hasNextPage = displayedRecords.length === PAGE_SIZE;
 
   const isAllSelected = displayedRecords.length > 0 && displayedRecords.every((rec: any, idx: number) => selectedIds.has(getRecordId(rec, idx)));
   const toggleSelectAll = () => {
@@ -557,23 +427,188 @@ export const DatabaseRecords = () => {
     });
   };
 
-  const exportToCSV = () => {
-    if (dateFilteredRecords.length === 0) return;
-    const ok = window.confirm(`Export ${dateFilteredRecords.length} currently displayed record(s) to CSV?`);
+  const exportToCSV = async () => {
+    if (filteredRecords.length === 0) return;
+    const ok = window.confirm(`Export ${filteredRecords.length} record(s) to Excel?`);
     if (!ok) return;
-    const keys = Object.keys(dateFilteredRecords[0]);
-    const csvRows = [keys.join(',')];
-    dateFilteredRecords.forEach(rec => {
-      csvRows.push(keys.map(k => JSON.stringify(rec[k] ?? '')).join(','));
+
+    const { gregorianToEthiopian, formatEthiopianDate, gregorianToEthiopianDateTime } = await import('../../utils/ethiopianCalendar');
+
+    // Collect all unique form_data keys across all records
+    const formDataKeysSet = new Set<string>();
+    filteredRecords.forEach(rec => {
+      if (rec.form_data && typeof rec.form_data === 'object') {
+        Object.keys(rec.form_data).forEach(k => formDataKeysSet.add(k));
+      }
     });
-    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const formDataKeys = Array.from(formDataKeysSet);
+
+    const metaColumns = ['#', 'Template', 'Department', 'Submitted By', 'Role', 'Profession', 'Gregorian Date', 'Ethiopian Date'];
+    const allColumns = [...metaColumns, ...formDataKeys];
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'ISBAR-CSMS';
+    wb.created = new Date();
+    const ws = wb.addWorksheet('Records', {
+      views: [{ state: 'frozen', ySplit: 2 }],
+      properties: { defaultColWidth: 14 },
+    });
+
+    // ── Title row ──
+    const titleRow = ws.addRow([`ISBAR Records Export — ${filteredRecords.length} records — ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}`]);
+    ws.mergeCells(titleRow.number, 1, titleRow.number, allColumns.length);
+    titleRow.height = 32;
+    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF1F2937' } };
+    titleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0FDFA' } };
+
+    // ── Header row ──
+    const headerRow = ws.addRow(allColumns);
+    headerRow.height = 28;
+    headerRow.eachCell((cell, colNum) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF09B8A0' } };
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF067D6A' } },
+        bottom: { style: 'medium', color: { argb: 'FF067D6A' } },
+        left: { style: 'thin', color: { argb: 'FF067D6A' } },
+        right: { style: 'thin', color: { argb: 'FF067D6A' } },
+      };
+    });
+
+    // ── Data rows ──
+    const ETH_GREEN = 'FF09B8A0';
+    const GRAY_50 = 'FFF9FAFB';
+    const GRAY_100 = 'FFF3F4F6';
+    const GRAY_600 = 'FF4B5563';
+    const GRAY_800 = 'FF1F2937';
+
+    filteredRecords.forEach((rec, rowIdx) => {
+      const fd = rec.form_data && typeof rec.form_data === 'object' ? rec.form_data : {};
+      const submittedAt = rec.submitted_at || rec.submittedAt || rec.created_at || '';
+
+      let gregDate = '';
+      let ethDate = '';
+      if (submittedAt) {
+        try {
+          const d = new Date(submittedAt);
+          if (!isNaN(d.getTime())) {
+            gregDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
+              ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const eth = gregorianToEthiopian(d);
+            ethDate = formatEthiopianDate(eth, 'long');
+          }
+        } catch { gregDate = String(submittedAt); }
+      }
+
+      const rowNum = rowIdx + 1;
+      const values = [
+        rowNum,
+        rec.template_name ?? '',
+        rec.template_department ?? rec.submitted_by_department ?? '',
+        rec.submitted_by_name ?? rec.submitted_by ?? '',
+        rec.submitted_by ?? '',
+        rec.submitted_by_profession ?? '',
+        gregDate,
+        ethDate,
+        ...formDataKeys.map(k => {
+          const v = fd[k];
+          if (v === null || v === undefined) return '';
+          if (typeof v === 'object') return JSON.stringify(v);
+          return String(v);
+        }),
+      ];
+
+      const row = ws.addRow(values);
+      const isEven = rowIdx % 2 === 0;
+      row.height = 22;
+
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.font = { size: 10, name: 'Calibri', color: { argb: GRAY_800 } };
+        cell.alignment = { vertical: 'middle', wrapText: true };
+        cell.border = {
+          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          left: { style: 'thin', color: { argb: 'FFF3F4F6' } },
+          right: { style: 'thin', color: { argb: 'FFF3F4F6' } },
+        };
+
+        // Alternating row background
+        if (isEven) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY_50 } };
+        }
+
+        // Row number column — green text
+        if (colNum === 1) {
+          cell.font = { size: 10, name: 'Calibri', color: { argb: ETH_GREEN }, bold: true };
+          cell.alignment = { horizontal: 'center' };
+        }
+
+        // Template column — bold
+        if (colNum === 2) {
+          cell.font = { size: 10, name: 'Calibri', bold: true, color: { argb: GRAY_800 } };
+        }
+
+        // Gregorian date — gray
+        if (colNum === 7) {
+          cell.font = { size: 9, name: 'Calibri', color: { argb: GRAY_600 } };
+        }
+
+        // Ethiopian date — brand green italic
+        if (colNum === 8) {
+          cell.font = { size: 9, name: 'Calibri', italic: true, color: { argb: ETH_GREEN } };
+        }
+      });
+    });
+
+    // ── Auto-fit column widths ──
+    ws.columns.forEach((col, idx) => {
+      if (!col) return;
+      let maxLen = 8;
+      col.eachCell({ includeEmpty: false }, (cell) => {
+        const val = String(cell.value ?? '');
+        maxLen = Math.max(maxLen, Math.min(val.length + 3, 45));
+      });
+      // Fixed widths for known columns
+      if (idx === 0) col.width = 5;   // #
+      if (idx === 1) col.width = 24;  // Template
+      if (idx === 2) col.width = 16;  // Department
+      if (idx === 3) col.width = 16;  // Submitted By Name
+      if (idx === 4) col.width = 14;  // Submitted By
+      if (idx === 5) col.width = 14;  // Profession
+      if (idx === 6) col.width = 22;  // Gregorian Date
+      if (idx === 7) col.width = 24;  // Ethiopian Date
+      else if (idx >= 8) col.width = maxLen;
+    });
+
+    // ── Bottom border on last row ──
+    const lastRow = ws.lastRow;
+    if (lastRow) {
+      lastRow.eachCell({ includeEmpty: true }, (cell) => {
+        cell.border = {
+          ...cell.border,
+          bottom: { style: 'medium', color: { argb: ETH_GREEN } },
+        };
+      });
+    }
+
+    // ── Auto-filter on header ──
+    ws.autoFilter = {
+      from: { row: 2, column: 1 },
+      to: { row: 2, column: allColumns.length },
+    };
+
+    const fileName = `ISBAR_Records_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'records_export.csv');
+    link.href = url;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const deleteSelected = async () => {
@@ -634,7 +669,7 @@ export const DatabaseRecords = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
-              <button onClick={exportToCSV} disabled={dateFilteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${dateFilteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
+              <button onClick={exportToCSV} disabled={filteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${filteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
               <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
             </div>
             <div className="w-full">
@@ -667,7 +702,7 @@ export const DatabaseRecords = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
-              <button onClick={exportToCSV} disabled={dateFilteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${dateFilteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
+              <button onClick={exportToCSV} disabled={filteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${filteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
               <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
             </div>
             <div className="w-full">
@@ -684,7 +719,7 @@ export const DatabaseRecords = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex items-center gap-2 shrink-0">
               <input type="checkbox" className="h-4 w-4" checked={isAllSelected} onChange={toggleSelectAll} />
-              <button onClick={exportToCSV} disabled={dateFilteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${dateFilteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
+              <button onClick={exportToCSV} disabled={filteredRecords.length === 0} className={`px-3 py-2 rounded-lg border ${filteredRecords.length === 0 ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Export</button>
               <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
             </div>
             <div className="w-full">
@@ -708,20 +743,7 @@ export const DatabaseRecords = () => {
               <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input type="text" placeholder="Search by any field..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              </div>
-            </div>
-            <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 mb-1">MRN</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Enter MRN..."
-                  value={mrnSearch}
-                  onChange={e => setMrnSearch(e.target.value)}
-                  className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <input type="text" placeholder="Search by MRN, patient name, template..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
           </div>
@@ -784,91 +806,96 @@ export const DatabaseRecords = () => {
             <button className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" onClick={() => {
               const now = new Date();
               const from = new Date(now); from.setDate(now.getDate() - 6);
-              setDateFrom(toEthInput(from)); setDateTo(toEthInput(now)); setSearchTerm(''); setMrnSearch(''); setPage(1);
-            }}>Last 7 days</button>
+              setDateFrom(toEthInput(from)); setDateTo(toEthInput(now)); setPage(1);
+            }}>Last week</button>
             <button className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" onClick={() => {
               const now = new Date();
               const from = new Date(now); from.setDate(now.getDate() - 29);
-              setDateFrom(toEthInput(from)); setDateTo(toEthInput(now)); setSearchTerm(''); setMrnSearch(''); setPage(1);
-            }}>Last 30 days</button>
-            <button className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" onClick={() => {
-              const now = new Date();
-              setDateFrom(toEthInput(now)); setDateTo(toEthInput(now)); setPage(1);
-            }}>Today</button>
-            <button
-              className={`px-3 py-1.5 rounded border ${deepLoading ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-blue-300 text-blue-700 hover:bg-blue-50'}`}
-              disabled={deepLoading}
-              onClick={async () => {
-                setDeepLoading(true);
-                setDeepRecords(null);
-                setDeepPageFetched(0);
-                try {
-                  // Build server params from current filters
-                  const params: Record<string, string> = {};
-                  if (selectedTemplateId) {
-                    const maybeNum = Number(selectedTemplateId);
-                    if (!isNaN(maybeNum) && isFinite(maybeNum)) params.formId = selectedTemplateId;
-                  }
-                  if (searchTerm) params.search = searchTerm;
-                  if (mrnSearch) params.mrn = mrnSearch;
-                  if (dateFrom) {
-                    const g = toGregorianDateFromEthiopianInput(dateFrom);
-                    if (g) {
-                      const y = g.getFullYear(); const m = String(g.getMonth() + 1).padStart(2, '0'); const d = String(g.getDate()).padStart(2, '0');
-                      params.dateFrom = `${y}-${m}-${d}`;
+              setDateFrom(toEthInput(from)); setDateTo(toEthInput(now)); setPage(1);
+            }}>Last month</button>
+            {isAdmin && <>
+              <button className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" onClick={() => {
+                const now = new Date();
+                const from = new Date(now); from.setFullYear(now.getFullYear() - 1);
+                setDateFrom(toEthInput(from)); setDateTo(toEthInput(now)); setPage(1);
+              }}>Last year</button>
+              <button className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50" onClick={() => {
+                setDateFrom(''); setDateTo(''); setPage(1);
+              }}>All time</button>
+              <div className="w-px h-5 bg-gray-300 mx-1"></div>
+              <button
+                className={`px-3 py-1.5 rounded border ${batchLoading ? 'border-gray-200 text-gray-300 cursor-not-allowed' : 'border-brand text-brand hover:bg-brand-50'}`}
+                disabled={batchLoading}
+                onClick={async () => {
+                  setBatchLoading(true);
+                  setBatchProgress({ fetched: 0, total: 0 });
+                  try {
+                    const params: Record<string, string> = {};
+                    if (selectedTemplateId) {
+                      const maybeNum = Number(selectedTemplateId);
+                      if (!isNaN(maybeNum) && isFinite(maybeNum)) params.formId = selectedTemplateId;
                     }
-                  }
-                  if (dateTo) {
-                    const g = toGregorianDateFromEthiopianInput(dateTo);
-                    if (g) {
-                      const y = g.getFullYear(); const m = String(g.getMonth() + 1).padStart(2, '0'); const d = String(g.getDate()).padStart(2, '0');
-                      params.dateTo = `${y}-${m}-${d}`;
+                    if (searchTerm) params.search = searchTerm;
+                    if (dateFrom) {
+                      const g = toGregorianDateFromEthiopianInput(dateFrom);
+                      if (g) {
+                        const y = g.getFullYear(); const m = String(g.getMonth() + 1).padStart(2, '0'); const d = String(g.getDate()).padStart(2, '0');
+                        params.dateFrom = `${y}-${m}-${d}`;
+                      }
                     }
-                  }
-                  params.limit = String(PAGE_SIZE);
-                  // Fetch all pages until empty
-                  const url = '/api/form-submissions';
-                  const buildQuery = (obj: Record<string, string>) => url + '?' + new URLSearchParams(obj).toString();
-                  const fetchWithQuery = async (obj: Record<string, string>) => {
-                    const res = await fetch(buildQuery(obj));
-                    if (!res.ok) throw new Error('Failed to fetch records');
-                    return await res.json();
-                  };
-                  const out: any[] = [];
-                  const seen = new Set<string>();
-                  const keyOf = (rec: any) => String(rec?.id ?? `${rec?.template_id ?? rec?.form_id ?? 'form'}_${rec?.submitted_at ?? rec?.created_at ?? rec?.timestamp ?? ''}`);
-                  const MAX_PAGES = 2000;
-                  for (let pg = 1; pg <= MAX_PAGES; pg++) {
-                    setDeepPageFetched(pg);
-                    let pageData: any[] = await fetchWithQuery({ ...params, page: String(pg) });
-                    if (!Array.isArray(pageData) || pageData.length === 0) {
-                      // Try offset fallback
-                      const offset = String((pg - 1) * PAGE_SIZE);
-                      const altParams: Record<string, string> = { ...params };
-                      delete (altParams as any).page;
-                      (altParams as any).offset = offset;
-                      pageData = await fetchWithQuery(altParams);
+                    if (dateTo) {
+                      const g = toGregorianDateFromEthiopianInput(dateTo);
+                      if (g) {
+                        const y = g.getFullYear(); const m = String(g.getMonth() + 1).padStart(2, '0'); const d = String(g.getDate()).padStart(2, '0');
+                        params.dateTo = `${y}-${m}-${d}`;
+                      }
+                    }
+                    const BATCH_SIZE = 500;
+                    const url = '/api/form-submissions';
+                    const buildQuery = (obj: Record<string, string>) => url + '?' + new URLSearchParams(obj).toString();
+
+                    // First fetch to get total count
+                    const firstRes = await fetch(buildQuery({ ...params, limit: String(BATCH_SIZE), page: '1' }));
+                    if (!firstRes.ok) throw new Error('Failed to fetch records');
+                    const totalCount = parseInt(firstRes.headers.get('X-Total-Count') || '0');
+                    const firstData = await firstRes.json();
+                    if (!Array.isArray(firstData)) throw new Error('Unexpected response');
+
+                    const allRecords: any[] = [...firstData];
+                    setBatchProgress({ fetched: firstData.length, total: totalCount });
+
+                    // Use cursor-based pagination for remaining pages
+                    let cursor = firstRes.headers.get('X-Next-Cursor') || '';
+                    const seenIds = new Set(firstData.map((r: any) => r.id));
+
+                    while (cursor) {
+                      const res = await fetch(buildQuery({ ...params, cursor, limit: String(BATCH_SIZE) }));
+                      if (!res.ok) break;
+                      const pageData = await res.json();
                       if (!Array.isArray(pageData) || pageData.length === 0) break;
+                      let added = 0;
+                      for (const rec of pageData) {
+                        if (!seenIds.has(rec.id)) { seenIds.add(rec.id); allRecords.push(rec); added++; }
+                      }
+                      setBatchProgress({ fetched: allRecords.length, total: totalCount });
+                      cursor = res.headers.get('X-Next-Cursor') || '';
+                      if (added === 0 || !cursor) break;
+                      await new Promise(r => setTimeout(r, 0));
                     }
-                    let added = 0;
-                    for (const rec of pageData) {
-                      const k = keyOf(rec);
-                      if (!seen.has(k)) { seen.add(k); out.push(rec); added++; }
-                    }
-                    if (added === 0) break;
-                    if (pageData.length < PAGE_SIZE) break;
+
+                    setRecords(allRecords);
+                    setTotalServerRecords(allRecords.length);
+                    setPage(1);
+                  } catch (e: any) {
+                    setError(e?.message || 'Batch load failed');
+                  } finally {
+                    setBatchLoading(false);
                   }
-                  setDeepRecords(out);
-                  setPage(1);
-                } catch (e) {
-                  console.error(e);
-                } finally {
-                  setDeepLoading(false);
-                }
-              }}
-            >
-              {deepLoading ? `Deep searching… page ${deepPageFetched}` : 'Deep Search (fetch all pages)'}
-            </button>
+                }}
+              >
+                {batchLoading ? `Loading… ${batchProgress.fetched}/${batchProgress.total}` : 'Load all'}
+              </button>
+            </>}
           </div>
         </div>
         <div className="mt-4 text-sm text-gray-500 text-right">
@@ -879,10 +906,17 @@ export const DatabaseRecords = () => {
       {/* Records Table */}
       <div className="bg-white rounded-xl shadow-sm p-4 overflow-x-auto">
         {loading ? (
-          <div className="text-center p-8">
-            <div className="flex items-center justify-center">
-              <IsbarLoader message="Loading records..." size={72} />
-            </div>
+          <div className="p-8 space-y-3">
+            <div className="h-4 bg-gray-100 rounded w-1/3 mb-4" />
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="h-3 bg-gray-50 rounded w-16" />
+                <div className="h-3 bg-gray-50 rounded w-32" />
+                <div className="h-3 bg-gray-50 rounded w-24" />
+                <div className="h-3 bg-gray-50 rounded w-20" />
+                <div className="h-3 bg-gray-50 rounded w-28" />
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="text-center p-8">

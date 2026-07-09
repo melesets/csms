@@ -16,7 +16,7 @@ import {
   ShiftManager,
   LoginForm 
 } from './features';
-import { Layout, IsbarLoader, AIAssistantPanel } from './components/shared';
+import { Layout, IsbarLoader, AIAssistantPanel, ErrorBoundary } from './components/shared';
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -39,29 +39,31 @@ const AppContent = () => {
   }
 
   const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return canView('dashboard') ? <Dashboard /> : deny;
-      case 'isbar':
-        return canView('isbar') ? <DynamicISBARForm /> : deny;
-      case 'staff':
-        return canView('staff') ? <DepartmentStaffManagement /> : deny;
-      case 'resources':
-        return canView('resources') ? <ResourceManagement /> : deny;
-      case 'database':
-        return canView('database') ? <DatabaseRecords /> : deny;
-      case 'trends':
-        return canView('trends') ? <TrendsAnalytics /> : deny;
-      case 'form-builder':
-        return canView('form-builder') ? <FormBuilder /> : deny;
-      case 'dashboard-mapping':
-        // Permission module name uses plural in limited-admin block: 'dashboard-mappings'
-        return canView('dashboard-mappings') ? <DashboardFormMapping /> : deny;
-      case 'user-management':
-        return canView('user-management') ? <UserManagement /> : deny;
-      default:
-        return canView('dashboard') ? <Dashboard /> : deny;
-    }
+    const page = (() => {
+      switch (currentPage) {
+        case 'dashboard':
+          return canView('dashboard') ? <Dashboard /> : deny;
+        case 'isbar':
+          return canView('isbar') ? <DynamicISBARForm /> : deny;
+        case 'staff':
+          return canView('staff') ? <DepartmentStaffManagement /> : deny;
+        case 'resources':
+          return canView('resources') ? <ResourceManagement /> : deny;
+        case 'database':
+          return canView('database') ? <DatabaseRecords /> : deny;
+        case 'trends':
+          return canView('trends') ? <TrendsAnalytics /> : deny;
+        case 'form-builder':
+          return canView('form-builder') ? <FormBuilder /> : deny;
+        case 'dashboard-mapping':
+          return canView('dashboard-mappings') ? <DashboardFormMapping /> : deny;
+        case 'user-management':
+          return canView('user-management') ? <UserManagement /> : deny;
+        default:
+          return canView('dashboard') ? <Dashboard /> : deny;
+      }
+    })();
+    return <ErrorBoundary key={currentPage}>{page}</ErrorBoundary>;
   };
 
   return (
