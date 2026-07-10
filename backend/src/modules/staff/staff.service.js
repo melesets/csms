@@ -1,22 +1,30 @@
 // Staff service - CRUD for department staff with profile photo upload
 import pool from '../../config/database.js';
 import multer from 'multer';
+import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadDir = path.join(__dirname, '../../uploads/profiles');
+const uploadDir = path.join(__dirname, '../../../uploads/profiles');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `staff-${Date.now()}${ext}`);
-  },
-});
+const AVATAR_SIZE = 200;
+
+const storage = multer.memoryStorage();
 export const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+export async function processAndSave(buffer, originalName) {
+  const ext = path.extname(originalName || '').toLowerCase();
+  const filename = `staff-${Date.now()}.webp`;
+  const filepath = path.join(uploadDir, filename);
+  await sharp(buffer)
+    .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: 'cover' })
+    .webp({ quality: 80 })
+    .toFile(filepath);
+  return `/uploads/profiles/${filename}`;
+}
 
 export async function findAllStaff() {
   let result;

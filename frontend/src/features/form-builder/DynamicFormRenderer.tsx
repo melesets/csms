@@ -1,14 +1,11 @@
 // Dynamic form renderer - renders form templates with validation and conditional logic
 import React, { useState, useEffect, useCallback } from 'react';
-import { Save, ChevronDown, ChevronRight, Search, Calculator, X, AlertTriangle, CheckCircle, FileText, Activity as ActivityIcon, Copy, Check } from 'lucide-react';
+import { Save, ChevronDown, ChevronRight, Search, Calculator } from 'lucide-react';
 import { FormTemplate, FormField, SkipLogic } from '../../types/formBuilder';
 import { ConceptPicker } from './ConceptPicker';
 import { MinimalistMultiSelect } from './MinimalistMultiSelect';
 import { EthiopianDateInput, Spinner } from '../../components/shared';
-import { useAI } from '../../hooks/useAI';
-import { Sparkles, Activity, Wand2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { useScreenContext } from '../../contexts/ScreenContext';
 
 // Color schemes for sections (same as SectionedFormCanvas)
 const SECTION_COLORS = {
@@ -37,14 +34,12 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   initialData = {},
   onSuccess
 }) => {
-  const { ask, loading: aiLoading, online, generateFullISBAR, generateFromText, summarize, riskScore, analyzeAll, suggest } = useAI();
   const { user } = useAuth();
   
   const roleTitle = user?.profession || user?.role || 'Clinician';
   
   const [formData, setFormData] = useState<Record<string, any>>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [aiGeneratedFields, setAiGeneratedFields] = useState<Set<string>>(new Set());
 
   // State for section collapse/expand
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -55,41 +50,6 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   // State for MRN auto-population
   const [mrnLookupLoading, setMrnLookupLoading] = useState(false);
   const [mrnLookupStatus, setMrnLookupStatus] = useState<string>('');
-
-  // State for AI suggestion overlay
-  const [aiSuggestion, setAiSuggestion] = useState<{ field: string; text: string } | null>(null);
-
-  // AI Modals State
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [rawNoteText, setRawNoteText] = useState('');
-  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const [analysisType, setAnalysisType] = useState<'summary' | 'risk' | 'full' | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopySummary = () => {
-    if (analysisResult?.text) {
-      navigator.clipboard.writeText(String(analysisResult.text));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const renderFormattedLine = (text: string, className = "") => {
-    if (!text) return null;
-    // Simple markdown bolding: **bold**
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return (
-      <span className={className}>
-        {parts.map((part, i) => {
-          if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
-          }
-          return part;
-        })}
-      </span>
-    );
-  };
 
   // Safe access to template properties
   const templateSections = template.sections || [];
@@ -341,20 +301,6 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     setFieldVisibility(visibility);
   }, [formData, templateFields, evaluateSkipLogic]);
 
-  // Update screen context when form changes
-  const { setScreenContext, clearScreenContext } = useScreenContext();
-  
-  useEffect(() => {
-    if (!isPreview) {
-      const activeFields = templateFields
-        .filter(f => f.type !== 'divider' && fieldVisibility[f.id] !== false)
-        .map(f => ({ name: f.name, label: f.label, type: f.type }));
-      
-      setScreenContext(template.name || 'Clinical Form', formData, activeFields);
-    }
-    return () => { if (!isPreview) clearScreenContext(); };
-  }, [formData, template.name, templateFields, fieldVisibility, isPreview, setScreenContext, clearScreenContext]);
-
   // Auto-calculate fields when dependencies change
   useEffect(() => {
     const calculatedFields = templateFields.filter(f => f.calculation);
@@ -427,197 +373,9 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
     if (Object.keys(newErrors).length === 0) {
       const cleanData = { ...formData };
-      aiGeneratedFields.forEach(f => delete cleanData[f]);
       onSubmit(cleanData);
       if (onSuccess) onSuccess();
     }
-  };
-
-  const handleAISuggest = async (field: FormField) => {
-    // Map field type/name to AIRequestType
-    let type: any = 'chat';
-    const fieldName = String(field.name).toLowerCase();
-    
-    if (fieldName.includes('situation')) type = 'isbar-situation';
-    else if (fieldName.includes('background')) type = 'isbar-background';
-    else if (fieldName.includes('assessment')) type = 'isbar-assessment';
-    else if (fieldName.includes('recommendation')) type = 'isbar-recommendation';
-    else type = 'textarea-suggest';
-
-    try {
-      const res = await ask(type, formData);
-      setAiSuggestion({ field: field.name, text: res.text });
-    } catch (err) {
-      console.error('AI suggestion failed', err);
-    }
-  };
-
-  const handleVitalsAnalysis = async () => {
-    try {
-      const res = await ask('vitals-analysis', formData);
-      // We can drop the result into a generic assessment field or alert it
-      const assessmentField = templateFields.find(f => String(f.name).toLowerCase().includes('assessment'));
-      if (assessmentField) {
-        setAiSuggestion({ field: assessmentField.name, text: res.text });
-      } else {
-        alert(res.text);
-      }
-    } catch (err) {
-      console.error('Vitals analysis failed', err);
-    }
-  };
-
-  const handleMagicAutofill = async () => {
-    if (!generateFullISBAR) return;
-    try {
-      // Send the template fields so the AI knows exactly what keys to generate
-      const fieldsToSend = templateFields
-        .filter(f => f.type !== 'divider' && f.type !== 'file-upload' && f.type !== 'signature')
-        .map(f => ({ name: f.name, label: f.label, type: f.type }));
-
-      // Explicitly extract MRN from the dynamic fields to help the AI fetch background history
-      const mrnField = templateFields.find(f => 
-        String(f.label).toLowerCase() === 'mrn' || 
-        String(f.name).toLowerCase() === 'mrn'
-      );
-      const mrn = mrnField ? formData[mrnField.name] : (formData.mrn || formData.MRN);
-
-      const generated = await generateFullISBAR({
-        ...formData,
-        mrn,
-        templateFields: fieldsToSend,
-        templateName: initialData?.template_name || 'Dynamic Form'
-      });
-
-      if (generated && typeof generated === 'object' && Object.keys(generated).length > 0) {
-        const newFormData = { ...formData };
-        let updatedCount = 0;
-        const aiFields = new Set<string>();
-        
-        // Loop over all template fields and if the AI returned a value for it, append or set it
-        templateFields.forEach(f => {
-          // Only match exact field name — no loose substring matching
-          const key = Object.keys(generated).find(k => k === f.name);
-          if (key) {
-            const val = generated[key as keyof typeof generated];
-            if (val && typeof val === 'string' && val.trim() !== '') {
-              newFormData[f.name] = (newFormData[f.name] ? newFormData[f.name] + '\n\n' : '') + val;
-              aiFields.add(f.name);
-              updatedCount++;
-            }
-          }
-        });
-        
-        if (updatedCount > 0) {
-          setFormData(newFormData);
-          setAiGeneratedFields(prev => new Set([...prev, ...aiFields]));
-        } else {
-          alert("AI returned data, but it didn't match the form fields. Please provide more context.");
-        }
-      } else {
-        alert('AI could not generate data. Make sure you are online and have provided some vitals or context.');
-      }
-    } catch (err) {
-      console.error('Magic autofill failed', err);
-      alert('An error occurred during AI auto-fill.');
-    }
-  };
-
-  const handleDraftFromNote = async () => {
-    if (!rawNoteText.trim() || !generateFromText) return;
-    try {
-      const generated = await generateFromText(rawNoteText, formData);
-      if (generated && typeof generated === 'object') {
-        const newFormData = { ...formData };
-        let updatedCount = 0;
-        const aiFields = new Set<string>();
-        templateFields.forEach(f => {
-          const key = Object.keys(generated).find(k => k === f.name);
-          if (key && generated[key]) {
-            newFormData[f.name] = generated[key];
-            aiFields.add(f.name);
-            updatedCount++;
-          }
-        });
-        if (updatedCount > 0) {
-          setFormData(newFormData);
-          setAiGeneratedFields(prev => new Set([...prev, ...aiFields]));
-        }
-        setShowNoteModal(false);
-        setRawNoteText('');
-      }
-    } catch (err) {
-      console.error('Draft from note failed', err);
-    }
-  };
-
-  const handleNursingSummary = async () => {
-    try {
-      const payload = { ...formData, requesterRole: roleTitle };
-      const res = await ask('nursing-summary', payload);
-      setAnalysisResult({ text: res.text });
-      setAnalysisType('summary');
-      setShowAnalysisModal(true);
-    } catch (err) {
-      console.error('Nursing summary failed', err);
-      alert('Failed to generate summary. Please ensure the backend server is running.');
-    }
-  };
-
-  const handleSummarize = async () => {
-    if (!summarize) return;
-    try {
-      const res = await summarize(formData);
-      setAnalysisResult(res);
-      setAnalysisType('summary');
-      setShowAnalysisModal(true);
-    } catch (err) { console.error('Summarize failed', err); }
-  };
-
-  const handleRiskScore = async () => {
-    if (!riskScore) return;
-    try {
-      const res = await riskScore(formData);
-      setAnalysisResult(res);
-      setAnalysisType('risk');
-      setShowAnalysisModal(true);
-    } catch (err) { console.error('Risk score failed', err); }
-  };
-
-  const handleFullAnalysis = async () => {
-    if (!analyzeAll) return;
-    try {
-      const res = await analyzeAll(formData);
-      setAnalysisResult(res);
-      setAnalysisType('full');
-      setShowAnalysisModal(true);
-    } catch (err) { console.error('Full analysis failed', err); }
-  };
-
-  const handleSuggestMissing = async () => {
-    if (!suggest) return;
-    try {
-      const res = await suggest(formData);
-      if (res && typeof res === 'object') {
-        const newFormData = { ...formData };
-        let updatedCount = 0;
-        const aiFields = new Set<string>();
-        templateFields.forEach(f => {
-          // If field is currently empty, and AI suggested something for it
-          if (!newFormData[f.name] && res[f.name]) {
-            newFormData[f.name] = res[f.name];
-            aiFields.add(f.name);
-            updatedCount++;
-          }
-        });
-        if (updatedCount > 0) {
-          setFormData(newFormData);
-          setAiGeneratedFields(prev => new Set([...prev, ...aiFields]));
-        } else {
-          alert('No missing fields to suggest for, or AI had no suggestions.');
-        }
-      }
-    } catch (err) { console.error('Suggest missing failed', err); }
   };
 
   const renderField = (field: FormField) => {
@@ -739,9 +497,6 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       case 'background':
       case 'assessment':
       case 'recommendation':
-        const isISBARField = true; // Enabled for all textareas
-        const isSuggesting = aiSuggestion?.field === field.name;
-
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4 relative`}>
             <div className="flex items-center justify-between mb-2">
@@ -760,47 +515,6 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               className={`${baseInputClass} resize-none`}
             />
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-
-            {/* AI Suggestion Dropdown */}
-            {isSuggesting && (
-              <div className="absolute top-[100%] mt-1 left-2 right-2 z-50 bg-white rounded-lg shadow-xl border border-indigo-200 overflow-hidden">
-                <div className="bg-indigo-50 px-3 py-2 border-b border-indigo-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={14} className="text-indigo-600" />
-                    <span className="text-xs font-bold text-indigo-900">AI Suggestion</span>
-                    {!online && <span className="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Offline</span>}
-                  </div>
-                  <span className="text-[10px] text-gray-500 font-medium">Verify before use</span>
-                </div>
-                <div className="p-3">
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{aiSuggestion.text}</p>
-                </div>
-                <div className="bg-gray-50 px-3 py-2 border-t border-gray-100 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAiSuggestion(null)}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded transition-colors"
-                  >
-                    Dismiss
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // Append or replace? Let's replace if empty, otherwise append
-                      const currentVal = String(value || '').trim();
-                      const newVal = currentVal ? currentVal + '\n\n' + aiSuggestion.text : aiSuggestion.text;
-                      handleInputChange(field.name, newVal);
-                      setAiGeneratedFields(prev => new Set([...prev, field.name]));
-                      setAiSuggestion(null);
-                    }}
-                    className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow-sm transition-colors flex items-center gap-1.5"
-                  >
-                    <Sparkles size={12} />
-                    Use Suggestion
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         );
 
@@ -966,22 +680,11 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       case 'vital-signs':
         return (
           <div key={field.id} className="w-full px-2 mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
                 {field.label}
                 {field.required && <span className="text-red-500 ml-1">*</span>}
               </label>
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={handleVitalsAnalysis}
-                  disabled={aiLoading}
-                  className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 px-3 py-1.5 rounded-lg shadow-sm transition-colors"
-                >
-                  <Activity size={14} />
-                  {aiLoading ? 'Analyzing...' : 'Analyze Vitals'}
-                </button>
-              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border border-gray-200 rounded-lg">
               {(field.fields || []).map((subField, index) => (
@@ -1113,261 +816,6 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 relative">
-      {/* AI Toolbar removed per user request */}
-
-      {/* Note Drafting Modal */}
-      {showNoteModal && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50">
-              <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-                <FileText size={18} className="text-indigo-600" />
-                Draft Form from Raw Note
-              </h3>
-              <button onClick={() => setShowNoteModal(false)} className="text-gray-400 hover:text-gray-700"><X size={20} /></button>
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-3">Paste an unstructured clinical note or voice dictation below. The AI will extract the data and map it directly into the form fields without erasing your existing work.</p>
-              <textarea
-                className="w-full h-48 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                placeholder="Paste raw clinical text here..."
-                value={rawNoteText}
-                onChange={(e) => setRawNoteText(e.target.value)}
-              />
-            </div>
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowNoteModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-              <button type="button" onClick={handleDraftFromNote} disabled={aiLoading || !rawNoteText.trim()} className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2">
-                {aiLoading ? <><Sparkles size={16} className="animate-spin" /> Drafting...</> : <><Sparkles size={16} /> Process Note</>}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AI Nursing Summary Modal */}
-      {showAnalysisModal && analysisResult && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-indigo-100">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-indigo-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-purple-50">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 rounded-lg">
-                  <Sparkles size={18} className="text-indigo-700" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-indigo-900">|Adare — Clinical {roleTitle} Summary</h3>
-                  <p className="text-xs text-indigo-600 mt-0.5">Powered by |Adare AI Agent — review and verify before clinical use</p>
-                </div>
-              </div>
-              <button onClick={() => setShowAnalysisModal(false)} className="text-gray-400 hover:text-gray-700 transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 overflow-y-auto flex-1 space-y-1">
-              {analysisResult.text ? (() => {
-                // Track whether we're currently inside section 3 (Nursing Interventions)
-                let inNursingSection = false;
-                return (analysisResult.text as string).split('\n').map((line: string, i: number) => {
-                  const t = line.trim();
-                  if (!t) return <div key={i} className="h-2" />;
-
-                  // Separator lines (===)
-                  if (/^={3,}/.test(t)) return <hr key={i} className="border-gray-200 my-3" />;
-
-                  // ALL-CAPS major section headings "1. CURRENT PATIENT CONDITION"
-                  if (/^\d+\.\s+[A-Z][A-Z\s&]+$/.test(t)) {
-                    const num = t.charAt(0);
-                    const label = t.replace(/^\d+\.\s+/, '');
-                    inNursingSection = (num === '3');
-                    // Section 3 gets special wide teal banner
-                    if (num === '3') {
-                      return (
-                        <div key={i} className="flex items-center gap-3 mt-8 mb-4 border-b-2 border-teal-500 pb-2">
-                          <span className="w-7 h-7 bg-teal-600 text-white text-sm font-black rounded flex items-center justify-center shrink-0">3</span>
-                          <div>
-                            <span className="text-gray-900 font-black text-sm uppercase tracking-wider block">{label}</span>
-                            <span className="text-teal-600 text-[10px] font-bold uppercase tracking-tight">Priority Clinical Care Plan</span>
-                          </div>
-                          <span className="ml-auto text-[10px] bg-teal-100 text-teal-700 px-2 py-0.5 rounded font-black uppercase tracking-tighter">{roleTitle.toUpperCase()} FOCUS</span>
-                        </div>
-                      );
-                    }
-                    const borderMap: Record<string, string> = {
-                      '1': 'border-blue-500', '2': 'bg-indigo-600',
-                      '4': 'border-red-500', '5': 'border-amber-500', '6': 'border-green-600',
-                    };
-                    const colorMap: Record<string, string> = {
-                      '1': 'text-blue-700', '2': 'text-indigo-700',
-                      '4': 'text-red-700', '5': 'text-amber-700', '6': 'text-green-700',
-                    };
-                    const borderColor = borderMap[num] || 'border-indigo-500';
-                    const textColor = colorMap[num] || 'text-indigo-700';
-                    return (
-                      <div key={i} className={`flex items-center gap-3 mt-8 mb-3 border-b-2 ${borderColor} pb-2`}>
-                        <span className={`w-6 h-6 ${borderColor.replace('border-', 'bg-')} text-white text-xs font-black rounded flex items-center justify-center shrink-0`}>{num}</span>
-                        <span className={`${textColor} font-black text-sm uppercase tracking-wider`}>{label}</span>
-                      </div>
-                    );
-                  }
-
-                  // Sub-headings [A]–[G] inside section 3 (Nursing Interventions)
-                  if (/^\[([A-G])\]\s+.+/.test(t)) {
-                    const subLabel = t.replace(/^\[[A-G]\]\s+/, '');
-                    const letter = (t.match(/^\[([A-G])\]/) || [])[1] || '';
-                    const subColors: Record<string, string> = {
-                      A: 'border-red-200 bg-red-50 text-red-700',
-                      B: 'border-blue-200 bg-blue-50 text-blue-700',
-                      C: 'border-purple-200 bg-purple-50 text-purple-700',
-                      D: 'border-teal-200 bg-teal-50 text-teal-700',
-                      E: 'border-cyan-200 bg-cyan-50 text-cyan-700',
-                      F: 'border-pink-200 bg-pink-50 text-pink-700',
-                      G: 'border-gray-200 bg-gray-50 text-gray-700',
-                    };
-                    const cls = subColors[letter] || 'border-teal-200 bg-teal-50 text-teal-700';
-                    return (
-                      <div key={i} className="flex items-center gap-2 mt-6 mb-2">
-                        <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black ${cls} border`}>{letter}</span>
-                        <span className="text-xs font-black text-gray-700 uppercase tracking-wide">{subLabel}</span>
-                        <div className="flex-1 h-[1px] bg-gray-100 ml-2"></div>
-                      </div>
-                    );
-                  }
-
-                  // "*** THIS IS THE MOST IMPORTANT SECTION ***" emphasis line
-                  if (t.startsWith('***')) {
-                    return (
-                      <div key={i} className="bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 my-1 flex items-center gap-2">
-                        <span className="text-teal-600 text-lg">⭐</span>
-                        <p className="text-teal-800 text-xs font-bold">{t.replace(/\*/g, '').trim()}</p>
-                      </div>
-                    );
-                  }
-
-                  // 🔴 CRITICAL
-                  if (t.includes('\uD83D\uDD34')) {
-                    return (
-                      <div key={i} className="flex items-start gap-2 bg-red-50 border border-red-300 rounded-lg px-3 py-2 my-1">
-                        <span className="text-red-600 text-xs font-bold mt-0.5 shrink-0">🔴</span>
-                        <p className="text-red-800 text-sm font-semibold leading-snug">{renderFormattedLine(t.replace('🔴', '').trim())}</p>
-                      </div>
-                    );
-                  }
-
-                  // 🟠 HIGH
-                  if (t.includes('\uD83D\uDFE0')) {
-                    return (
-                      <div key={i} className="flex items-start gap-2 bg-orange-50 border border-orange-200 rounded-lg px-3 py-1.5 my-1">
-                        <span className="text-orange-600 text-xs font-bold mt-0.5 shrink-0">🟠</span>
-                        <p className="text-orange-800 text-sm leading-snug">{renderFormattedLine(t.replace('🟠', '').trim())}</p>
-                      </div>
-                    );
-                  }
-
-                  // 🟡 MODERATE
-                  if (t.includes('\uD83D\uDFE1')) {
-                    return (
-                      <div key={i} className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1.5 my-1">
-                        <span className="text-yellow-700 text-xs font-bold mt-0.5 shrink-0">🟡</span>
-                        <p className="text-yellow-900 text-sm leading-snug">{renderFormattedLine(t.replace('🟡', '').trim())}</p>
-                      </div>
-                    );
-                  }
-
-                  // 🟢 NORMAL
-                  if (t.includes('\uD83D\uDFE2')) {
-                    return (
-                      <div key={i} className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 my-1">
-                        <span className="text-green-700 text-xs font-bold mt-0.5 shrink-0">🟢</span>
-                        <p className="text-green-900 text-sm leading-snug">{renderFormattedLine(t.replace('🟢', '').trim())}</p>
-                      </div>
-                    );
-                  }
-
-                  // Final disclaimer ⚠️
-                  if (t.startsWith('\u26A0\uFE0F')) {
-                    return (
-                      <p key={i} className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-6 font-medium">
-                        {t}
-                      </p>
-                    );
-                  }
-
-                  // IMMEDIATE nursing action lines — highlighted prominently
-                  if (t.toUpperCase().includes('IMMEDIATE') && inNursingSection) {
-                    return (
-                      <div key={i} className="flex items-center gap-2 bg-red-600 text-white rounded-lg px-3 py-2 my-1">
-                        <span className="text-xs font-black bg-white text-red-700 px-1.5 py-0.5 rounded shrink-0">NOW</span>
-                        <p className="text-xs font-bold leading-snug">{renderFormattedLine(t)}</p>
-                      </div>
-                    );
-                  }
-
-                  // Bullet points inside nursing section — teal accented
-                  if (/^[-\u2022*]\s/.test(t) && inNursingSection) {
-                    return (
-                      <div key={i} className="flex items-start gap-2 pl-2 my-0.5">
-                        <span className="text-teal-500 mt-1.5 text-xs shrink-0">✦</span>
-                        <p className="text-sm text-gray-800 font-medium leading-snug">{renderFormattedLine(t.replace(/^[-\u2022*]\s+/, ''))}</p>
-                      </div>
-                    );
-                  }
-
-                  // Bullet points outside nursing section — standard
-                  if (/^[-\u2022*]\s/.test(t)) {
-                    return (
-                      <div key={i} className="flex items-start gap-2 pl-2 my-0.5">
-                        <span className="text-indigo-400 mt-1.5 text-xs shrink-0">▸</span>
-                        <p className="text-sm text-gray-700 leading-snug">{renderFormattedLine(t.replace(/^[-\u2022*]\s+/, ''))}</p>
-                      </div>
-                    );
-                  }
-
-                  // Default paragraph
-                  return <p key={i} className="text-sm text-gray-700 leading-relaxed pl-1">{renderFormattedLine(t)}</p>;
-                });
-              })() : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <AlertTriangle size={32} className="text-amber-400 mb-3" />
-                  <p className="text-sm text-gray-500 font-medium">No summary returned.</p>
-                  <p className="text-xs text-gray-400 mt-1">Ensure the backend server is running on port 4000 and try again.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-              <p className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
-                ⚠️ Always verify AI suggestions with clinical judgment before acting.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleCopySummary}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg border transition-all ${
-                    copied 
-                      ? 'bg-green-50 border-green-200 text-green-700' 
-                      : 'bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-700 shadow-sm'
-                  }`}
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  {copied ? 'Copied to Clipboard!' : 'Copy Summary'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAnalysisModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Render sections */}
       {groupedFields.map(({ section, fields }, groupIndex) => {
         // Get color scheme for this section
@@ -1460,22 +908,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       )}
 
       {!isPreview && (
-        <div className="flex justify-between items-center pt-6 border-t border-gray-200 mt-8 gap-4">
-          <button
-            type="button"
-            onClick={handleNursingSummary}
-            disabled={aiLoading}
-            className="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold py-3 px-6 rounded-lg shadow-sm transition-all flex items-center gap-2 disabled:opacity-50 min-w-[240px] justify-center"
-          >
-            {aiLoading ? (
-              <div className="flex gap-1 items-center py-1">
-                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></span>
-              </div>
-            ) : <Sparkles size={18} />}
-            {aiLoading ? '|Adare is Analyzing...' : `✨ |Adare — Generate ${roleTitle} Summary`}
-          </button>
+        <div className="flex justify-end items-center pt-6 border-t border-gray-200 mt-8 gap-4">
           <button
             type="submit"
             className="bg-brand hover:bg-brand-600 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center shadow-sm"

@@ -40,6 +40,11 @@ app.use(cors());
 app.use(express.json());
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use('/uploads/profiles', (req, res, next) => {
+  res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+  res.set('ETag', '');
+  next();
+}, express.static(path.join(__dirname, '../uploads/profiles'), { maxAge: '7d', etag: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get('/', (req, res) => {

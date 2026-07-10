@@ -40,24 +40,24 @@ function StatCard({ icon: Icon, label, value, trend, trendLabel, bg, iconColor, 
   };
   const TrendIcon = trend === 'up' ? ArrowUpRight : trend === 'down' ? ArrowDownRight : Minus;
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:shadow-gray-100/80 transition-all duration-300 group">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-          <p className="text-3xl font-extrabold text-gray-900 mt-1.5 tracking-tight">{value}</p>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
           {sub && <p className="text-[11px] text-gray-400 mt-1">{sub}</p>}
         </div>
-        <div className={`p-2.5 rounded-xl ${bg} group-hover:scale-110 transition-transform`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
+        <div className={`p-2 rounded-lg ${bg}`}>
+          <Icon className={`w-4 h-4 ${iconColor}`} />
         </div>
       </div>
       {trend && (
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
-          <span className={`inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${trendStyles[trend]}`}>
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+          <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${trendStyles[trend]}`}>
             <TrendIcon className="w-3 h-3" />
             {trendLabel}
           </span>
-          <span className="text-[10px] text-gray-300">vs prev period</span>
+          <span className="text-[10px] text-gray-400">vs prev period</span>
         </div>
       )}
     </div>
@@ -473,44 +473,49 @@ export const TrendsAnalytics = () => {
   const t = (c: number, p: number) => analytics.trend(c, p);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Analytics & Trends</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            {user?.role === 'admin' ? (selectedDepartment === 'All' ? 'All departments' : selectedDepartment) : user?.department}
-            {' · '}
-            {timeframe === 'today' ? 'Today' : timeframe === 'week' ? 'Last 7 days' : timeframe === 'month' ? 'Last 30 days' : 'Last 90 days'}
-          </p>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-[#003153] rounded-xl">
+            <TrendingUp className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Analytics & Trends</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {user?.role === 'admin' ? (selectedDepartment === 'All' ? 'All departments' : selectedDepartment) : user?.department}
+              {' — '}
+              {timeframe === 'today' ? 'Today' : timeframe === 'week' ? 'Last 7 days' : timeframe === 'month' ? 'Last 30 days' : 'Last 90 days'}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {user?.role === 'admin' && (
             <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               {departments.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           )}
-          <div className="flex bg-gray-100 rounded-xl p-0.5">
+          <div className="flex bg-gray-100 rounded-lg p-0.5">
             {([['today', 'Today'], ['week', '7D'], ['month', '30D'], ['quarter', '90D']] as const).map(([v, l]) => (
               <button key={v} onClick={() => setTimeframe(v)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${timeframe === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${timeframe === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
                 {l}
               </button>
             ))}
           </div>
-          <button onClick={handleRefresh} className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+          <button onClick={handleRefresh} className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             <RefreshCw className="w-4 h-4 text-gray-500" />
           </button>
           <button onClick={handleExport} disabled={analytics.total === 0}
-            className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors">
+            className="px-4 py-2 bg-[#003153] text-white rounded-lg text-sm font-semibold hover:bg-[#002640] disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors shadow-sm">
             <Download className="w-4 h-4" />Export
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm">
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
           <AlertCircle className="w-4 h-4 shrink-0" />{error}
         </div>
       )}

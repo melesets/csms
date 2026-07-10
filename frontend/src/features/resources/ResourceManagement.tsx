@@ -265,23 +265,28 @@ function ResourceManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ── Header ──────────────────────────────────── */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Inventory</h2>
-          <p className="text-sm text-gray-400 mt-1">
-            {isAdmin ? (targetDepartment || 'All departments') : user?.department} · {resources.length} items
-          </p>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-[#003153] rounded-xl">
+            <Package className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Inventory</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {isAdmin ? (targetDepartment || 'All departments') : user?.department} · {resources.length} items
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleExport} disabled={!filteredResources.length}
-            className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors">
+            className="px-4 py-2 bg-gray-50 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors">
             <Download className="w-4 h-4" />Export
           </button>
           {canEdit && (
             <button onClick={() => { setShowModal(true); setEditMode(false); setEditResourceId(null); setNewResource({ name: '', type: 'Drug', quantity: '', standardQuantity: '', unit: '', expiredDate: '', batchNumber: '' }); }}
-              className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-bold hover:bg-brand-600 inline-flex items-center gap-1.5 transition-colors">
+              className="px-4 py-2 bg-[#003153] text-white rounded-lg text-sm font-semibold hover:bg-[#002640] inline-flex items-center gap-1.5 transition-colors shadow-sm">
               <Plus className="w-4 h-4" />Add Resource
             </button>
           )}
@@ -289,26 +294,26 @@ function ResourceManagement() {
       </div>
 
       {/* ── Reporting Section ────────────────────────── */}
-      <div className="bg-gradient-to-r from-brand/5 via-white to-brand/5 rounded-2xl border border-brand/10 p-5">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-brand/10 rounded-xl shrink-0">
-              <Clock className="w-5 h-5 text-brand" />
+            <div className="p-2 bg-gray-100 rounded-lg shrink-0">
+              <Clock className="w-5 h-5 text-gray-600" />
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               {hasCheckedInStaff && (
                 <>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Reporter</span>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Reporter</span>
                     <select value={selectedReporterId} onChange={e => setSelectedReporterId(e.target.value)}
-                      className="text-sm font-bold text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand cursor-pointer min-w-[200px]">
+                      className="text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer min-w-[200px]">
                       {activeStaffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
                 </>
               )}
               {!hasCheckedInStaff && (
-                <span className="inline-flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-amber-200 w-fit">
+                <span className="inline-flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg text-xs font-medium border border-amber-200 w-fit">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                   No staff on duty
                 </span>
@@ -333,17 +338,17 @@ function ResourceManagement() {
                 alert('Inventory report saved successfully!');
               } catch (err: any) { alert('Failed: ' + (err?.message || err)); }
             }}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold inline-flex items-center gap-2 transition-all shadow-md shrink-0 ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-2 transition-colors ${
               hasCheckedInStaff && resources.length
-                ? 'bg-brand text-white hover:bg-brand-600 hover:shadow-lg active:scale-95'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                ? 'bg-[#003153] text-white hover:bg-[#0026400] shadow-sm'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}>
             <Package className="w-4 h-4" />
-            {!hasCheckedInStaff ? 'Waiting for staff check-in' : 'Save Inventory Report'}
+            {!hasCheckedInStaff ? 'Waiting for check-in' : 'Save Inventory Report'}
           </button>
         </div>
         {!hasCheckedInStaff && (
-          <p className="text-[11px] text-amber-600 mt-3 ml-12">
+          <p className="text-xs text-amber-600 mt-3 ml-12">
             Staff must check in from the dashboard before inventory can be edited and reports saved.
           </p>
         )}
@@ -358,33 +363,33 @@ function ResourceManagement() {
           { label: 'Near Expiry', value: stats.nearExpiry, icon: AlertCircle, bg: 'bg-amber-50', color: 'text-amber-600' },
           { label: 'Expired', value: stats.expired, icon: PackageX, bg: 'bg-red-50', color: 'text-red-600' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-md transition-shadow">
+          <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{s.label}</span>
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{s.label}</span>
               <div className={`p-1.5 rounded-lg ${s.bg}`}><s.icon className={`w-4 h-4 ${s.color}`} /></div>
             </div>
-            <p className="text-2xl font-extrabold text-gray-900">{s.value}</p>
+            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* ── Filters ─────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-lg hover:shadow-gray-100/60 transition-shadow">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" placeholder="Search by name, unit, or batch..."
               value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all" />
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
           </div>
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand">
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             <option value="All">All Types</option>
             <option value="Drug">Drug</option>
             <option value="Equipment">Equipment</option>
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand">
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             <option value="All">All Status</option>
             <option value="OK">OK</option>
             <option value="Low Stock">Low Stock</option>
@@ -394,14 +399,14 @@ function ResourceManagement() {
           {isAdmin && (
             <>
               <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand min-w-[140px]">
+                className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[140px]">
                 <option value="">All Depts</option>
                 {Array.from(new Set(resources.map(r => r.department).filter(Boolean))).map(d => (
                   <option key={d} value={String(d)}>{String(d)}</option>
                 ))}
               </select>
               <select value={userFilter} onChange={e => setUserFilter(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand min-w-[140px]">
+                className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[140px]">
                 <option value="">Live Inventory</option>
                 {Array.from(new Set(reports.map(r => r.staffName).filter(Boolean))).map(n => (
                   <option key={n} value={String(n)}>{String(n)}</option>
@@ -411,13 +416,13 @@ function ResourceManagement() {
           )}
           {(search || filterType !== 'All' || filterStatus !== 'All' || deptFilter || userFilter) && (
             <button onClick={() => { setSearch(''); setFilterType('All'); setFilterStatus('All'); setDeptFilter(''); setUserFilter(''); }}
-              className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 font-medium">
-              Clear
+              className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-medium">
+              Clear Filters
             </button>
           )}
         </div>
         {userFilter && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
             <AlertCircle className="w-4 h-4 shrink-0" />
             Viewing saved report for <strong>{userFilter}</strong>{targetDepartment ? ` in ${targetDepartment}` : ''}
           </div>
@@ -425,21 +430,21 @@ function ResourceManagement() {
       </div>
 
       {/* ── Resource Table ───────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:shadow-gray-100/60 transition-shadow">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Current Inventory</h3>
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg font-medium">{filteredResources.length} items</span>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-900">Current Inventory</h3>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">{filteredResources.length} items</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50/80">
+              <tr className="bg-gray-50">
                 {['Resource', 'Type', 'Qty', 'Standard', 'Unit', 'Expiry', 'Batch', 'Status', 'Reported By', ...(canEdit ? ['Actions'] : [])].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {filteredResources.map((resource) => {
                 const st = getResourceStatus(resource);
                 const cfg = statusConfig[st];
@@ -447,45 +452,45 @@ function ResourceManagement() {
                 const exp = resource.expiry_date ? new Date(resource.expiry_date) : null;
                 const diffDays = exp && !isNaN(exp.getTime()) ? Math.ceil((exp.getTime() - now.getTime()) / 86400000) : null;
                 return (
-                  <tr key={resource.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-5 py-3">
+                  <tr key={resource.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${cfg.bg}`}>
+                        <div className={`p-1.5 rounded-lg ${cfg.bg}`}>
                           <Package className={`w-4 h-4 ${cfg.text}`} />
                         </div>
-                        <span className="text-sm font-semibold text-gray-900">{resource.name}</span>
+                        <span className="text-sm font-medium text-gray-900">{resource.name}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-bold ${resource.type === 'Drug' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}`}>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${resource.type === 'Drug' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
                         {resource.type}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-3">
                       {canEdit && editingQuantityId === resource.id ? (
                         <div className="flex items-center gap-1">
                           <input type="number" value={editingQuantityValue} min="0" onChange={e => setEditingQuantityValue(e.target.value)}
-                            className="w-16 px-2 py-1 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-brand/20 focus:border-brand" autoFocus />
+                            className="w-16 px-2 py-1 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" autoFocus />
                           <button onClick={() => handleQuantitySave(resource)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check className="w-3.5 h-3.5" /></button>
                           <button onClick={() => setEditingQuantityId(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded"><X className="w-3.5 h-3.5" /></button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-sm font-semibold ${st === 'low-stock' || st === 'expired' ? 'text-red-600' : 'text-gray-900'}`}>
+                          <span className={`text-sm font-medium ${st === 'low-stock' || st === 'expired' ? 'text-red-600' : 'text-gray-900'}`}>
                             {Number(resource.quantity) || 0}
                           </span>
                           {canEdit && (
-                            <button onClick={() => handleQuantityEdit(resource)} className="p-1 text-gray-300 hover:text-brand transition-colors"><Pen className="w-3 h-3" /></button>
+                            <button onClick={() => handleQuantityEdit(resource)} className="p-1 text-gray-300 hover:text-[#003153] transition-colors"><Pen className="w-3 h-3" /></button>
                           )}
                         </div>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-sm text-gray-500">{Number(resource.standard_quantity as any) || 0}</td>
-                    <td className="px-5 py-3 text-sm text-gray-500">{resource.unit}</td>
-                    <td className="px-5 py-3">
+                    <td className="px-4 py-3 text-sm text-gray-500">{Number(resource.standard_quantity as any) || 0}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{resource.unit}</td>
+                    <td className="px-4 py-3">
                       {exp && !isNaN(exp.getTime()) ? (
                         <div className="text-sm">
-                          <div className={diffDays !== null && diffDays <= 30 ? 'text-amber-600 font-semibold' : 'text-gray-900'}>
+                          <div className={diffDays !== null && diffDays <= 30 ? 'text-amber-600 font-medium' : 'text-gray-900'}>
                             {(() => { const eth = gregorianToEthiopian(exp); return formatEthiopianDate(eth, 'amharic'); })()}
                           </div>
                           {diffDays !== null && diffDays <= 30 && (
@@ -496,22 +501,22 @@ function ResourceManagement() {
                         </div>
                       ) : <span className="text-gray-300 text-sm">-</span>}
                     </td>
-                    <td className="px-5 py-3 text-sm text-gray-500 font-mono">{resource.batch_number || '-'}</td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${cfg.bg} ${cfg.text}`}>
+                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">{resource.batch_number || '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>
                         <StatusIcon className="w-3 h-3" />
                         {cfg.label}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
-                      <span className="text-xs font-semibold text-gray-700">
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-medium text-gray-600">
                         {userFilter && latestReportForUser ? latestReportForUser.staffName : (resource.last_updated_by_name || resource.last_updated_by || '-')}
                       </span>
                     </td>
                     {canEdit && (
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => openEditModal(resource)} className="p-1.5 text-gray-400 hover:text-brand hover:bg-brand/5 rounded-lg transition-colors" title="Edit">
+                          <button onClick={() => openEditModal(resource)} className="p-1.5 text-gray-400 hover:text-[#003153] hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
                             <Pen className="w-4 h-4" />
                           </button>
                           <button onClick={() => handleDelete(resource.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
@@ -527,9 +532,11 @@ function ResourceManagement() {
           </table>
         </div>
         {filteredResources.length === 0 && (
-          <div className="text-center py-16">
-            <div className="p-4 bg-gray-100 rounded-2xl inline-block mb-3"><Package className="w-10 h-10 text-gray-300" /></div>
-            <p className="text-sm font-medium text-gray-900">No resources found</p>
+          <div className="text-center py-12">
+            <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Package className="w-8 h-8 text-gray-300" />
+            </div>
+            <p className="text-sm font-semibold text-gray-600">No resources found</p>
             <p className="text-xs text-gray-400 mt-1">{canEdit ? 'Add a new resource to get started' : 'Adjust filters to see inventory data'}</p>
           </div>
         )}
@@ -538,15 +545,15 @@ function ResourceManagement() {
       {/* ── Add/Edit Modal ───────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">{editMode ? 'Edit Resource' : 'Add New Resource'}</h3>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">{editMode ? 'Edit Resource' : 'Add New Resource'}</h3>
               <button onClick={() => { setShowModal(false); setEditMode(false); setEditResourceId(null); }}
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddOrEditResource} className="p-6">
+            <form onSubmit={handleAddOrEditResource} className="p-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { label: 'Name', name: 'name', type: 'text', placeholder: 'Resource name', span: 2 },
@@ -556,47 +563,47 @@ function ResourceManagement() {
                   { label: 'Unit', name: 'unit', type: 'select', options: [{ v: '', l: 'Select' }, { v: 'Vial', l: 'Vial' }, { v: 'Ampule', l: 'Ampule' }, { v: 'Number', l: 'Number' }, { v: 'Box', l: 'Box' }, { v: 'Strip', l: 'Strip' }] },
                 ].map(f => (
                   <div key={f.name} className={`flex flex-col ${f.span === 2 ? 'md:col-span-2' : ''}`}>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{f.label}</label>
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">{f.label}</label>
                     {f.type === 'select' ? (
                       <select name={f.name} value={(newResource as any)[f.name]} onChange={handleInputChange}
-                        className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand">
+                        className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         {f.options!.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
                       </select>
                     ) : (
                       <input type={f.type} name={f.name} value={(newResource as any)[f.name]} onChange={handleInputChange}
                         placeholder={(f as any).placeholder} min={(f as any).min}
-                        className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand" />
+                        className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                     )}
                   </div>
                 ))}
                 {newResource.type === 'Drug' && (
                   <>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Expiry Date</label>
+                      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Expiry Date</label>
                       <input type="date" name="expiredDate" value={newResource.expiredDate} onChange={handleInputChange}
-                        className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand" />
+                        className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                     </div>
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Batch Number</label>
+                      <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Batch Number</label>
                       <input type="text" name="batchNumber" value={newResource.batchNumber} onChange={handleInputChange}
                         placeholder="e.g. BT-2026-001"
-                        className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand/20 focus:border-brand" />
+                        className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                     </div>
                   </>
                 )}
               </div>
               {error && (
-                <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
                   <AlertCircle className="w-4 h-4 shrink-0" />{error}
                 </div>
               )}
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-200">
                 <button type="button" onClick={() => { setShowModal(false); setEditMode(false); setEditResourceId(null); }}
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={loading}
-                  className="px-5 py-2.5 rounded-xl bg-brand text-white text-sm font-bold hover:bg-brand-600 disabled:opacity-40 inline-flex items-center gap-2 transition-colors shadow-md hover:shadow-lg active:scale-95">
+                  className="px-4 py-2 rounded-lg bg-[#003153] text-white text-sm font-semibold hover:bg-[#002640] disabled:opacity-40 inline-flex items-center gap-2 transition-colors">
                   {loading ? (
                     <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{editMode ? 'Saving...' : 'Adding...'}</>
                   ) : (

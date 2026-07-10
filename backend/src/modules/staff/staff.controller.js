@@ -9,13 +9,17 @@ export const getStaff = asyncHandler(async (req, res) => {
 });
 
 export const createStaff = asyncHandler(async (req, res) => {
-  const profilePicture = req.file ? `/uploads/profiles/${req.file.filename}` : null;
+  const profilePicture = req.file
+    ? await staffService.processAndSave(req.file.buffer, req.file.originalname)
+    : null;
   const staff = await staffService.createStaff({ ...req.body, profilePicture });
   res.status(201).json(staff);
 });
 
 export const updateStaff = asyncHandler(async (req, res) => {
-  const profilePicture = req.file ? `/uploads/profiles/${req.file.filename}` : null;
+  const profilePicture = req.file
+    ? await staffService.processAndSave(req.file.buffer, req.file.originalname)
+    : null;
   const staff = await staffService.updateStaff(req.params.id, { ...req.body, profilePicture });
   if (!staff) return res.status(404).json({ error: 'Staff member not found' });
   res.json(staff);

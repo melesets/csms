@@ -124,8 +124,8 @@ function RoundEntry({ round }: { round: Round }) {
   const dateObj = fixTimezoneOffset(round.date || new Date().toISOString());
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <div className="px-4 py-3 bg-indigo-50/50 border-b border-indigo-100 flex items-center justify-between">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="px-5 py-3.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
              <User className="w-4 h-4" />
@@ -133,21 +133,21 @@ function RoundEntry({ round }: { round: Round }) {
           <div>
             <div className="text-sm font-semibold text-gray-900">{round.staffName || 'Unknown'}</div>
             <div className="text-xs text-gray-500 font-medium mt-0.5">
-              <EthiopianDateTimeDisplay date={dateObj} format="long" showTime={true} /> · <span className="text-indigo-500 font-semibold italic">{getRelativeTime(dateObj)}</span>
+              <EthiopianDateTimeDisplay date={dateObj} format="long" showTime={true} /> · <span className="text-indigo-600 font-medium">{getRelativeTime(dateObj)}</span>
             </div>
           </div>
         </div>
-        <div className="text-sm font-medium text-indigo-700 bg-indigo-100/50 px-2.5 py-1 rounded-md">
+        <div className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-lg">
           {round.title || 'Nursing Round'}
         </div>
       </div>
       
       {items.length > 0 && (
-        <div className="p-4 bg-white grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-2 gap-x-4">
+        <div className="p-4 bg-white grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-2.5 gap-x-4">
             {items.map((it, idx) => (
               <div key={idx} className="text-sm flex flex-col">
-                <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">{it.label}</span>
-                <span className={`font-medium ${it.hi ? 'text-indigo-700 font-semibold' : 'text-gray-800'}`}>
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">{it.label}</span>
+                <span className={`font-medium mt-0.5 ${it.hi ? 'text-indigo-600 font-semibold' : 'text-gray-800'}`}>
                     {it.value}
                 </span>
               </div>
@@ -164,13 +164,13 @@ function InventoryReportDetail({ report }: { report: Report }) {
   const dateObj = fixTimezoneOffset(report.date);
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
       <button 
         onClick={() => setOpen(!open)}
-        className="w-full px-4 py-3 bg-green-50/50 hover:bg-green-50 transition-colors flex items-center justify-between border-b border-green-100"
+        className="w-full px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between border-b border-gray-200"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
+          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
             <User className="w-4 h-4" />
           </div>
           <div className="text-left">
@@ -178,12 +178,12 @@ function InventoryReportDetail({ report }: { report: Report }) {
                {report.staffName}
             </div>
             <div className="text-xs text-gray-500 font-medium flex items-center gap-1.5 mt-0.5">
-               <EthiopianDateTimeDisplay date={dateObj} format="long" showTime={true} showIcon={true} /> · <span className="text-green-600 font-semibold italic">{getRelativeTime(dateObj)}</span>
+               <EthiopianDateTimeDisplay date={dateObj} format="long" showTime={true} showIcon={true} /> · <span className="text-emerald-600 font-medium">{getRelativeTime(dateObj)}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-100 text-green-700">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700">
              {Array.isArray(report.resources) ? report.resources.length : 0} items
           </span>
           {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
@@ -197,14 +197,14 @@ function InventoryReportDetail({ report }: { report: Report }) {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Name</th>
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Type</th>
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Qty</th>
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Standard</th>
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Unit</th>
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Expiry</th>
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Batch</th>
-                    <th className="px-4 py-3 font-semibold border-b border-gray-100">Status</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Name</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Type</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Qty</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Standard</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Unit</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Expiry</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Batch</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -212,28 +212,28 @@ function InventoryReportDetail({ report }: { report: Report }) {
                     const badges = resourceBadges(item);
                     const qtyNum = Number(item.quantity);
                     return (
-                      <tr key={idx} className="hover:bg-gray-50/50">
-                        <td className="px-4 py-3 font-medium text-gray-800">{String(item.name || '-')}</td>
-                        <td className="px-4 py-3 text-gray-500">{String(item.type || '-')}</td>
-                        <td className="px-4 py-3 font-semibold text-gray-900">{isNaN(qtyNum) ? '0' : (qtyNum >= 1 ? String(qtyNum) : '0')}</td>
-                        <td className="px-4 py-3 text-gray-500">{String(item.standard_quantity ?? item.standard ?? '-')}</td>
-                        <td className="px-4 py-3 text-gray-500">{String(item.unit || '-')}</td>
-                        <td className="px-4 py-3 text-gray-500">
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 font-medium text-gray-900">{String(item.name || '-')}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{String(item.type || '-')}</td>
+                        <td className="px-4 py-2.5 font-semibold text-gray-900">{isNaN(qtyNum) ? '0' : (qtyNum >= 1 ? String(qtyNum) : '0')}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{String(item.standard_quantity ?? item.standard ?? '-')}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{String(item.unit || '-')}</td>
+                        <td className="px-4 py-2.5 text-gray-500">
                           {(item.expiry_date || item.expiry) ? <EthiopianDateDisplay date={(item.expiry_date || item.expiry) as string} format="short" /> : '-'}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">{String(item.batch_number ?? item.batch ?? '-')}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-2.5 text-gray-500 font-mono text-xs">{String(item.batch_number ?? item.batch ?? '-')}</td>
+                        <td className="px-4 py-2.5">
                           {badges.length > 0 ? (
-                            <div className="flex flex-wrap items-center gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1">
                               {badges.map((b, bi) => (
                                 <span key={bi} className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${b.cls}`}>
-                                  {b.icon && <span className="mr-1">{b.icon}</span>}
+                                  {b.icon && <span className="mr-0.5">{b.icon}</span>}
                                   {b.label}
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">OK</span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">OK</span>
                           )}
                         </td>
                       </tr>
@@ -279,16 +279,16 @@ export function ShiftActivityPanel({
         collapsible
         defaultCollapsed={false}
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
            {allReports.length > 0 ? (
              allReports.map((report, idx) => (
                <InventoryReportDetail key={report.id || idx} report={report} />
              ))
            ) : (
-             <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+             <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 <Package className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                 <h3 className="text-sm font-semibold text-gray-600">No Inventory Reports</h3>
-                <p className="text-xs text-gray-400 mt-1">Inventory reports submitted will appear here chronologically.</p>
+                <p className="text-xs text-gray-400 mt-1">Reports will appear here as staff submit them.</p>
              </div>
            )}
         </div>
@@ -301,14 +301,13 @@ export function ShiftActivityPanel({
         collapsible
         defaultCollapsed={false}
       >
-        {/* No mapping warning */}
         {roundMappedTemplates.length > 0 && allRounds.length === 0 && (
           <div className="mb-4 p-3.5 border border-amber-200 bg-amber-50 text-sm text-amber-800 rounded-xl flex items-center justify-between">
             <div>
               <span className="font-semibold">Round mapping configured:</span> {roundMappedTemplates.join(', ')}. No rounds submitted yet.
             </div>
             <button
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-medium text-xs hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-600 transition-colors"
               onClick={() => { window.location.href = '#/isbar'; }}
               type="button"
             >
@@ -317,16 +316,16 @@ export function ShiftActivityPanel({
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-3">
            {allRounds.length > 0 ? (
              allRounds.map((round, idx) => (
                <RoundEntry key={round.id || idx} round={round} />
              ))
            ) : (
-             <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+             <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 <Stethoscope className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                 <h3 className="text-sm font-semibold text-gray-600">No Nursing Rounds</h3>
-                <p className="text-xs text-gray-400 mt-1">Rounds submitted by staff will appear here chronologically.</p>
+                <p className="text-xs text-gray-400 mt-1">Rounds will appear here as staff submit them.</p>
              </div>
            )}
         </div>

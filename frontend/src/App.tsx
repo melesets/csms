@@ -16,7 +16,7 @@ import {
   ShiftManager,
   LoginForm 
 } from './features';
-import { Layout, IsbarLoader, AIAssistantPanel, ErrorBoundary } from './components/shared';
+import { Layout, IsbarLoader, ErrorBoundary } from './components/shared';
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -71,21 +71,16 @@ const AppContent = () => {
       <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
         {renderCurrentPage()}
       </Layout>
-      <AIAssistantPanel />
     </ShiftManager>
   );
 };
-
-import { ScreenProvider } from './contexts/ScreenContext';
 
 function App() {
   return (
     <AuthProvider>
       <ShiftProvider>
         <SearchProvider>
-          <ScreenProvider>
-            <AppContent />
-          </ScreenProvider>
+          <AppContent />
         </SearchProvider>
       </ShiftProvider>
     </AuthProvider>

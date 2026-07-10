@@ -76,22 +76,22 @@ export const DepartmentActivityTimeline: React.FC = () => {
 
   const getTypeStyles = (type: string) => {
     switch (type) {
-      case 'submission': return { bg: 'bg-blue-100', text: 'text-blue-600', icon: <FileText className="w-5 h-5" /> };
-      case 'resource': return { bg: 'bg-indigo-100', text: 'text-indigo-600', icon: <Package className="w-5 h-5" /> };
-      case 'report': return { bg: 'bg-emerald-100', text: 'text-emerald-600', icon: <ClipboardCheck className="w-5 h-5" /> };
-      default: return { bg: 'bg-gray-100', text: 'text-gray-600', icon: <Clock className="w-5 h-5" /> };
+      case 'submission': return { bg: 'bg-blue-50', text: 'text-blue-600', icon: <FileText className="w-4 h-4" /> };
+      case 'resource': return { bg: 'bg-indigo-50', text: 'text-indigo-600', icon: <Package className="w-4 h-4" /> };
+      case 'report': return { bg: 'bg-emerald-50', text: 'text-emerald-600', icon: <ClipboardCheck className="w-4 h-4" /> };
+      default: return { bg: 'bg-gray-50', text: 'text-gray-600', icon: <Clock className="w-4 h-4" /> };
     }
   };
 
   if (loading) return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div className="h-5 bg-gray-100 rounded w-40 mb-4" />
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+      <div className="h-4 bg-gray-100 rounded w-40 mb-4" />
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
           <div key={i} className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 rounded-xl" />
+            <div className="w-10 h-10 bg-gray-100 rounded-lg animate-pulse" />
             <div className="flex-1">
-              <div className="h-3 bg-gray-100 rounded w-3/4 mb-1" />
+              <div className="h-3 bg-gray-100 rounded w-3/4 mb-1.5" />
               <div className="h-2 bg-gray-50 rounded w-1/2" />
             </div>
           </div>
@@ -101,77 +101,74 @@ export const DepartmentActivityTimeline: React.FC = () => {
   );
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-600" />
+          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#003153]" />
             Activity Monitoring
           </h2>
-          <p className="text-sm text-gray-500 mt-0.5">Real-time clinical event log for {user?.department}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{user?.department} department</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-          <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">Live</span>
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Live</span>
         </div>
       </div>
 
-      <div className="max-h-[600px] overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-200">
+      <div className="max-h-[600px] overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-gray-200">
         <div className="relative">
-          {/* Vertical Line */}
-          <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-100"></div>
+          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
 
           {activities.length === 0 ? (
             <div className="text-center py-12">
-              <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                 <AlertCircle className="w-8 h-8 text-gray-300" />
               </div>
-              <p className="text-gray-500 font-medium">No recent activities found.</p>
+              <p className="text-sm font-semibold text-gray-600">No recent activities found.</p>
+              <p className="text-xs text-gray-400 mt-1">Activities will appear here as staff perform actions.</p>
             </div>
           ) : (
-            <div className="space-y-8 relative">
+            <div className="space-y-5 relative">
               {activities.map((activity) => {
                 const styles = getTypeStyles(activity.type);
                 return (
-                  <div key={activity.id} className="flex gap-6 group">
-                    <div className={`relative z-10 w-12 h-12 rounded-xl ${styles.bg} ${styles.text} flex items-center justify-center shadow-sm transition-transform group-hover:scale-110`}>
+                  <div key={activity.id} className="flex gap-4 group">
+                    <div className={`relative z-10 w-10 h-10 rounded-lg ${styles.bg} ${styles.text} flex items-center justify-center shadow-sm transition-transform group-hover:scale-110`}>
                       {styles.icon}
                     </div>
 
-                    <div className="flex-1 pt-1 pb-4 border-b border-gray-50 last:border-0">
-                      <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 pt-0.5 pb-3 border-b border-gray-100 last:border-0">
+                      <div className="flex items-start justify-between mb-1.5">
                         <div>
-                          <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-sm">
+                          <h3 className="font-semibold text-gray-900 group-hover:text-[#003153] transition-colors text-sm">
                             {activity.title}
                           </h3>
-                          <p className="text-gray-600 text-sm mt-0.5">{activity.subtitle}</p>
+                          <p className="text-gray-500 text-xs mt-0.5">{activity.subtitle}</p>
                         </div>
-                        <div className="text-right">
-                           <span className="text-xs font-bold text-gray-400">
+                        <div className="text-right shrink-0 ml-4">
+                           <span className="text-[10px] font-bold text-gray-400">
                               <EthiopianDateDisplay date={activity.timestamp} format="short" />
                            </span>
-                           <div className="flex items-center gap-1 mt-1 justify-end">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase">
-                                {activity.shift}
+                           <div className="flex items-center gap-1 mt-0.5 justify-end">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                                 {activity.shift}
                               </span>
                            </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 mt-3">
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100">
-                          <User className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="text-xs font-semibold text-gray-700">{activity.user}</span>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-gray-50 border border-gray-100">
+                          <User className="w-3 h-3 text-gray-400" />
+                          <span className="text-[11px] font-medium text-gray-600">{activity.user}</span>
                         </div>
                         {activity.type === 'submission' && (
-                           <div className="flex items-center gap-1 text-green-600">
-                             <CheckCircle2 className="w-3.5 h-3.5" />
-                             <span className="text-[10px] font-bold uppercase">Record Saved</span>
+                           <div className="flex items-center gap-1 text-emerald-600">
+                             <CheckCircle2 className="w-3 h-3" />
+                             <span className="text-[10px] font-bold">Saved</span>
                            </div>
                         )}
-                        <button className="ml-auto text-blue-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          View Details <ArrowRight className="w-3 h-3" />
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -182,13 +179,13 @@ export const DepartmentActivityTimeline: React.FC = () => {
         </div>
       </div>
 
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-        <span className="text-xs text-gray-500 font-medium">Showing {activities.length} most recent activities</span>
+      <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        <span className="text-[11px] text-gray-500 font-medium">{activities.length} recent activities</span>
         <button 
           onClick={fetchActivity}
-          className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+          className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-medium"
         >
-          REFRESH FEED
+          Refresh
         </button>
       </div>
     </div>

@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
 import { useSearch } from '../../hooks/useSearch';
-import { useAI } from '../../hooks/useAI';
 import { ExpandablePatientCard } from '../patients';
 import { PatientDetailPage } from '../patients/PatientDetailPage';
 import { IsbarLoader, DashboardSection } from '../../components/shared';
@@ -24,7 +23,6 @@ import {
   AlertTriangle,
   MinusCircle,
   Shield,
-  Sparkles,
   Tag,
   ClipboardCheck,
   LayoutGrid,
@@ -33,7 +31,7 @@ import {
   Brain
 } from 'lucide-react';
 import { DepartmentActivityTimeline, ShiftActivityPanel } from '../shifts';
-import { AIPatientDashboard } from '../ai/AIPatientDashboard';
+import AIDashboard from '../ai/AIDashboard';
 import { PROFESSIONS } from '../../types/auth';
 
 // Helper functions moved outside of the component
@@ -202,9 +200,6 @@ export const HealthcareDashboard: React.FC = () => {
   const [recentAuditsByMrn, setRecentAuditsByMrn] = useState<Record<string, Record<string, unknown>[]>>({});
   const [handoverBriefing, setHandoverBriefing] = useState<HandoverBriefing | null>(null);
   const { activeSession } = useShift();
-  const { ask, loading: aiLoading, online } = useAI();
-  const [aiInsights, setAiInsights] = useState<{ text: string, timestamp: Date } | null>(null);
-
   const [openMrn, setOpenMrn] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const [mostRecentShift, setMostRecentShift] = useState<'Morning' | 'Evening' | 'Night' | null>(null);
@@ -1133,45 +1128,11 @@ export const HealthcareDashboard: React.FC = () => {
               <span>Shift Safety Briefing: {activeSession?.ward}</span>
             </div>
             <div className="flex items-center gap-4">
-              <button
-                onClick={async () => {
-                  if (aiLoading) return;
-                  try {
-                    const dataToAnalyze = {
-                      patients: visiblePatients.map(p => ({ name: p.patientName, stability: p.stability, diagnosis: p.diagnosis, department: p.department })),
-                      briefing: handoverBriefing
-                    };
-                    const res = await ask('shift-insights', dataToAnalyze);
-                    setAiInsights({ text: res.text, timestamp: new Date() });
-                  } catch (err) {
-                    console.error('Failed to generate insights', err);
-                  }
-                }}
-                disabled={aiLoading}
-                className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors disabled:opacity-50"
-              >
-                <Sparkles size={14} />
-                {aiLoading ? 'Analyzing...' : 'AI Insights'}
-              </button>
               <div className="text-sm font-medium opacity-90">
                 Briefing from: {new Date(handoverBriefing.created_at).toLocaleString()}
               </div>
             </div>
           </div>
-
-          {aiInsights && (
-            <div className="bg-indigo-50 px-6 py-4 border-b border-indigo-100 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-indigo-800 font-bold">
-                  <Sparkles size={16} />
-                  <span>AI Shift Insights</span>
-                  {!online && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase tracking-wider ml-2">Offline Mode</span>}
-                </div>
-                <button onClick={() => setAiInsights(null)} className="text-indigo-400 hover:text-indigo-600 text-xs">Dismiss</button>
-              </div>
-              <p className="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{aiInsights.text}</p>
-            </div>
-          )}
 
           <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
@@ -1359,7 +1320,7 @@ export const HealthcareDashboard: React.FC = () => {
         const allRounds = Object.values(roundsByShift).flat().filter(Boolean);
         const tabs = [
           { id: 'patients', label: 'Patients', icon: Bed, count: visiblePatients.length },
-          { id: 'ai-analytics', label: 'AI Analytics', icon: Brain, count: 0 },
+          { id: 'ai-dashboard', label: 'AI Dashboard', icon: Brain, count: 0 },
           { id: 'staff', label: 'Active Staff', icon: Users, count: 0 },
           ...(Object.keys(recentAuditsByMrn).length > 0 ? [{ id: 'audit', label: 'Audit', icon: ClipboardCheck, count: Object.keys(recentAuditsByMrn).length }] : []),
           ...(resourceMappings.length > 0 && (user?.role === 'admin' || user?.profession === 'Nurse' || user?.profession === 'Midwifery') ? [{ id: 'resources', label: 'Resources', icon: Package, count: resourceStatus.length }] : []),
@@ -1527,6 +1488,11 @@ export const HealthcareDashboard: React.FC = () => {
           </>
         )}
       </DashboardSection>
+      )}
+
+      {/* AI Dashboard Tab */}
+      {activeTab === 'ai-dashboard' && (
+        <AIDashboard />
       )}
 
       {/* Active Staff Tab */}
@@ -2062,11 +2028,6 @@ export const HealthcareDashboard: React.FC = () => {
           </DashboardSection>
         )
       ))}
-
-      {/* AI Analytics Tab */}
-      {activeTab === 'ai-analytics' && (
-        <AIPatientDashboard />
-      )}
 
       {/* Add Custom Tab Modal */}
       {showAddTabModal && (

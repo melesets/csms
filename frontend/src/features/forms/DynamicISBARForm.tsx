@@ -9,7 +9,7 @@ export const DynamicISBARForm = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div>
       <DynamicFormSystem onFormSubmit={handleFormSubmit} />
     </div>
   );

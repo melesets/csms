@@ -72,7 +72,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department
 
     if (loading) {
         return (
-            <div className="p-8 bg-white/50 rounded-xl border border-gray-100">
+            <div className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div className="h-4 bg-gray-100 rounded w-1/3 mb-3" />
                 <div className="h-3 bg-gray-50 rounded w-full mb-2" />
                 <div className="h-3 bg-gray-50 rounded w-2/3" />
@@ -134,10 +134,10 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department
 
     if (allEvents.length === 0) {
         return (
-            <div className="p-10 text-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                <Clock className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 font-medium tracking-tight">No activity found for this {username ? 'user' : 'department'}.</p>
-                <p className="text-xs text-gray-400 mt-1">Once actions are performed, they will appear here in detail.</p>
+            <div className="p-10 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <Clock className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm font-semibold text-gray-600">No activity found for this {username ? 'user' : 'department'}.</p>
+                <p className="text-xs text-gray-400 mt-1">Actions will appear here once performed.</p>
             </div>
         );
     }
@@ -170,12 +170,12 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between px-2 mb-4">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <div className="w-1 h-3 bg-[#003153] rounded-full" />
                     Detailed Activity Log
                 </h4>
                 <div className="text-[10px] text-gray-400 font-medium">
-                    {allEvents.length} Recent Action{allEvents.length !== 1 ? 's' : ''} • {groupedActivities.length} Group{groupedActivities.length !== 1 ? 's' : ''}
+                    {allEvents.length} Recent Action{allEvents.length !== 1 ? 's' : ''} · {groupedActivities.length} Group{groupedActivities.length !== 1 ? 's' : ''}
                 </div>
             </div>
 
@@ -187,50 +187,50 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department
                     const colorClasses =
                         group.color === 'blue' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                             group.color === 'emerald' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                'bg-purple-50 text-purple-600 border-purple-100';
+                                group.color === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                    group.color === 'purple' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                                        'bg-gray-50 text-gray-600 border-gray-100';
 
                     return (
                         <div
                             key={groupId}
-                            className={`border rounded-xl transition-all duration-300 ${isGroupExpanded ? 'bg-white shadow-lg border-indigo-200' : 'bg-white/60 hover:bg-white hover:shadow-sm border-gray-200'}`}
+                            className={`border rounded-xl transition-all duration-300 ${isGroupExpanded ? 'bg-white shadow-md border-gray-200' : 'bg-white hover:shadow-sm border-gray-200'}`}
                         >
-                            {/* Group Header */}
                             <div
                                 onClick={() => setExpandedGroupId(isGroupExpanded ? null : groupId)}
-                                className="p-4 cursor-pointer flex gap-4 items-center hover:bg-gray-50/50 rounded-t-xl transition-colors"
+                                className="p-4 cursor-pointer flex gap-4 items-center hover:bg-gray-50 rounded-t-xl transition-colors"
                             >
-                                <div className={`p-2.5 rounded-lg border shadow-sm ${colorClasses}`}>
-                                    <Icon className="w-5 h-5" />
+                                <div className={`p-2 rounded-lg border shadow-sm ${colorClasses}`}>
+                                    <Icon className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-4">
                                         <div className="min-w-0 flex-1">
-                                            <h5 className="text-base font-bold text-gray-900 leading-tight truncate">
+                                            <h5 className="text-sm font-semibold text-gray-900 leading-tight truncate">
                                                 {group.title}
                                             </h5>
                                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                 <span className="text-xs text-gray-500">
                                                     {getEthiopianRelativeTime(group.events[0].date)}
                                                 </span>
-                                                <span className="text-[10px] text-gray-400">•</span>
+                                                <span className="text-[10px] text-gray-400">·</span>
                                                 <span className="text-[10px] text-gray-400">
                                                     <EthiopianDateDisplay date={group.events[0].date} format="long" />
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3 shrink-0">
-                                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
                                                 {group.events.length} {group.events.length === 1 ? 'entry' : 'entries'}
                                             </span>
-                                            <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${isGroupExpanded ? 'bg-indigo-100 text-indigo-600 rotate-90' : 'bg-gray-100 text-gray-500'}`}>
-                                                <ChevronRight className="w-5 h-5" />
+                                            <div className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${isGroupExpanded ? 'bg-gray-200 text-gray-600 rotate-90' : 'bg-gray-100 text-gray-500'}`}>
+                                                <ChevronRight className="w-4 h-4" />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Group Content - Expandable */}
                             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isGroupExpanded ? 'max-h-[2000px]' : 'max-h-0'}`}>
                                 <div className="px-4 pb-4 pt-2 space-y-2 border-t border-gray-100">
                                     {group.events.map((event) => {
@@ -239,7 +239,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department
                                         return (
                                             <div
                                                 key={event.id}
-                                                className={`border rounded-lg transition-all duration-200 ${isEventExpanded ? 'bg-indigo-50/50 border-indigo-200 shadow-sm' : 'bg-gray-50/50 hover:bg-white border-gray-200'}`}
+                                                className={`border rounded-lg transition-all duration-200 ${isEventExpanded ? 'bg-gray-50 border-gray-200 shadow-sm' : 'bg-white hover:bg-gray-50 border-gray-200'}`}
                                             >
                                                 <div
                                                     onClick={() => setExpandedEventId(isEventExpanded ? null : event.id)}
@@ -249,70 +249,67 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department
                                                         <div className="flex items-start justify-between gap-4">
                                                             <div className="min-w-0 flex-1">
                                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded uppercase">
+                                                                    <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
                                                                         By: {event.submittedBy}
                                                                     </span>
                                                                     {event.shiftName && (
-                                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase border ${event.shiftName === 'Morning' ? 'text-amber-600 bg-amber-50 border-amber-200' :
+                                                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${event.shiftName === 'Morning' ? 'text-amber-600 bg-amber-50 border-amber-200' :
                                                                                 event.shiftName === 'Afternoon' ? 'text-blue-600 bg-blue-50 border-blue-200' :
                                                                                     event.shiftName === 'Night' ? 'text-purple-600 bg-purple-50 border-purple-200' :
                                                                                         'text-gray-600 bg-gray-50 border-gray-200'
                                                                             }`}>
-                                                                            {event.shiftName} Shift
+                                                                            {event.shiftName}
                                                                         </span>
                                                                     )}
-                                                                    <span className="text-[10px] text-gray-500">
+                                                                    <span className="text-[10px] text-gray-400">
                                                                         {getEthiopianRelativeTime(event.date)}
                                                                     </span>
-                                                                    <span className="text-[10px] text-gray-400">•</span>
+                                                                    <span className="text-[10px] text-gray-400">·</span>
                                                                     <span className="text-[10px] text-gray-400">
                                                                         <EthiopianDateDisplay date={event.date} format="long" />
                                                                     </span>
                                                                 </div>
                                                                 {!isEventExpanded && (
-                                                                    <p className="text-xs text-gray-600 mt-1.5 line-clamp-1 italic">
+                                                                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-1">
                                                                         {event.description}
                                                                     </p>
                                                                 )}
                                                             </div>
-                                                            <div className={`shrink-0 h-6 w-6 rounded-full flex items-center justify-center transition-all ${isEventExpanded ? 'bg-indigo-100 text-indigo-600 rotate-180' : 'bg-gray-200 text-gray-500'}`}>
+                                                            <div className={`shrink-0 h-6 w-6 rounded-full flex items-center justify-center transition-all ${isEventExpanded ? 'bg-gray-200 text-gray-600 rotate-180' : 'bg-gray-100 text-gray-500'}`}>
                                                                 <ChevronDown className="w-4 h-4" />
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Event Details - Animated */}
                                                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isEventExpanded ? 'max-h-[500px] border-t border-gray-200' : 'max-h-0'}`}>
-                                                    <div className="p-3 bg-white/80">
+                                                    <div className="p-3 bg-white">
                                                         <div className="mb-3 flex items-center justify-between">
-                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Record Details</span>
-                                                            <span className="text-[10px] text-gray-400 italic">#{event.id.split('-')[1]}</span>
+                                                            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Record Details</span>
+                                                            <span className="text-[10px] text-gray-400">#{event.id.split('-')[1]}</span>
                                                         </div>
 
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                             {event.description && (
-                                                                <div className="col-span-full bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
-                                                                    <div className="text-[10px] text-gray-400 mb-1 uppercase font-semibold">Summary</div>
+                                                                <div className="col-span-full bg-white p-2.5 rounded-lg border border-gray-200">
+                                                                    <div className="text-[10px] text-gray-400 mb-0.5 uppercase font-semibold">Summary</div>
                                                                     <div className="text-xs text-gray-700">{event.description}</div>
                                                                 </div>
                                                             )}
 
                                                             {event.details && Object.entries(event.details).map(([key, value]) => {
-                                                                // Skip some technical fields
                                                                 if (['form_data', 'id', 'submitted_by', 'submitted_by_name', 'template_department', 'updated_at', 'created_at', 'submitted_at', 'last_updated_by', 'created_by'].includes(key)) return null;
                                                                 if (value === null || value === undefined || value === '') return null;
 
-                                                                // Handle complex values
                                                                 let displayValue = String(value);
                                                                 if (typeof value === 'object') displayValue = JSON.stringify(value);
 
                                                                 return (
-                                                                    <div key={key} className="bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm hover:border-indigo-200 transition-colors">
-                                                                        <div className="text-[10px] text-gray-400 mb-0.5 uppercase font-medium truncate" title={key}>
+                                                                    <div key={key} className="bg-white p-2.5 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                                                                        <div className="text-[10px] text-gray-400 mb-0.5 uppercase font-semibold truncate" title={key}>
                                                                             {key.replace(/[_-]+/g, ' ')}
                                                                         </div>
-                                                                        <div className="text-xs text-gray-800 font-semibold break-words">
+                                                                        <div className="text-xs text-gray-800 font-medium break-words">
                                                                             {displayValue}
                                                                         </div>
                                                                     </div>

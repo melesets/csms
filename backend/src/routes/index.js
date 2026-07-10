@@ -18,7 +18,8 @@ import staffRoutes from '../modules/staff/staff.routes.js';
 import unitAuthRoutes from '../modules/staff/unitAuth.routes.js';
 import formTemplatesRoutes from '../modules/form-templates/formTemplates.routes.js';
 import terminologyRoutes from '../modules/terminology/terminology.routes.js';
-import aiRoutes from '../modules/ai/ai.routes.js';
+import aiInsightsRoutes from '../modules/ai-insights/aiInsights.routes.js';
+
 
 const router = Router();
 
@@ -37,6 +38,7 @@ router.use('/api/department-staff', staffRoutes);
 router.use('/api/units', unitAuthRoutes);
 router.use('/api/form-templates', formTemplatesRoutes);
 router.use('/api/terminology', terminologyRoutes);
-router.use('/api/ai', aiRoutes);
+router.use('/api/ai', aiInsightsRoutes);
+
 
 export default router;

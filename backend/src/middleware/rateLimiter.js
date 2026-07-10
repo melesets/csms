@@ -8,5 +8,4 @@ export const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { ipKeyGeneratorFallback: false },
 });

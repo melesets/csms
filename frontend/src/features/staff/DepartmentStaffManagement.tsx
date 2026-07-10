@@ -1,6 +1,42 @@
 // Department staff management - staff list with activity feed and shift status
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit2, Search, UserCheck, CheckCircle, Trash2, ChevronDown, ChevronRight, Activity, Clock } from 'lucide-react';
+import { Users, Plus, Edit2, Search, CheckCircle, Trash2, ChevronDown, ChevronRight, Activity, Clock, X, Camera } from 'lucide-react';
+
+const AVATAR_COLORS = [
+  'bg-blue-500',
+  'bg-indigo-500',
+  'bg-violet-500',
+  'bg-emerald-500',
+  'bg-amber-500',
+  'bg-rose-500',
+  'bg-teal-500',
+  'bg-cyan-500',
+];
+
+const getAvatarColor = (name: string) => {
+  const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
+};
+
+const compressImage = (file: File): Promise<File> =>
+  new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const img = new Image();
+    img.onload = () => {
+      const max = 200;
+      const w = img.width > img.height ? max : (img.width / img.height) * max;
+      const h = img.width > img.height ? (img.height / img.width) * max : max;
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => {
+        resolve(new File([blob!], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' }));
+      }, 'image/webp', 0.8);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
 import { useAuth } from '../../hooks/useAuth';
 import { Staff } from '../../types';
 import { User } from '../../types/auth';
@@ -22,6 +58,7 @@ export const DepartmentStaffManagement = () => {
   const [targetDept, setTargetDept] = useState(user?.department || 'General');
   const [users, setUsers] = useState<User[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('staff');
 
   useEffect(() => {
     if (user?.role !== 'admin' && user?.department) {
@@ -29,7 +66,6 @@ export const DepartmentStaffManagement = () => {
     }
   }, [user]);
 
-  // Fetch staff and users from backend
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -37,7 +73,6 @@ export const DepartmentStaffManagement = () => {
           fetch('/api/department-staff'),
           fetch('/api/users')
         ]);
-
         if (staffRes.ok) setStaff(await staffRes.json());
         if (usersRes.ok) setUsers(await usersRes.json());
       } catch (err) {
@@ -47,7 +82,6 @@ export const DepartmentStaffManagement = () => {
     fetchData();
   }, []);
 
-  // Filter staff and users by selected department
   const filteredStaff = staff.filter(member => {
     const matchesDepartment = targetDept === 'All' || member.department === targetDept;
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -56,7 +90,6 @@ export const DepartmentStaffManagement = () => {
   });
 
   const filteredUsers = users.filter(u => {
-    // Staff are already handled in filteredStaff, and admin shouldn't be listed as dept users
     if (u.role === 'staff' || u.role === 'admin') return false;
     const matchesDepartment = targetDept === 'All' || u.department === targetDept;
     const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,7 +97,6 @@ export const DepartmentStaffManagement = () => {
     return matchesDepartment && matchesSearch;
   });
 
-  // Combine both for the "Activity Hub" view
   const combinedMembers = [
     ...filteredStaff.map(s => ({ ...s, isSystemUser: false, uniqueId: `staff-${s.id}` })),
     ...filteredUsers.map(u => ({
@@ -91,7 +123,6 @@ export const DepartmentStaffManagement = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Check for duplicate names
     const duplicateCheck = staff.find(member =>
       member.name.toLowerCase() === formData.name.toLowerCase() &&
       member.department === (user?.department || 'General') &&
@@ -109,20 +140,14 @@ export const DepartmentStaffManagement = () => {
     if (photoFile) fd.append('photo', photoFile);
 
     if (editingStaff) {
-      const res = await fetch(`/api/department-staff/${editingStaff.id}`, {
-        method: 'PUT',
-        body: fd,
-      });
+      const res = await fetch(`/api/department-staff/${editingStaff.id}`, { method: 'PUT', body: fd });
       if (res.ok) {
         const updatedRes = await fetch('/api/department-staff');
         if (updatedRes.ok) setStaff(await updatedRes.json());
         window.dispatchEvent(new Event('staff-updated'));
       }
     } else {
-      const res = await fetch('/api/department-staff', {
-        method: 'POST',
-        body: fd,
-      });
+      const res = await fetch('/api/department-staff', { method: 'POST', body: fd });
       if (res.ok) {
         const updatedRes = await fetch('/api/department-staff');
         if (updatedRes.ok) setStaff(await updatedRes.json());
@@ -161,342 +186,338 @@ export const DepartmentStaffManagement = () => {
     }
   };
 
+  const tabs = [
+    { id: 'staff', label: 'Staff', icon: Users, count: combinedMembers.length },
+    { id: 'activity', label: 'Activity', icon: Activity, count: 0 },
+  ];
+
   return (
-    <div className="space-y-6">
-      <DepartmentStaffPanel />
-      
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Department Activity Hub</h2>
-          <p className="text-gray-600 mt-1">
-            Track staff and user activities in {targetDept === 'All' ? 'all departments' : targetDept}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          {user?.role === 'admin' && (
-            <select
-              value={targetDept}
-              onChange={(e) => setTargetDept(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 text-sm"
-            >
-              <option value="All">All Departments</option>
-              {departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          )}
-          <button
-            onClick={() => {
-              setShowForm(prev => !prev);
-              setEditingStaff(null);
-              setPhotoFile(null);
-              setPhotoPreview(null);
-              setFormData({
-                name: '',
-                role: '',
-                department: targetDept === 'All' ? 'General' : targetDept
-              });
-              setTimeout(() => {
-                document.getElementById('staff-form-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }, 50);
-            }}
-            className="bg-brand hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            {showForm ? 'Cancel' : 'Add Staff'}
-          </button>
-        </div>
-      </div>
-
+    <div className="space-y-5">
       {showSuccess && (
-        <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center shadow-sm">
-          <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-          <p className="text-green-800">Staff member {editingStaff ? 'updated' : 'added'} successfully!</p>
+        <div className="bg-green-50 border border-green-100 rounded-2xl p-4 flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+          <p className="text-sm text-green-700 font-medium">Staff member {editingStaff ? 'updated' : 'added'} successfully!</p>
         </div>
       )}
 
-      {/* Add/Edit Form */}
-      <div id="staff-form-anchor" />
+      {/* Add/Edit Modal */}
       {showForm && (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-indigo-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
-            </h3>
-            <button
-              onClick={() => { setShowForm(false); setEditingStaff(null); setPhotoFile(null); setPhotoPreview(null); }}
-              className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Photo upload */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="relative">
-                {photoPreview && photoPreview !== 'null' && photoPreview !== 'undefined' ? (
-                  <img
-                    src={photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getMediaUrl(photoPreview)}
-                    alt="Profile preview"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-indigo-100 shadow-md"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="35" r="20" fill="%23818cf8"/><ellipse cx="50" cy="85" rx="32" ry="20" fill="%23a5b4fc"/></svg>'; }}
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center shadow-md border-4 border-indigo-100">
-                    <svg viewBox="0 0 100 100" className="w-16 h-16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="50" cy="35" r="20" fill="#818cf8" />
-                      <ellipse cx="50" cy="85" rx="32" ry="20" fill="#a5b4fc" />
-                    </svg>
-                  </div>
-                )}
-                <label className="absolute bottom-1 right-1 bg-indigo-600 text-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer hover:bg-indigo-700 transition shadow-lg">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><circle cx="12" cy="13" r="3" /></svg>
-                  <input
-                    type="file" accept="image/*" className="hidden"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) { setPhotoFile(file); setPhotoPreview(URL.createObjectURL(file)); }
-                    }}
-                  />
-                </label>
-              </div>
-              <p className="text-xs text-gray-400">Tap the camera icon to upload a photo</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                <input
-                  type="text" name="name" value={formData.name}
-                  onChange={handleInputChange} required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g. Desta Kebede"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role/Position *</label>
-                <select
-                  name="role" value={formData.role}
-                  onChange={handleInputChange} required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select...</option>
-                  <option value="Nurse">Nurse</option>
-                  <option value="Midwife">Midwife</option>
-                  <option value="Laboratory">Laboratory</option>
-                  <option value="Pharmacy">Pharmacy</option>
-                  <option value="Radiology">Radiology</option>
-                  <option value="Other Coordinators">Other Coordinators</option>
-                  <option value="Shift Focal">Shift Focal</option>
-                  <option value="Head Nurse">Head Nurse</option>
-                  <option value="Head Midwife">Head Midwife</option>
-                  <option value="GP">GP</option>
-                  <option value="GP Coordinator">GP Coordinator</option>
-                  <option value="Senior">Senior</option>
-                  <option value="Department Head">Department Head</option>
-                </select>
-              </div>
-            </div>
-
-            {user?.department !== 'All' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                <input
-                  type="text" value={user?.department || 'General'} disabled
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-2">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 className="text-base font-bold text-gray-900">
+                {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
+              </h2>
               <button
-                type="button"
                 onClick={() => { setShowForm(false); setEditingStaff(null); setPhotoFile(null); setPhotoPreview(null); }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-400"
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-semibold"
-              >
-                {editingStaff ? 'Update Staff' : 'Add Staff Member'}
+                <X className="w-5 h-5" />
               </button>
             </div>
-          </form>
+
+            <form onSubmit={handleSubmit} className="p-5 space-y-5">
+              {/* Photo upload */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  {photoPreview && photoPreview !== 'null' && photoPreview !== 'undefined' ? (
+                    <img
+                      src={photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getMediaUrl(photoPreview)}
+                      alt="Profile preview"
+                      className="w-20 h-20 rounded-full object-cover border-4 border-gray-100"
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="35" r="20" fill="%23d1d5db"/><ellipse cx="50" cy="85" rx="32" ry="20" fill="%23e5e7eb"/></svg>'; }}
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-100">
+                      <Users className="w-7 h-7 text-gray-400" />
+                    </div>
+                  )}
+                  <label className="absolute bottom-0 right-0 w-7 h-7 bg-[#003153] text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-[#002640] transition shadow-lg">
+                    <Camera className="w-3.5 h-3.5" />
+                    <input
+                      type="file" accept="image/*" className="hidden"
+                      onChange={async e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const compressed = await compressImage(file);
+                          setPhotoFile(compressed);
+                          setPhotoPreview(URL.createObjectURL(compressed));
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-400">Tap the camera icon to upload a photo</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name *</label>
+                  <input
+                    type="text" name="name" value={formData.name}
+                    onChange={handleInputChange} required
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003153] focus:border-transparent transition"
+                    placeholder="e.g. Desta Kebede"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Role/Position *</label>
+                  <select
+                    name="role" value={formData.role}
+                    onChange={handleInputChange} required
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003153] focus:border-transparent transition"
+                  >
+                    <option value="">Select...</option>
+                    <option value="Nurse">Nurse</option>
+                    <option value="Midwife">Midwife</option>
+                    <option value="Laboratory">Laboratory</option>
+                    <option value="Pharmacy">Pharmacy</option>
+                    <option value="Radiology">Radiology</option>
+                    <option value="Other Coordinators">Other Coordinators</option>
+                    <option value="Shift Focal">Shift Focal</option>
+                    <option value="Head Nurse">Head Nurse</option>
+                    <option value="Head Midwife">Head Midwife</option>
+                    <option value="GP">GP</option>
+                    <option value="GP Coordinator">GP Coordinator</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Department Head">Department Head</option>
+                  </select>
+                </div>
+              </div>
+
+              {user?.department !== 'All' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Department</label>
+                  <input
+                    type="text" value={user?.department || 'General'} disabled
+                    className="w-full px-4 py-2.5 border border-gray-100 rounded-xl text-sm bg-gray-50 text-gray-500"
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setEditingStaff(null); setPhotoFile(null); setPhotoPreview(null); }}
+                  className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-[#003153] hover:bg-[#002640] rounded-xl transition-colors"
+                >
+                  {editingStaff ? 'Update Staff' : 'Add Staff Member'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
-      {/* Robust Department Activity Log */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-50 flex items-center justify-between bg-gradient-to-r from-white to-indigo-50/30">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 leading-tight">Recent Department Activity</h3>
-            <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">Live Audit Trail • {targetDept}</p>
-          </div>
-          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-            <Activity className="w-5 h-5" />
-          </div>
-        </div>
-        <div className="p-6 bg-gray-50/30">
-          <ActivityFeed department={targetDept} />
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Search staff</h3>
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-            className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </div>
-
-
-
-      {/* Staff List */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Department Members ({combinedMembers.length})
-          </h3>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Staff Member
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Current Shift
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created By
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {combinedMembers.map((member: any) => (
-                <React.Fragment key={member.uniqueId}>
-                  <tr
-                    className={`hover:bg-blue-50 transition-colors cursor-pointer ${expandedId === member.uniqueId ? 'bg-blue-50' : ''}`}
-                    onClick={() => setExpandedId(expandedId === member.uniqueId ? null : member.uniqueId)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center">
-                        {expandedId === member.uniqueId ? <ChevronDown className="w-4 h-4 mr-2 text-blue-500" /> : <ChevronRight className="w-4 h-4 mr-2 text-gray-400" />}
-                        {member.profile_picture && member.profile_picture !== 'null' && member.profile_picture !== 'undefined' && member.profile_picture.length > 5 ? (
-                          <img
-                            src={getMediaUrl(member.profile_picture)}
-                            alt={member.name}
-                            className="w-10 h-10 rounded-full object-cover mr-3 border-2 border-indigo-100 shadow-sm"
-                            onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="28" r="16" fill="%23c7d2fe"/><ellipse cx="40" cy="68" rx="26" ry="16" fill="%23e0e7ff"/></svg>'; }}
-                          />
-                        ) : (
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 border-2 border-transparent ${member.isSystemUser ? 'bg-indigo-100' : 'bg-blue-100'}`}>
-                            <UserCheck className={`w-5 h-5 ${member.isSystemUser ? 'text-indigo-600' : 'text-blue-600'}`} />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-medium text-gray-900">{member.name}</div>
-                          {member.isSystemUser && <div className="text-xs text-indigo-500 italic">{member.username} (App User)</div>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${member.isSystemUser ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-blue-50 text-blue-700 border border-blue-100'}`}>
-                        {member.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {member.department}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {member.currentShift ? (
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${member.currentShift === 'Morning' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                            member.currentShift === 'Afternoon' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                              'bg-purple-50 text-purple-700 border-purple-200'
-                          }`}>
-                          {member.currentShift} Shift
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200 flex items-center gap-1 w-fit">
-                          <Clock className="w-3 h-3" />
-                          Off Duty
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {member.createdBy || 'System'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center gap-3 justify-end">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setExpandedId(expandedId === member.uniqueId ? null : member.uniqueId); }}
-                          className={`p-1.5 rounded-lg transition-colors ${expandedId === member.uniqueId ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-400'}`}
-                          title="View Activity"
-                        >
-                          <Activity className="w-4 h-4" />
-                        </button>
-                        {!member.isSystemUser && (
-                          <>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleEdit(member); }}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(member); }}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedId === member.uniqueId && (
-                    <tr className="bg-blue-50/30">
-                      <td colSpan={6} className="px-6 py-4">
-                        <ActivityFeed username={member.username || member.name} />
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {combinedMembers.length === 0 && (
-          <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No department members found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              There are no staff or users registered for this department.
-            </p>
-          </div>
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto items-center">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                isActive
+                  ? 'bg-[#003153] text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+              {tab.label}
+              {tab.count > 0 && (
+                <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        {user?.role === 'admin' && (
+          <select
+            value={targetDept}
+            onChange={(e) => setTargetDept(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-[#003153] focus:border-transparent mr-1"
+          >
+            <option value="All">All Departments</option>
+            {departments.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
         )}
       </div>
+
+      {/* Staff Tab */}
+      {activeTab === 'staff' && (
+        <>
+          <DepartmentStaffPanel />
+
+          {/* Search */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                placeholder="Search staff by name or role..."
+                className="pl-10 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003153] focus:border-transparent transition"
+              />
+            </div>
+          </div>
+
+          {/* Staff List */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-bold text-gray-900">
+                Department Members ({combinedMembers.length})
+              </h2>
+              <button
+                onClick={() => {
+                  setShowForm(prev => !prev);
+                  setEditingStaff(null);
+                  setPhotoFile(null);
+                  setPhotoPreview(null);
+                  setFormData({
+                    name: '',
+                    role: '',
+                    department: targetDept === 'All' ? 'General' : targetDept
+                  });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#003153] text-white text-xs font-medium rounded-lg hover:bg-[#002640] transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />{showForm ? 'Cancel' : 'Add Staff'}
+              </button>
+            </div>
+
+            {combinedMembers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-7 h-7 text-gray-400" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-900 mb-1">No Members Found</h3>
+                <p className="text-sm text-gray-500">No staff or users registered for this department.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {combinedMembers.map((member: any) => {
+                  const isExpanded = expandedId === member.uniqueId;
+                  return (
+                    <div key={member.uniqueId} className="border border-gray-100 rounded-xl overflow-hidden">
+                      <div
+                        className={`flex items-center gap-4 p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-gray-50' : 'hover:bg-gray-50/50'}`}
+                        onClick={() => setExpandedId(isExpanded ? null : member.uniqueId)}
+                      >
+                        {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
+
+                        {(() => {
+                          const hasPhoto = member.profile_picture && member.profile_picture !== 'null' && member.profile_picture !== 'undefined' && member.profile_picture.length > 5;
+                          return (
+                            <div className={`w-10 h-10 rounded-full ${getAvatarColor(member.name)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
+                              {hasPhoto ? (
+                                <img
+                                  src={getMediaUrl(member.profile_picture)}
+                                  alt={member.name}
+                                  className="w-full h-full rounded-full object-cover"
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                                />
+                              ) : null}
+                              <span className={hasPhoto ? 'hidden' : ''}>{member.name.charAt(0).toUpperCase()}</span>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-900">{member.name}</span>
+                            {member.isSystemUser && <span className="text-[10px] text-gray-400 italic">(App User)</span>}
+                          </div>
+                          <p className="text-xs text-gray-500">{member.role}</p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                            member.isSystemUser ? 'bg-[#003153]/10 text-[#003153]' : 'bg-blue-50 text-blue-700'
+                          }`}>{member.role}</span>
+
+                          {member.currentShift ? (
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                              member.currentShift === 'Morning' ? 'bg-amber-50 text-amber-700' :
+                              member.currentShift === 'Afternoon' ? 'bg-blue-50 text-blue-700' :
+                              'bg-purple-50 text-purple-700'
+                            }`}>
+                              {member.currentShift}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-medium text-gray-400 bg-gray-50 rounded-full flex items-center gap-1">
+                              <Clock className="w-3 h-3" />Off Duty
+                            </span>
+                          )}
+
+                          {!member.isSystemUser && (
+                            <div className="flex items-center gap-1 ml-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEdit(member); }}
+                                className="p-1.5 text-gray-400 hover:text-[#003153] hover:bg-[#003153]/5 rounded-lg transition-colors"
+                                title="Edit"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDelete(member); }}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                          <div className="text-xs text-gray-400 mb-2">
+                            <span className="font-medium">{member.department}</span>
+                            {member.createdBy && <span className="ml-2">· Created by {member.createdBy}</span>}
+                          </div>
+                          <ActivityFeed username={member.username || member.name} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Activity Tab */}
+      {activeTab === 'activity' && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-[#003153]/10 rounded-lg flex items-center justify-center">
+              <Activity className="w-4 h-4 text-[#003153]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Recent Activity</h2>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Live Audit Trail</p>
+            </div>
+          </div>
+          <ActivityFeed department={targetDept} />
+        </div>
+      )}
     </div>
   );
 };

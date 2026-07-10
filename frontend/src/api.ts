@@ -31,21 +31,9 @@ export function getMediaUrl(path: string | null | undefined): string | undefined
   if (!path) return undefined;
   if (path.startsWith('http')) return path; // Already absolute
   
-  let host = API_BASE;
-  if (host.endsWith('/api')) {
-    host = host.slice(0, -4);
-  } else if (host.endsWith('/isbar/api')) {
-    host = host.slice(0, -10);
-  }
-  
-  if (host === '' && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    host = 'http://localhost:4000';
-  }
-
-  if (host.endsWith('/') && path.startsWith('/')) {
-    return `${host}${path.slice(1)}`;
-  }
-  return `${host}${path}`;
+  // Return relative path — Vite proxy forwards /uploads to backend in dev,
+  // and in production the backend serves /uploads directly
+  return path;
 }
 
 export async function apiGet(path: string) {

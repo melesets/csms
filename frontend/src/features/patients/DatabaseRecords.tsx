@@ -651,19 +651,24 @@ export const DatabaseRecords = () => {
 
   // Refetch templates after activation (listen for custom event or poll, or add a button if needed)
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">ISBAR Records Database</h2>
-          <p className="text-gray-600">
-            View and search all handover records for{' '}
-            {user?.role === 'admin' ? 'all departments' : user?.department || 'General'}
-          </p>
+    <div className="space-y-5">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-[#003153] rounded-xl">
+            <Search className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">ISBAR Records Database</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              View and search all handover records for{' '}
+              {user?.role === 'admin' ? 'all departments' : user?.department || 'General'}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Selection Actions and Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div className="space-y-4">
           {/* Row: Template */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -673,8 +678,8 @@ export const DatabaseRecords = () => {
               <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
             </div>
             <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Template</label>
-              <select value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Template</label>
+              <select value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm">
                 <option value="">All Templates</option>
                 {submissionTemplates.map(t => (
                   <option key={t.id} value={t.id}>{t.name}{t.department ? ` (${t.department})` : ''}</option>
@@ -682,11 +687,11 @@ export const DatabaseRecords = () => {
               </select>
             </div>
             <div className="w-40">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Per page</label>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Per page</label>
               <select
                 value={pageSize}
                 onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
               >
                 <option value={50}>50</option>
                 <option value={100}>100</option>

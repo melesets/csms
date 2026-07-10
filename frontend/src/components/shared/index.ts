@@ -9,4 +9,4 @@ export * from './date/EthiopianDateDisplay';
 export { default as EthiopianDateTimeDisplay } from './date/EthiopianDateTimeDisplay';
 export * from './date/EthiopianDateInput';
 export { default as EthiopianDateTimePicker } from './date/EthiopianDateTimePicker';
-export * from './AIAssistantPanel';
+

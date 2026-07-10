@@ -99,7 +99,7 @@ export async function getLatestHandover(ward, profession, mrn) {
 
 export async function getActiveStaff(department) {
   const query = `
-    SELECT u.id, u.username, u.name, u.profession, u.department, u.has_pin,
+    SELECT u.id, u.username, u.name, u.profession, u.department, u.has_pin, u.profile_picture,
            ss.id AS session_id, ss.shift_name, ss.start_time
     FROM users u
     LEFT JOIN shift_sessions ss ON u.id = ss.user_id AND ss.is_active = TRUE
