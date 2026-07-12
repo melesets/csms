@@ -31,7 +31,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
   };
 
   return (
-    <section className={`bg-white rounded-xl shadow-sm overflow-hidden ${className || ''}`}>
+    <section className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${className || ''}`}>
       <div
         className={`flex items-start justify-between px-6 pt-6 pb-${isCollapsed ? '6' : '4'} ${collapsible ? 'cursor-pointer select-none hover:bg-gray-50 transition-colors rounded-t-xl' : ''}`}
         onClick={handleToggle}
@@ -39,7 +39,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {icon && <span className="inline-flex items-center">{icon}</span>}
-            <h2 className="text-lg font-semibold text-gray-900 truncate">{title}</h2>
+            <h2 className="text-lg font-bold text-gray-900 truncate">{title}</h2>
             {collapsible && (
               <span className={`ml-1 inline-flex items-center text-gray-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}>
                 <ChevronDown className="w-4 h-4" />
@@ -47,7 +47,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
             )}
           </div>
           {subtitle && !isCollapsed && (
-            <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
           )}
           {subtitle && isCollapsed && (
             <p className="text-xs text-gray-400 mt-0.5 italic">Click to expand</p>

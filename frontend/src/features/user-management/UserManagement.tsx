@@ -213,19 +213,23 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-          <p className="text-gray-600 mt-1">
-            Manage system users and their permissions
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#003153] rounded-xl flex items-center justify-center flex-shrink-0">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">User Management</h2>
+            <p className="text-sm text-gray-400">Manage system users and their permissions</p>
+          </div>
         </div>
         {hasPermission('user-management', 'create') && (
           <button
             onClick={handleAddUser}
-            className="bg-brand hover:bg-brand-600 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
+            className="bg-[#003153] hover:bg-[#002640] text-white font-semibold text-xs py-2 px-4 rounded-lg inline-flex items-center gap-1.5 transition-colors shadow-sm"
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-4 h-4" />
             Add User
           </button>
         )}
@@ -246,15 +250,15 @@ export const UserManagement = () => {
       )}
 
       {/* Search */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search users by name, username, or department..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="pl-10 w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -293,49 +297,50 @@ export const UserManagement = () => {
 
       {/* Set PIN Modal */}
       {pinSettingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-lg font-bold flex items-center text-gray-900">
-                <KeyRound className="w-5 h-5 mr-2 text-indigo-600" /> Set Access PIN
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-200">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h3 className="text-sm font-bold flex items-center text-gray-900">
+                <KeyRound className="w-4 h-4 mr-2 text-[#003153]" /> Set Access PIN
               </h3>
               <button 
                 onClick={() => setPinSettingUser(null)} 
-                className="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-gray-100 rounded-full"
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleSubmitPin} className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
-                Set a 4-digit PIN for <strong>{pinSettingUser.name}</strong>. Staff will use this PIN to access their unit dashboard.
+              <p className="text-xs text-gray-500 mb-4">
+                Set a 4-digit PIN for <strong className="text-gray-900">{pinSettingUser.name}</strong>. Staff will use this PIN to access their unit dashboard.
               </p>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">New PIN</label>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">New PIN</label>
                 <input
                   type="password"
+                  autoComplete="one-time-code"
                   maxLength={4}
                   pattern="\d{4}"
                   required
                   autoFocus
                   value={newPin}
                   onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-center text-2xl tracking-[0.5em] py-3 border"
+                  className="w-full border-gray-200 rounded-lg text-center text-2xl tracking-[0.5em] py-3 border bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="••••"
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setPinSettingUser(null)}
-                  className="bg-white px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={newPin.length !== 4}
-                  className="bg-indigo-600 px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#003153] px-4 py-2 rounded-lg text-xs font-semibold text-white hover:bg-[#002640] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Save PIN
                 </button>
@@ -347,30 +352,30 @@ export const UserManagement = () => {
 
       {/* Rotate Unit Modal */}
       {rotatingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-lg font-bold flex items-center text-gray-900">
-                <RefreshCw className="w-5 h-5 mr-2 text-emerald-600" /> Rotate Unit
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-200">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h3 className="text-sm font-bold flex items-center text-gray-900">
+                <RefreshCw className="w-4 h-4 mr-2 text-emerald-600" /> Rotate Unit
               </h3>
               <button 
                 onClick={() => setRotatingUser(null)} 
-                className="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-gray-100 rounded-full"
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleRotateUnit} className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
-                Move <strong>{rotatingUser.name}</strong> from <span className="font-semibold">{rotatingUser.department}</span> to a new department.
+              <p className="text-xs text-gray-500 mb-4">
+                Move <strong className="text-gray-900">{rotatingUser.name}</strong> from <span className="font-semibold text-gray-900">{rotatingUser.department}</span> to a new department.
               </p>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">New Department</label>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">New Department</label>
                 <select
                   required
                   value={newDepartment}
                   onChange={e => setNewDepartment(e.target.value)}
-                  className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 py-3 px-4 border"
+                  className="w-full border-gray-200 rounded-lg py-2.5 px-4 border bg-gray-50 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="" disabled>Select Department...</option>
                   {Array.from(new Set(
@@ -384,20 +389,20 @@ export const UserManagement = () => {
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setRotatingUser(null)}
-                  className="bg-white px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!newDepartment || newDepartment === rotatingUser.department}
-                  className="bg-emerald-600 px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="bg-[#003153] px-4 py-2 rounded-lg text-xs font-semibold text-white hover:bg-[#002640] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 transition-colors"
                 >
-                  <RefreshCw className="w-4 h-4" /> Rotate Staff
+                  <RefreshCw className="w-3.5 h-3.5" /> Rotate Staff
                 </button>
               </div>
             </form>

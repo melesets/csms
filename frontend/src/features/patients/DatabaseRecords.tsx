@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Search, Calendar, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { EthiopianDateDisplay } from '../../components/shared/date/EthiopianDateDisplay';
+import { CustomSelect } from '../../components/shared/CustomSelect';
 import { ethiopianStringToGregorianString, ETHIOPIAN_MONTHS, gregorianToEthiopian, formatEthiopianDate } from '../../utils/ethiopianCalendar';
 
 // Simple Ethiopian to Gregorian conversion (approximate, for filtering)
@@ -492,7 +493,7 @@ export const DatabaseRecords = () => {
       let ethDate = '';
       if (submittedAt) {
         try {
-          const d = new Date(submittedAt);
+          const d = new Date(new Date(submittedAt).getTime() + 3 * 3600 * 1000);
           if (!isNaN(d.getTime())) {
             gregDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
               ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -679,28 +680,31 @@ export const DatabaseRecords = () => {
             </div>
             <div className="w-full">
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Template</label>
-              <select value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm">
-                <option value="">All Templates</option>
-                {submissionTemplates.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}{t.department ? ` (${t.department})` : ''}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={selectedTemplateId}
+                onChange={setSelectedTemplateId}
+                options={[
+                  { value: '', label: 'All Templates' },
+                  ...submissionTemplates.map(t => ({
+                    value: t.id, label: `${t.name}${t.department ? ` (${t.department})` : ''}`
+                  })),
+                ]}
+              />
             </div>
             <div className="w-40">
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Per page</label>
-              <select
-                value={pageSize}
-                onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
-              >
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-                <option value={500}>500</option>
-                <option value={1000}>1000</option>
-                {isAdmin && <option value={5000}>5000</option>}
-                {isAdmin && <option value={10000}>10000</option>}
-              </select>
+              <CustomSelect
+                value={String(pageSize)}
+                onChange={(v) => { setPageSize(Number(v)); setPage(1); }}
+                options={[
+                  { value: '50', label: '50' },
+                  { value: '100', label: '100' },
+                  { value: '200', label: '200' },
+                  { value: '500', label: '500' },
+                  { value: '1000', label: '1000' },
+                  ...(isAdmin ? [{ value: '5000', label: '5000' }, { value: '10000', label: '10000' }] : []),
+                ]}
+              />
             </div>
           </div>
           {/* Row: Department (options related to selected template) */}
@@ -712,12 +716,14 @@ export const DatabaseRecords = () => {
             </div>
             <div className="w-full">
               <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
-              <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                <option value="">All Departments</option>
-                {relatedDepartments.map(dep => (
-                  <option key={dep} value={dep}>{dep}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={selectedDepartment}
+                onChange={setSelectedDepartment}
+                options={[
+                  { value: '', label: 'All Departments' },
+                  ...relatedDepartments.map(dep => ({ value: dep, label: dep })),
+                ]}
+              />
             </div>
           </div>
           {/* Row: User (options related to selected template and department) */}
@@ -729,12 +735,14 @@ export const DatabaseRecords = () => {
             </div>
             <div className="w-full">
               <label className="block text-xs font-medium text-gray-600 mb-1">User</label>
-              <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                <option value="">All Users</option>
-                {relatedUsers.map(u => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={selectedUser}
+                onChange={setSelectedUser}
+                options={[
+                  { value: '', label: 'All Users' },
+                  ...relatedUsers.map(u => ({ value: u, label: u })),
+                ]}
+              />
             </div>
           </div>
           {/* Row: Search */}

@@ -23,15 +23,15 @@ export const IsbarLoader: React.FC<IsbarLoaderProps> = ({
     <div className={styles.container}>
       <div className={styles.ring} style={{ width: size, height: size }}>
         <div
-          className={`${styles.baseRing} border-blue-100`}
+          className={`${styles.baseRing} border-[#003153]/10`}
           style={{ width: size, height: size, borderStyle: 'solid', borderWidth: outerBorder }}
         />
         <div
-          className={`${styles.outerArc} border-blue-600`}
+          className={`${styles.outerArc} border-[#003153]`}
           style={{ borderStyle: 'solid', borderWidth: outerBorder, borderTopColor: 'transparent' }}
         />
         <div
-          className={`${styles.innerArc} border-blue-300`}
+          className={`${styles.innerArc} border-[#003153]/40`}
           style={{
             inset: innerInset,
             borderStyle: 'solid',
@@ -40,7 +40,7 @@ export const IsbarLoader: React.FC<IsbarLoaderProps> = ({
           }}
         />
         <div className={styles.icon}>
-          <Stethoscope className="text-blue-600" style={{ width: size * 0.28, height: size * 0.28 }} />
+          <Stethoscope className="text-[#003153]" style={{ width: size * 0.28, height: size * 0.28 }} />
         </div>
       </div>
       {message && <div className={styles.message}>{message}</div>}

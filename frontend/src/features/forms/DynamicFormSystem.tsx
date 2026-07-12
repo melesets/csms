@@ -30,7 +30,6 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
         const res = await fetch('/api/users');
         if (res.ok) {
           const users = await res.json();
-          console.log('All Users:', users);
         }
       } catch (error) {
         console.error('Error fetching users:', error);

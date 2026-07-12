@@ -98,15 +98,20 @@ export async function getLatestHandover(ward, profession, mrn) {
 }
 
 export async function getActiveStaff(department) {
-  const query = `
+  let query = `
     SELECT u.id, u.username, u.name, u.profession, u.department, u.has_pin, u.profile_picture,
            ss.id AS session_id, ss.shift_name, ss.start_time
     FROM users u
     LEFT JOIN shift_sessions ss ON u.id = ss.user_id AND ss.is_active = TRUE
-    WHERE u.department = $1 AND u.role = 'staff' AND u.isactive = TRUE
-    ORDER BY u.name ASC
+    WHERE u.role = 'staff' AND u.isactive = TRUE
   `;
-  const result = await pool.query(query, [department]);
+  const params = [];
+  if (department) {
+    params.push(department);
+    query += ` AND u.department = $${params.length}`;
+  }
+  query += ' ORDER BY u.department ASC, u.name ASC';
+  const result = await pool.query(query, params);
   return result.rows;
 }
 

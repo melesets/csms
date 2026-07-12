@@ -234,74 +234,43 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
       {/* Left Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-1 mb-4">
-            <button
-              onClick={() => setActiveTab('design')}
-              className={`px-3 py-1 rounded text-sm font-medium ${activeTab === 'design'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-800'
-                }`}
-            >
-              Design
-            </button>
-            <button
-              onClick={() => setActiveTab('sections')}
-              className={`px-3 py-1 rounded text-sm font-medium ${activeTab === 'sections'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-800'
-                }`}
-            >
-              Sections
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`px-3 py-1 rounded text-sm font-medium ${activeTab === 'settings'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-800'
-                }`}
-            >
-              Settings
-            </button>
+          <div className="flex items-center gap-1 mb-4">
+            {(['design', 'sections', 'settings'] as const).map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors capitalize ${
+                  activeTab === tab
+                    ? 'bg-[#003153] text-white'
+                    : 'text-gray-500 hover:bg-gray-100'
+                }`}>
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'design' ? (
             <div>
-              {/* Section Selection for New Fields */}
               {currentTemplate.sections.length > 0 && (
-                <div className="p-4 border-b border-gray-200 bg-blue-50">
-                  <label className="block text-sm font-medium text-blue-900 mb-2">
-                    Add fields to section:
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    Add fields to section
                   </label>
-                  <select
-                    value={selectedSectionId}
-                    onChange={(e) => setSelectedSectionId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
+                  <select value={selectedSectionId} onChange={(e) => setSelectedSectionId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="">Unassigned</option>
                     {currentTemplate.sections.map((section) => (
-                      <option key={section.id} value={section.id}>
-                        {section.name}
-                      </option>
+                      <option key={section.id} value={section.id}>{section.name}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-blue-700 mt-1">
-                    Fields will be added to the selected section
-                  </p>
                 </div>
               )}
 
-              {/* Show message if no sections */}
               {currentTemplate.sections.length === 0 && (
-                <div className="p-4 border-b border-gray-200 bg-amber-50">
-                  <p className="text-sm text-amber-800 mb-2">
-                    📋 Create sections first to organize your fields
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('sections')}
-                    className="text-xs text-amber-700 underline hover:text-amber-900"
-                  >
+                <div className="p-4 border-b border-gray-200 bg-amber-50 border border-amber-200 m-4 rounded-lg">
+                  <p className="text-xs text-amber-700 mb-2">Create sections first to organize your fields</p>
+                  <button onClick={() => setActiveTab('sections')}
+                    className="text-xs text-amber-700 font-semibold underline hover:text-amber-900">
                     Go to Sections tab →
                   </button>
                 </div>
@@ -325,172 +294,98 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
           ) : (
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Template Name
-                </label>
-                <input
-                  type="text"
-                  value={currentTemplate.name}
-                  onChange={(e) => handleTemplateChange({ name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Template Name</label>
+                <input type="text" value={currentTemplate.name} onChange={(e) => handleTemplateChange({ name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={currentTemplate.description}
-                  onChange={(e) => handleTemplateChange({ description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
+                <textarea value={currentTemplate.description} onChange={(e) => handleTemplateChange({ description: e.target.value })} rows={3}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Departments
-                </label>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Departments</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {departments.map((dept) => {
                     const selected = Array.isArray((currentTemplate as any).departments) && (currentTemplate as any).departments.includes(dept);
                     return (
-                      <label key={dept} className="inline-flex items-center space-x-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selected}
+                      <label key={dept} className="inline-flex items-center space-x-2 text-xs">
+                        <input type="checkbox" checked={selected}
                           onChange={(e) => {
                             const prev = Array.isArray((currentTemplate as any).departments) ? [...(currentTemplate as any).departments] : [];
-                            let next = prev;
-                            if (e.target.checked) {
-                              if (!prev.includes(dept)) next = [...prev, dept];
-                            } else {
-                              next = prev.filter(d => d !== dept);
-                            }
-                            // Keep legacy department synced to first selected if available
-                            const primary = next[0] || currentTemplate.department;
-                            handleTemplateChange({ departments: next, department: primary } as any);
+                            let next = e.target.checked ? (prev.includes(dept) ? prev : [...prev, dept]) : prev.filter(d => d !== dept);
+                            handleTemplateChange({ departments: next, department: next[0] || currentTemplate.department } as any);
                           }}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                        />
+                          className="w-3.5 h-3.5 text-[#003153] rounded border-gray-300 focus:ring-[#003153]" />
                         <span>{dept}</span>
                       </label>
                     );
                   })}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Select one or more departments. The first selected will be used for legacy compatibility.</p>
+                <p className="text-[10px] text-gray-400 mt-1">First selected department used for legacy compatibility.</p>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Profession (optional)
-                </label>
-                <select
-                  value={currentTemplate.profession || ''}
-                  onChange={(e) => handleTemplateChange({ profession: e.target.value || undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Profession (optional)</label>
+                <select value={currentTemplate.profession || ''} onChange={(e) => handleTemplateChange({ profession: e.target.value || undefined })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">All</option>
-                  {PROFESSIONS.map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
+                  {PROFESSIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">If set, this template will be shown only to that profession within the department.</p>
+                <p className="text-[10px] text-gray-400 mt-1">If set, shown only to that profession within the department.</p>
               </div>
-
-              <div className="flex items-center mt-4">
-                <input
-                  type="checkbox"
-                  checked={currentTemplate.isActive}
-                  onChange={(e) => handleTemplateChange({ isActive: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label className="ml-2 text-sm text-gray-700">
-                  Active Template
-                </label>
+              <div className="flex items-center gap-2 pt-2">
+                <input type="checkbox" checked={currentTemplate.isActive} onChange={(e) => handleTemplateChange({ isActive: e.target.checked })}
+                  className="w-3.5 h-3.5 text-[#003153] rounded border-gray-300 focus:ring-[#003153]" />
+                <label className="text-xs text-gray-700 font-medium">Active Template</label>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Main Content - Form Designer */}
+      {/* Main Content */}
       <div className="flex-1 flex">
         <div className="flex-1 p-6 bg-gray-50 overflow-y-auto">
           <div className="max-w-5xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {currentTemplate.name}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {currentTemplate.fields.length} field{currentTemplate.fields.length !== 1 ? 's' : ''} •
-                  {currentTemplate.sections.length} section{currentTemplate.sections.length !== 1 ? 's' : ''} •
-                  {(Array.isArray((currentTemplate as any).departments) && (currentTemplate as any).departments.length > 0)
-                    ? (currentTemplate as any).departments.join(', ')
-                    : currentTemplate.department}
+                <h3 className="text-lg font-bold text-gray-900">{currentTemplate.name}</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {currentTemplate.fields.length} field{currentTemplate.fields.length !== 1 ? 's' : ''} · {currentTemplate.sections.length} section{currentTemplate.sections.length !== 1 ? 's' : ''} · {(Array.isArray((currentTemplate as any).departments) && (currentTemplate as any).departments.length > 0) ? (currentTemplate as any).departments.join(', ') : currentTemplate.department}
                 </p>
               </div>
-
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setShowPreview(true)}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                  disabled={currentTemplate.fields.length === 0}
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowPreview(true)} disabled={currentTemplate.fields.length === 0}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors">
+                  <Eye className="w-3.5 h-3.5" />Preview
                 </button>
-                <button
-                  onClick={handleDuplicate}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  <Layers className="w-4 h-4 mr-2" />
-                  Duplicate / Save as New
+                <button onClick={handleDuplicate}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 inline-flex items-center gap-1.5 transition-colors">
+                  <Layers className="w-3.5 h-3.5" />Duplicate
                 </button>
-                <button
-                  onClick={handleSave}
-                  className="flex items-center px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Template
+                <button onClick={handleSave}
+                  className="px-3 py-2 bg-[#003153] text-white rounded-lg text-xs font-semibold hover:bg-[#002640] inline-flex items-center gap-1.5 transition-colors shadow-sm">
+                  <Save className="w-3.5 h-3.5" />Save Template
                 </button>
-                <button
-                  onClick={onCancel}
-                  className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
+                <button onClick={onCancel}
+                  className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 inline-flex items-center gap-1.5 transition-colors">
+                  <ArrowLeft className="w-3.5 h-3.5" />Back
                 </button>
               </div>
             </div>
 
             {/* Form Canvas */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               {!hasFields && !hasSections ? (
-                <FormBuilderGuide
-                  onAddSection={handleAddSection}
-                  hasFields={hasFields}
-                  hasSections={hasSections}
-                />
+                <FormBuilderGuide onAddSection={handleAddSection} hasFields={hasFields} hasSections={hasSections} />
               ) : (
                 <>
-                  <FormBuilderGuide
-                    onAddSection={handleAddSection}
-                    hasFields={hasFields}
-                    hasSections={hasSections}
-                  />
+                  <FormBuilderGuide onAddSection={handleAddSection} hasFields={hasFields} hasSections={hasSections} />
                   <SectionedFormCanvas
-                    fields={currentTemplate.fields}
-                    sections={currentTemplate.sections}
-                    selectedField={selectedField}
-                    onSelectField={setSelectedField}
-                    onMoveField={handleMoveField}
-                    onReorderSections={handleReorderSections}
-                    onToggleSection={handleToggleSection}
-                  />
+                    fields={currentTemplate.fields} sections={currentTemplate.sections} selectedField={selectedField}
+                    onSelectField={setSelectedField} onMoveField={handleMoveField} onReorderSections={handleReorderSections}
+                    onToggleSection={handleToggleSection} />
                 </>
               )}
             </div>
@@ -500,13 +395,8 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
         {/* Right Sidebar - Field Editor */}
         {selectedField && (
           <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
-            <FieldEditor
-              field={selectedField}
-              sections={currentTemplate.sections}
-              allFields={currentTemplate.fields}
-              onUpdate={handleUpdateField}
-              onDelete={handleDeleteField}
-            />
+            <FieldEditor field={selectedField} sections={currentTemplate.sections} allFields={currentTemplate.fields}
+              onUpdate={handleUpdateField} onDelete={handleDeleteField} />
           </div>
         )}
       </div>

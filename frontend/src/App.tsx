@@ -14,6 +14,8 @@ import {
   DashboardFormMapping, 
   UserManagement, 
   ShiftManager,
+  IntegrationPage,
+  AdminSettings,
   LoginForm 
 } from './features';
 import { Layout, IsbarLoader, ErrorBoundary } from './components/shared';
@@ -57,8 +59,12 @@ const AppContent = () => {
           return canView('form-builder') ? <FormBuilder /> : deny;
         case 'dashboard-mapping':
           return canView('dashboard-mappings') ? <DashboardFormMapping /> : deny;
+        case 'integrations':
+          return canView('form-builder') ? <IntegrationPage /> : deny;
         case 'user-management':
           return canView('user-management') ? <UserManagement /> : deny;
+        case 'admin-settings':
+          return canView('user-management') ? <AdminSettings /> : deny;
         default:
           return canView('dashboard') ? <Dashboard /> : deny;
       }

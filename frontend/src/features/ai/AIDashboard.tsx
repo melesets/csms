@@ -410,7 +410,7 @@ const AIDashboard: React.FC = () => {
 
                       {/* Meta */}
                       <div className="flex items-center gap-4 text-xs text-gray-400">
-                        <span>Last update: {pa.lastUpdate ? new Date(pa.lastUpdate).toLocaleString() : 'N/A'}</span>
+                        <span>Last update: {pa.lastUpdate ? new Date(new Date(pa.lastUpdate).getTime() + 3 * 3600 * 1000).toLocaleString() : 'N/A'}</span>
                         <span>Nurse: {pa.assignedNurse || 'N/A'}</span>
                       </div>
                     </div>

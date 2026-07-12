@@ -112,7 +112,7 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                 <div className="mt-1 flex items-center">
                   <Clock className="w-4 h-4 text-gray-400 mr-2" />
                   <span className="text-gray-900">
-                    {new Date(patient.lastHandover).toLocaleString()}
+                    {new Date(new Date(patient.lastHandover).getTime() + 3 * 3600 * 1000).toLocaleString()}
                   </span>
                 </div>
               </div>

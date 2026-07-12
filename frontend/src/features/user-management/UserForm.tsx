@@ -1,6 +1,7 @@
 // User form - create/edit user with role and permission settings
 import React, { useState } from 'react';
 import { User, PROFESSIONS } from '../../types/auth';
+import { X } from 'lucide-react';
 
 interface UserFormProps {
   user: User | null;
@@ -112,20 +113,21 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {user ? 'Edit User' : 'Add New User'}
-        </h3>
-        <button
-          onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          ×
-        </button>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-gray-200">
+          <h3 className="text-sm font-bold text-gray-900">
+            {user ? 'Edit User' : 'Add New User'}
+          </h3>
+          <button
+            onClick={onCancel}
+            className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -136,7 +138,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
               name="username"
               value={formData.username}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.username ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.username ? 'border-red-500' : 'border-gray-200'
                 }`}
               required
             />
@@ -150,9 +152,10 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
             <input
               type="password"
               name="password"
+              autoComplete="new-password"
               value={formData.password}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? 'border-red-500' : 'border-gray-200'
                 }`}
               placeholder={user ? 'Leave blank to keep current password' : ''}
               required={!user}
@@ -175,7 +178,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
                   setFormData((prev: any) => ({ ...prev, pin: val }));
                 }}
                 disabled={formData.removePin}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.removePin ? 'bg-gray-100 text-gray-400' : 'border-gray-300'}`}
+                className={`w-full px-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.removePin ? 'bg-gray-100 text-gray-400' : 'border-gray-200'}`}
                 placeholder={user ? ((user as any).has_pin ? 'Leave blank to keep current PIN' : 'Add a 4-digit PIN') : 'Optional 4-digit PIN'}
               />
               {user && (user as any).has_pin && (
@@ -201,7 +204,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.name ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.name ? 'border-red-500' : 'border-gray-200'
                 }`}
               required
             />
@@ -217,7 +220,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email ? 'border-red-500' : 'border-gray-200'
                 }`}
               required
             />
@@ -232,7 +235,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
               name="role"
               value={formData.role}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
               <option value="user">User</option>
@@ -251,7 +254,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
                 name="shiftType"
                 value={formData.shiftType}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
                 <option value="TID">TID (8-Hour / 3 Shifts per day)</option>
@@ -277,7 +280,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
               onChange={handleInputChange}
               list="department-list"
               placeholder="Type or select department"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.department ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.department ? 'border-red-500' : 'border-gray-200'
                 } ${lockDepartment ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               required
               disabled={lockDepartment}
@@ -298,7 +301,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
               name="profession"
               value={formData.profession}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.profession ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.profession ? 'border-red-500' : 'border-gray-200'
                 }`}
               required
             >
@@ -318,16 +321,16 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
             id="isActive"
             checked={formData.isActive}
             onChange={handleInputChange}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 text-[#003153] focus:ring-[#003153] border-gray-300 rounded"
           />
-          <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+          <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 font-medium">
             Active User
           </label>
         </div>
 
         {/* Page Access Permissions */}
         <div className="border-t border-gray-200 pt-6">
-          <h4 className="text-sm font-semibold text-gray-900 mb-4">Page Access Permissions</h4>
+          <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Page Access Permissions</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {AVAILABLE_MODULES.map((module) => (
               <label key={module.id} className="flex items-center space-x-2 cursor-pointer group">
@@ -335,35 +338,36 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
                   type="checkbox"
                   checked={formData.permissions.some((p: any) => p.module === module.id)}
                   onChange={() => handlePermissionToggle(module.id)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-[#003153] focus:ring-[#003153] border-gray-300 rounded"
                 />
-                <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">
+                <span className="text-sm text-gray-700 group-hover:text-[#003153] transition-colors">
                   {module.label}
                 </span>
               </label>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-3 italic">
+          <p className="text-[10px] text-gray-400 mt-3">
             Note: Administrators usually have full access even if not checked here.
           </p>
         </div>
 
-        <div className="flex justify-end space-y-4 pt-6">
+        <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-brand hover:bg-brand-600 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-[#003153] hover:bg-[#002640] text-white text-xs font-semibold rounded-lg transition-colors"
           >
             {user ? 'Update User' : 'Create User'}
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 };

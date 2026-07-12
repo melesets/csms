@@ -340,19 +340,6 @@ export const SectionedFormCanvas: React.FC<SectionedFormCanvasProps> = ({
           </div>
         )}
 
-        {/* Instructions */}
-        {(sections.length > 0 || unassignedFields.length > 0) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">💡 Tips:</h4>
-            <ul className="text-xs text-blue-700 space-y-1">
-              <li>• Drag fields from the library on the left to add them to sections</li>
-              <li>• Drag fields between sections to reorganize your form</li>
-              <li>• Use the grip handle (⋮⋮) to drag fields around</li>
-              <li>• Click on fields to edit their properties on the right</li>
-              <li>• Yellow fields are unassigned - drag them to sections</li>
-            </ul>
-          </div>
-        )}
       </div>
     </DndContext>
   );

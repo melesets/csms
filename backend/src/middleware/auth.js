@@ -3,7 +3,7 @@
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'csms-fallback-secret';
-const EXEMPT_PATHS = ['/api/login', '/api/auth', '/api/test-db', '/api/health'];
+const EXEMPT_PATHS = ['/api/login', '/api/logout', '/api/auth', '/api/test-db', '/api/health'];
 
 /**
  * Express middleware that enforces JWT authentication.

@@ -149,13 +149,13 @@ const SortableSection: React.FC<SortableSectionProps> = ({
                 <div className="flex space-x-2">
                   <button
                     onClick={handleSave}
-                    className="px-3 py-1 text-xs bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium bg-[#003153] text-white rounded-lg hover:bg-[#002640] transition-colors"
                   >
                     Save
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                   >
                     Cancel
                   </button>
@@ -255,7 +255,7 @@ export const SectionManager: React.FC<SectionManagerProps> = ({
         <h4 className="text-sm font-medium text-gray-900">Form Sections</h4>
         <button
           onClick={onAddSection}
-          className="flex items-center px-3 py-2 text-xs bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors shadow-sm"
+          className="flex items-center px-3 py-2 text-xs font-medium bg-[#003153] text-white rounded-lg hover:bg-[#002640] transition-colors shadow-sm"
         >
           <Plus className="w-3 h-3 mr-1" />
           Add Section

@@ -11,6 +11,7 @@ import pool from './config/database.js';
 import routes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requireAuth } from './middleware/auth.js';
+import { startAuditCleanup } from './modules/admin/admin.service.js';
 
 dotenv.config({ override: true });
 
@@ -82,4 +83,5 @@ app.use(errorHandler);
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
   startDbReadinessProbe({ intervalMs: 3000 });
+  startAuditCleanup();
 });

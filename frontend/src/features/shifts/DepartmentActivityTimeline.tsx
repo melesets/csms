@@ -148,7 +148,7 @@ export const DepartmentActivityTimeline: React.FC = () => {
                         </div>
                         <div className="text-right shrink-0 ml-4">
                            <span className="text-[10px] font-bold text-gray-400">
-                              <EthiopianDateDisplay date={activity.timestamp} format="short" />
+                              <EthiopianDateDisplay date={new Date(new Date(activity.timestamp).getTime() + 3 * 3600 * 1000)} format="short" />
                            </span>
                            <div className="flex items-center gap-1 mt-0.5 justify-end">
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200">

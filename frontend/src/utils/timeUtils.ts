@@ -1,10 +1,17 @@
 // Time utilities - shift time calculation and formatting helpers
 import { gregorianToEthiopian, gregorianToEthiopianTime, formatEthiopianDate, formatEthiopianTime } from './ethiopianCalendar';
 
+// Apply UTC+3 offset for Ethiopia
+const toEthiopianLocal = (date: Date): Date => {
+    const d = new Date(date);
+    d.setTime(d.getTime() + 3 * 3600 * 1000);
+    return d;
+};
+
 // Utility function to convert date to relative time (e.g., "5 minutes ago")
 export const getRelativeTime = (date: string | Date): string => {
     const now = new Date();
-    const then = new Date(date);
+    const then = toEthiopianLocal(new Date(date));
     const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
 
     if (diffInSeconds < 60) {
@@ -41,7 +48,7 @@ export const getRelativeTime = (date: string | Date): string => {
  */
 export const getEthiopianRelativeTime = (date: string | Date): string => {
     const now = new Date();
-    const then = new Date(date);
+    const then = toEthiopianLocal(new Date(date));
     const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     const diffInHours = Math.floor(diffInMinutes / 60);
@@ -88,7 +95,7 @@ export const formatEthiopianTimeString = (date: string | Date): string => {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(d.getTime())) return '';
 
-    const ethTime = gregorianToEthiopianTime(d);
+    const ethTime = gregorianToEthiopianTime(toEthiopianLocal(d));
     return formatEthiopianTime(ethTime, 'short');
 };
 
@@ -99,8 +106,9 @@ export const formatEthiopianDateTimeString = (date: string | Date): string => {
     const d = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(d.getTime())) return '';
 
-    const ethDate = gregorianToEthiopian(d);
-    const ethTime = gregorianToEthiopianTime(d);
+    const local = toEthiopianLocal(d);
+    const ethDate = gregorianToEthiopian(local);
+    const ethTime = gregorianToEthiopianTime(local);
     return `${formatEthiopianDate(ethDate, 'short')} ${formatEthiopianTime(ethTime, 'short')}`;
 };
 
@@ -110,7 +118,7 @@ export const formatEthiopianDateTimeString = (date: string | Date): string => {
  */
 export const getShiftFromTime = (date: Date | string): 'Morning' | 'Afternoon' | 'Night' => {
     const d = typeof date === 'string' ? new Date(date) : date;
-    const hour = d.getHours();
+    const hour = toEthiopianLocal(d).getHours();
 
     // Ethiopian shifts:
     // Morning: 6:00 AM - 12:00 PM GMT (0:00 - 6:00 Ethiopian day)

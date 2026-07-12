@@ -138,7 +138,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
         </div>
         <button
           onClick={() => onDelete(field.id)}
-          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           title="Delete field"
         >
           <Trash2 className="w-4 h-4" />
@@ -300,13 +300,13 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
             <div className="flex space-x-2">
               <button
                 onClick={addOption}
-                className="text-sm text-blue-600 hover:text-blue-800"
+                className="px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 + Add Option
               </button>
               <button
                 onClick={() => setShowOptionSearch(!showOptionSearch)}
-                className="text-sm text-purple-600 hover:text-purple-800 flex items-center"
+                className="px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors inline-flex items-center"
               >
                 <Database className="w-3 h-3 mr-1" />
                 + Add from Dictionary
@@ -335,7 +335,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
               />
               <button
                 onClick={() => setShowOptionSearch(false)}
-                className="text-xs text-gray-500 mt-2 hover:text-gray-700 underline"
+                className="px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors mt-2"
               >
                 Cancel
               </button>
@@ -355,7 +355,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
                   />
                   <button
                     onClick={() => removeOption(index)}
-                    className="p-2 text-red-600 hover:text-red-800"
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -533,7 +533,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
 
                   <button
                     onClick={() => removeSkipCondition(index)}
-                    className="p-1 text-gray-400 hover:text-red-600"
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -543,7 +543,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
 
             <button
               onClick={addSkipCondition}
-              className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+              className="flex items-center px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <Plus className="w-4 h-4 mr-1" /> Add Condition
             </button>

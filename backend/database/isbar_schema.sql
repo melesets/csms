@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS inventory_reports (
     staffId INTEGER NOT NULL,
     department VARCHAR(100) NOT NULL,
     date TIMESTAMP NOT NULL,
-    resources JSONB NOT NULL
+    resources JSONB NOT NULL,
+    co_signers JSONB DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS users (

@@ -23,17 +23,17 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', className = '' })
     <div className={`relative inline-flex items-center justify-center ${className}`} style={{ width: px, height: px }}>
       {/* Base ring */}
       <div
-        className="absolute inset-0 rounded-full border-blue-100"
+        className="absolute inset-0 rounded-full border-[#003153]/10"
         style={{ borderWidth, borderStyle: 'solid' }}
       />
       {/* Outer arc - spins clockwise */}
       <div
-        className="absolute inset-0 rounded-full border-blue-600 animate-spin"
+        className="absolute inset-0 rounded-full border-[#003153] animate-spin"
         style={{ borderWidth, borderStyle: 'solid', borderTopColor: 'transparent' }}
       />
       {/* Inner arc - spins counter-clockwise */}
       <div
-        className="absolute rounded-full border-blue-300"
+        className="absolute rounded-full border-[#003153]/40"
         style={{
           inset: innerInset,
           borderWidth: Math.max(2, borderWidth),

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Search, Filter, Eye, Edit2, Trash2, ToggleLeft, ToggleRight, Settings, FileText, Download, Upload } from 'lucide-react';
+import { Search, Settings, Download, Upload } from 'lucide-react';
 import { FormTemplate } from '../../types/formBuilder';
 import { useDepartments } from '../../hooks/useDepartments';
 
@@ -77,7 +77,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
           template.version?.toString() || '1',
           (template.isActive || (template as any).is_active) ? 'Active' : 'Inactive',
           template.createdBy || '',
-          template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '',
+          template.createdAt ? new Date(new Date(template.createdAt).getTime() + 3 * 3600 * 1000).toLocaleDateString() : '',
           template.fields?.length?.toString() || '0',
           JSON.stringify(template.fields || [])
         ])
@@ -620,15 +620,15 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* CSV Import/Export Section */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Import/Export Templates</h3>
-        <div className="flex flex-wrap gap-4 items-center">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Import/Export Templates</h3>
+        <div className="flex flex-wrap gap-3 items-center">
           <button
             onClick={downloadCSV}
             disabled={filteredTemplates.length === 0}
-            className="flex items-center px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center px-4 py-2 bg-gray-50 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Templates CSV
@@ -637,7 +637,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
           <button
             onClick={downloadFieldsCSV}
             disabled={filteredTemplates.length === 0}
-            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center px-4 py-2 bg-gray-50 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Fields CSV
@@ -646,7 +646,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
           <button
             onClick={handleUploadClick}
             disabled={isImporting}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center px-4 py-2 bg-[#003153] text-white rounded-lg text-sm font-semibold hover:bg-[#002640] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <Upload className="w-4 h-4 mr-2" />
             {isImporting ? 'Importing...' : 'Import CSV'}
@@ -660,180 +660,62 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
             className="hidden"
           />
 
-          <div className="text-sm text-gray-500">
-            <p>• Export Templates CSV: One row per template (with Fields JSON)</p>
-            <p>• Export Fields CSV: One row per field (includes type, section, options, validation)</p>
-            <p>• Import: Either Templates CSV (with Fields JSON) or Fields CSV (row per field). You can prepare these in Excel and save as CSV.</p>
+          <div className="text-xs text-gray-400">
+            <p>Export Templates CSV: One row per template (with Fields JSON)</p>
+            <p>Export Fields CSV: One row per field (type, section, options, validation)</p>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="Search templates..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           {userRole === 'admin' && (
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <select
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="All">All Departments</option>
-                {departments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="All">All Departments</option>
+              {departments.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
           )}
 
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as 'All' | 'Active' | 'Inactive')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as 'All' | 'Active' | 'Inactive')}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="All">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
         </div>
 
-        <div className="mt-4 text-sm text-gray-500">
+        <div className="mt-3 text-xs text-gray-400">
           Found {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {/* Templates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTemplates.map((template) => {
-          const isActive = template.isActive || (template as any).is_active;
-          return (
-            <div key={template.id} className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {template.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">v{template.version || 1}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    {isActive ? (
-                      <ToggleRight className="w-5 h-5 text-green-500" />
-                    ) : (
-                      <ToggleLeft className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                  {template.description}
-                </p>
-
-                <div className="flex items-center justify-between mb-4">
-                  <span className="flex flex-wrap gap-1">
-                    {Array.isArray((template as any).departments) && (template as any).departments.length > 0 ? (
-                      (template as any).departments.map((dept: string) => (
-                        <span key={dept} className={`inline - flex items - center px - 2.5 py - 0.5 rounded - full text - xs font - medium ${getDepartmentColor(dept)} `}>
-                          {dept}
-                        </span>
-                      ))
-                    ) : (
-                      <span className={`inline - flex items - center px - 2.5 py - 0.5 rounded - full text - xs font - medium ${getDepartmentColor(template.department)} `}>
-                        {template.department}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {template.fields?.length || 0} field{(template.fields?.length || 0) !== 1 ? 's' : ''}
-                  </span>
-                </div>
-
-                <div className="text-xs text-gray-500 mb-4">
-                  Created by {template.createdBy || 'Unknown'} • {template.createdAt ? new Date(template.createdAt).toLocaleDateString() : 'Unknown date'}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => onPreview(template)}
-                    className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Preview
-                  </button>
-
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => onToggleActive(template.id)}
-                      className={`p - 1 rounded ${isActive ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'} `}
-                      title={isActive ? 'Deactivate' : 'Activate'}
-                    >
-                      {isActive ? (
-                        <ToggleLeft className="w-4 h-4" />
-                      ) : (
-                        <ToggleRight className="w-4 h-4" />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => onEdit(template)}
-                      className="p-1 text-gray-600 hover:text-gray-800"
-                      title="Edit"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => exportKoboCSV(template)}
-                      className="p-1 text-blue-600 hover:text-blue-800"
-                      title="Export Kobo CSV (this template)"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => onDelete(template.id)}
-                      className="p-1 text-red-600 hover:text-red-800"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {filteredTemplates.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <Settings className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No templates found</h3>
-          <p className="text-gray-500">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+          <p className="text-xs text-gray-400">
             {searchTerm || filterDepartment !== 'All' || filterStatus !== 'All'
-              ? 'Try adjusting your search criteria or filters.'
-              : 'Get started by creating your first form template.'
+              ? 'No templates match your search criteria.'
+              : 'No templates yet. Create your first form above.'
             }
           </p>
         </div>

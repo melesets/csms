@@ -45,6 +45,12 @@ const InventoryReport = sequelize.define('InventoryReport', {
     allowNull: false,
     field: 'resources',
   },
+  co_signers: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+    field: 'co_signers',
+    defaultValue: [],
+  },
 }, {
   tableName: 'inventory_reports',
   timestamps: false,

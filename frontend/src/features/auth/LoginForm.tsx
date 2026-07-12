@@ -1,8 +1,6 @@
-// Login form component - handles user authentication with username/password
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn, Stethoscope } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Stethoscope, ShieldCheck, User, Lock } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { Spinner } from '../../components/shared';
 import { apiGet } from '../../api';
 import { PROFESSIONS } from '../../types/auth';
 
@@ -22,14 +20,13 @@ export const LoginForm = () => {
     setError('');
     setInfo('');
 
-    // Pre-flight: ensure backend + DB are ready
-    const maxAttempts = 12; // up to ~60s
+    const maxAttempts = 12;
     const delayMs = 5000;
     let attempt = 0;
     while (attempt < maxAttempts) {
       try {
         await apiGet('/test-db');
-        break; // ready
+        break;
       } catch {
         attempt++;
         if (import.meta.env.DEV) {
@@ -47,7 +44,6 @@ export const LoginForm = () => {
 
     const success = await login(username, password, profession);
     if (!success) {
-      // Distinguish service unavailability from invalid credentials
       try {
         const health: any = await apiGet('/health');
         if (!health?.ready) {
@@ -68,105 +64,130 @@ export const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 border-2 border-white bg-[#003153] text-white">
-            <Stethoscope className="w-8 h-8" />
+    <div className="flex flex-col lg:flex-row min-h-screen w-full">
+      {/* Left Panel - Welcome Section with Hospital Background */}
+      <div className="relative w-full lg:w-1/2 flex items-center justify-center overflow-hidden" style={{ minHeight: '40vh' }}>
+        <div className="absolute inset-0 bg-[url('/isbar/login-bg.jpg')] bg-cover bg-center" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#003153] via-[#003d66] to-[#003153] opacity-90" />
+
+        <div className="relative z-10 text-center px-8 py-12 max-w-md">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-white/30 mb-6">
+            <Stethoscope className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">AGH-CSMS</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+
+          <h1 className="text-3xl lg:text-4xl font-bold text-white mb-3">Welcome Back</h1>
+          <p className="text-base lg:text-lg text-white/80 mb-6 leading-relaxed">
+            Sign in to continue your journey towards better healthcare.
+          </p>
+
+          <div className="w-16 h-1 bg-[#003153] mx-auto mb-6" />
+
+          <div className="flex items-center justify-center gap-2 text-white/70">
+            <ShieldCheck className="w-5 h-5 text-white/70" />
+            <span className="text-sm">Secure. Reliable. For Better Care.</span>
+          </div>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="Enter your username"
-              required
-            />
+      {/* Right Panel - Login Form */}
+      <div className="w-full lg:w-1/2 bg-white flex items-center justify-center px-6 py-10 lg:py-12">
+        <div className="w-full max-w-md">
+          <div className="text-right mb-12">
+            <h2 className="text-2xl font-bold text-[#003153]">CSMS</h2>
+            <p className="text-xs text-gray-500 tracking-wider">CLINICAL SERVICE MANAGEMENT SYSTEM</p>
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-12"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="profession" className="block text-sm font-medium text-gray-700 mb-2">
-              Professionals
-            </label>
-            <select
-              id="profession"
-              value={profession}
-              onChange={(e) => setProfession(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              required
-            >
-              {PROFESSIONS.map((prof: string) => (
-                <option key={prof} value={prof}>{prof}</option>
-              ))}
-              <option value="Admin">Admin</option>
-            </select>
-          </div>
-
-          {import.meta.env.DEV && info && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-sm text-blue-700">{info}</p>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-brand hover:bg-brand-600 disabled:bg-brand-300 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
-          >
-            {isLoading ? (
-              <Spinner size="md" color="white" />
-            ) : (
-              <>
-                <LogIn className="w-5 h-5 mr-2" />
-                Sign In
-              </>
-            )}
-          </button>
-        </form>
-
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-[#003153]/20 focus:border-[#003153] transition-all outline-none"
+                  placeholder="Enter your username"
+                  required
+                />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-[#003153]/20 focus:border-[#003153] transition-all outline-none"
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="profession" className="block text-sm font-medium text-gray-700 mb-1">
+                Professionals
+              </label>
+              <select
+                id="profession"
+                value={profession}
+                onChange={(e) => setProfession(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-[#003153]/20 focus:border-[#003153] transition-all outline-none"
+                required
+              >
+                {PROFESSIONS.map((prof: string) => (
+                  <option key={prof} value={prof}>{prof}</option>
+                ))}
+                <option value="Admin">Admin</option>
+              </select>
+            </div>
+
+            {import.meta.env.DEV && info && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700">{info}</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#003153] hover:bg-[#002640] disabled:opacity-50 text-white text-xs font-semibold rounded-lg py-2.5 px-4 transition-colors flex items-center justify-center gap-2"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };

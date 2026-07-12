@@ -5,7 +5,7 @@ import { gregorianToEthiopian, formatEthiopianDate } from '../../../utils/ethiop
 
 interface EthiopianDateDisplayProps {
   date: string | Date;
-  format?: 'short' | 'long';
+  format?: 'short' | 'long' | 'amharic';
   className?: string;
   showGregorian?: boolean;
 }

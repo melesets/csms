@@ -9,4 +9,6 @@ export * from './form-builder/FormBuilder';
 export * from './user-management/UserManagement';
 export * from './forms/DynamicISBARForm';
 export * from './admin/DashboardFormMapping';
+export * from './admin/AdminSettings';
 export * from './shifts/ShiftManager';
+export * from './integrations/IntegrationPage';

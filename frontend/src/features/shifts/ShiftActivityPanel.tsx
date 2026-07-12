@@ -71,7 +71,7 @@ function resourceBadges(item: ResourceItem) {
   const expiry = item.expiry_date || item.expiry;
   const badges: { label: string; cls: string; icon: React.ReactNode }[] = [];
   if (expiry) {
-    const d = new Date(expiry);
+    const d = new Date(new Date(expiry).getTime() + 3 * 3600 * 1000);
     if (!isNaN(d.getTime())) {
       const now = new Date();
       const diffDays = Math.ceil((d.getTime() - now.getTime()) / 86400000);

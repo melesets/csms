@@ -4,6 +4,7 @@ import * as authService from './auth.service.js';
 import { validateLogin } from './auth.validation.js';
 import { signToken } from '../../middleware/auth.js';
 import bcrypt from 'bcryptjs';
+import { logAudit } from '../admin/admin.service.js';
 
 export const login = asyncHandler(async (req, res) => {
   const validation = validateLogin(req.body);
@@ -18,6 +19,7 @@ export const login = asyncHandler(async (req, res) => {
 
   if (!user) {
     console.warn(`[Auth] Login failed: Invalid credentials for user "${username}"`);
+    await logAudit('login_failed', 'auth', `Failed login attempt for "${username}" — user not found`, username, req.ip);
     return res.status(401).json({ error: 'Invalid username or password' });
   }
 
@@ -33,10 +35,12 @@ export const login = asyncHandler(async (req, res) => {
 
   if (!passwordValid) {
     console.warn(`[Auth] Login failed: Invalid credentials for user "${username}"`);
+    await logAudit('login_failed', 'auth', `Failed login attempt for "${username}" — wrong password`, username, req.ip);
     return res.status(401).json({ error: 'Invalid username or password' });
   }
 
   if (!user.isactive) {
+    await logAudit('login_blocked', 'auth', `Login blocked for "${username}" — account deactivated`, username, req.ip);
     return res.status(403).json({ error: 'Account is deactivated' });
   }
 
@@ -53,6 +57,7 @@ export const login = asyncHandler(async (req, res) => {
   const token = signToken(tokenPayload);
 
   console.log(`[Auth] Login successful: "${username}"`);
+  await logAudit('login', 'auth', `${user.name || username} logged in (${user.role}${user.department ? ', ' + user.department : ''})`, username, req.ip);
   res.json({
     id: user.id,
     username: user.username,
@@ -66,6 +71,12 @@ export const login = asyncHandler(async (req, res) => {
     created_by: user.created_by,
     token,
   });
+});
+
+export const logout = asyncHandler(async (req, res) => {
+  const username = req.user?.username || 'unknown';
+  await logAudit('logout', 'auth', `${username} logged out`, username, req.ip);
+  res.json({ success: true });
 });
 
 export const loginPage = (req, res) => {

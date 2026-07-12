@@ -63,10 +63,15 @@ const timeAgo = (iso: string | number | Date | null | undefined) => {
   try {
     const dt = parseDateSafe(iso);
     if (isNaN(dt.getTime())) return 'Just now';
+    // Apply UTC+3 offset for Ethiopia
+    dt.setTime(dt.getTime() + 3 * 3600 * 1000);
     const now = Date.now();
     if (dt.getTime() - now > 60 * 1000) {
       const alt = parseDateSafe(String(iso) + 'Z');
-      if (!isNaN(alt.getTime()) && alt.getTime() <= now) return timeAgo(alt);
+      if (!isNaN(alt.getTime())) {
+        alt.setTime(alt.getTime() + 3 * 3600 * 1000);
+        if (alt.getTime() <= now) return timeAgo(alt);
+      }
     }
     const deltaMs = Math.max(0, now - dt.getTime());
     const seconds = Math.floor(deltaMs / 1000);

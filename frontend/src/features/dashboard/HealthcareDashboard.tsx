@@ -142,6 +142,7 @@ interface Report {
   staffName: string;
   date: string;
   resources: unknown[];
+  co_signers?: string[];
 }
 
 interface Round {
@@ -185,7 +186,7 @@ export const HealthcareDashboard: React.FC = () => {
     return null;
   };
 
-  const { user, getUserDepartmentFilter, impersonate, activeOperator, setActiveOperator } = useAuth();
+  const { user, getUserDepartmentFilter, impersonate } = useAuth();
   const { shift, setShift, shiftContext } = useShift();
   const { query } = useSearch();
   const [patients, setPatients] = useState<PatientHandover[]>([]);
@@ -202,11 +203,14 @@ export const HealthcareDashboard: React.FC = () => {
   const { activeSession } = useShift();
   const [openMrn, setOpenMrn] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
+  const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [mostRecentShift, setMostRecentShift] = useState<'Morning' | 'Evening' | 'Night' | null>(null);
   const [mostRecentRoundShift, setMostRecentRoundShift] = useState<'Morning' | 'Evening' | 'Night' | null>(null);
   const [loading, setLoading] = useState(true);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [impersonateUserId, setImpersonateUserId] = useState<string>('');
+  const [impersonateRoleFilter, setImpersonateRoleFilter] = useState<string>('');
+  const [impersonateProfFilter, setImpersonateProfFilter] = useState<string>('');
   const [patientMappings, setPatientMappings] = useState<DashboardMapping[]>([]);
   const [resourceMappings, setResourceMappings] = useState<DashboardMapping[]>([]);
   const [dynamicSections, setDynamicSections] = useState<Record<string, { mappings: DashboardMapping[]; submissions: Record<string, unknown>[] }>>({});
@@ -579,7 +583,8 @@ export const HealthcareDashboard: React.FC = () => {
           id: r.id as string,
           staffName: (r.staff_name || r.staffName || 'Unknown') as string,
           date: (r.date || r.created_at || r.updated_at) as string,
-          resources: (r.resources || []) as unknown[]
+          resources: (r.resources || []) as unknown[],
+          co_signers: (r.co_signers || []) as string[],
         };
         let shiftName = normalizeShift(r.shift);
         if (!shiftName) {
@@ -593,14 +598,7 @@ export const HealthcareDashboard: React.FC = () => {
             shiftName = 'Morning';
           }
         }
-        const existing = byShift[shiftName][0];
-        if (!existing) {
-          byShift[shiftName] = [reportData];
-        } else {
-          const dNew = parseDateSafe(reportData.date);
-          const dOld = parseDateSafe(existing.date);
-          if (dNew > dOld) byShift[shiftName] = [reportData];
-        }
+        byShift[shiftName].push(reportData);
       });
       setReportsByShift(byShift);
       type SN = 'Morning' | 'Evening' | 'Night';
@@ -1113,6 +1111,19 @@ export const HealthcareDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-[#003153] flex items-center justify-center shadow-sm">
+            <Activity className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-sm text-gray-400">Hospital overview, patients, staff & activity</p>
+          </div>
+        </div>
+      </div>
+
       {/* Shift Safety Briefing & AI Insights */}
       {handoverBriefing && (
         <div className={`rounded-2xl shadow-lg border-2 overflow-hidden ${handoverBriefing.patientStatus === 'Critical' ? 'border-red-500 bg-red-50/30' :
@@ -1129,7 +1140,7 @@ export const HealthcareDashboard: React.FC = () => {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-sm font-medium opacity-90">
-                Briefing from: {new Date(handoverBriefing.created_at).toLocaleString()}
+                Briefing from: {new Date(new Date(handoverBriefing.created_at).getTime() + 3 * 3600 * 1000).toLocaleString()}
               </div>
             </div>
           </div>
@@ -1195,130 +1206,12 @@ export const HealthcareDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Department Staff is rendered in the Active Staff tab below */}
-
-      {
-        user?.role === 'admin' && (
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="flex flex-col md:flex-row md:items-end gap-3">
-              <div className="flex-1 min-w-[240px]">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Log in as</label>
-                <select
-                  value={impersonateUserId}
-                  onChange={e => setImpersonateUserId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                >
-                  <option value="">Select a user…</option>
-                  {allUsers.map((u: User) => (
-                    <option key={u.id} value={String(u.id)}>
-                      {u.name || u.username} {u.department ? `• ${u.department}` : ''} {u.role ? `• ${u.role}` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    if (!impersonateUserId || !setActiveOperator) return;
-                    const targetLocal = allUsers.find(u => String(u.id) === String(impersonateUserId));
-                    if (targetLocal) {
-                      setActiveOperator(targetLocal);
-                    }
-                  }}
-                  disabled={!impersonateUserId}
-                  className="px-4 py-2 rounded-lg bg-brand text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-600"
-                  title="Operate as this user in the background (Nested mode)"
-                >
-                  Set Operator
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!impersonateUserId || !impersonate) return;
-                    const ok = await impersonate({ userId: impersonateUserId });
-                    if (ok) {
-                      window.location.reload();
-                    }
-                  }}
-                  disabled={!impersonateUserId}
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700"
-                  title="Fully log in as this user and swap out permissions (True Login)"
-                >
-                  Full Login As...
-                </button>
-                <button
-                  onClick={() => {
-                    setImpersonateUserId('');
-                    if (setActiveOperator) setActiveOperator(null);
-                  }}
-                  className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  Clear Operator
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-      {
-        user?.role === 'admin' && (
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
-                <select
-                  value={filterDept}
-                  onChange={e => setFilterDept(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                >
-                  <option value="">All Departments</option>
-                  {departmentOptions.map(dep => (
-                    <option key={dep} value={String(dep)}>{String(dep)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">User</label>
-                <select
-                  value={filterUser}
-                  onChange={e => setFilterUser(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                >
-                  <option value="">All Users</option>
-                  {userOptions.map(u => (
-                    <option key={u} value={u}>{u}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Time Window</label>
-                <select
-                  value={timeWindow}
-                  onChange={e => setTimeWindow(e.target.value as '8' | '16' | '24')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                >
-                  <option value="8">Last 8 hours</option>
-                  <option value="16">Last 16 hours</option>
-                  <option value="24">Last 24 hours</option>
-                </select>
-              </div>
-              <div className="flex gap-2 md:justify-end">
-                <button
-                  onClick={() => { setFilterDept(''); setFilterUser(''); setTimeWindow('24'); setShift('All'); }}
-                  className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
-                  Clear Filters
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-
       {/* Tab Navigation */}
       {(() => {
         const allReports = Object.values(reportsByShift).flat().filter(Boolean);
         const allRounds = Object.values(roundsByShift).flat().filter(Boolean);
         const tabs = [
+          ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: Shield, count: 0 }] : []),
           { id: 'patients', label: 'Patients', icon: Bed, count: visiblePatients.length },
           { id: 'ai-dashboard', label: 'AI Dashboard', icon: Brain, count: 0 },
           { id: 'staff', label: 'Active Staff', icon: Users, count: 0 },
@@ -1343,7 +1236,7 @@ export const HealthcareDashboard: React.FC = () => {
         ];
         if (tabs.length <= 1 && customTabs.length === 0) return null;
         return (
-          <div className="bg-white rounded-xl shadow-sm p-1 flex gap-1 overflow-x-auto items-center">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-1 flex gap-1 overflow-x-auto items-center">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1389,6 +1282,143 @@ export const HealthcareDashboard: React.FC = () => {
           </div>
         );
       })()}
+
+      {/* Admin Tab */}
+      {activeTab === 'admin' && user?.role === 'admin' && (
+        <div className="space-y-4">
+          {/* Log in as */}
+          <DashboardSection
+            title="Log in as"
+            icon={<Shield className="w-5 h-5 text-[#003153]" />}
+          >
+            <div className="flex flex-col md:flex-row md:items-end gap-3">
+              <div className="flex-1 min-w-[180px]">
+                <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1.5 block">Role</label>
+                <select
+                  value={impersonateRoleFilter}
+                  onChange={e => { setImpersonateRoleFilter(e.target.value); setImpersonateProfFilter(''); setImpersonateUserId(''); }}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium bg-gray-50 hover:bg-white hover:border-gray-300 focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all duration-200 cursor-pointer"
+                >
+                  <option value="">All Roles</option>
+                  <option value="staff">Staff</option>
+                  <option value="user">Users</option>
+                  <option value="viewer">Viewers</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[180px]">
+                <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1.5 block">Profession</label>
+                <select
+                  value={impersonateProfFilter}
+                  onChange={e => { setImpersonateProfFilter(e.target.value); setImpersonateUserId(''); }}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium bg-gray-50 hover:bg-white hover:border-gray-300 focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all duration-200 cursor-pointer"
+                >
+                  <option value="">All Professions</option>
+                  {(() => {
+                    const byRole = allUsers.filter(u => !impersonateRoleFilter || u.role === impersonateRoleFilter);
+                    const profs = [...new Set(byRole.map(u => u.profession).filter(Boolean))];
+                    return profs.map(p => <option key={p} value={p}>{p}</option>);
+                  })()}
+                </select>
+              </div>
+              <div className="flex-1 min-w-[220px]">
+                <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1.5 block">User</label>
+                <select
+                  value={impersonateUserId}
+                  onChange={e => setImpersonateUserId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium bg-gray-50 hover:bg-white hover:border-gray-300 focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all duration-200 cursor-pointer"
+                >
+                  <option value="">Select user...</option>
+                  {allUsers
+                    .filter(u => !impersonateRoleFilter || u.role === impersonateRoleFilter)
+                    .filter(u => !impersonateProfFilter || u.profession === impersonateProfFilter)
+                    .map((u: User) => (
+                      <option key={u.id} value={String(u.id)}>
+                        {u.name || u.username} {u.department ? `• ${u.department}` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (!impersonateUserId || !impersonate) return;
+                    const ok = await impersonate({ userId: impersonateUserId });
+                    if (ok) {
+                      window.location.reload();
+                    }
+                  }}
+                  disabled={!impersonateUserId}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700 transition-colors"
+                  title="Log in as this user (replaces your session)"
+                >
+                  Login As
+                </button>
+                <button
+                  onClick={() => setImpersonateUserId('')}
+                  className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </DashboardSection>
+
+          {/* Filters */}
+          <DashboardSection
+            title="Dashboard Filters"
+            icon={<Activity className="w-5 h-5 text-[#003153]" />}
+            actions={
+              <button
+                onClick={() => { setFilterDept(''); setFilterUser(''); setTimeWindow('24'); setShift('All'); }}
+                className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Clear Filters
+              </button>
+            }
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Department</label>
+                <select
+                  value={filterDept}
+                  onChange={e => setFilterDept(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent bg-gray-50 text-sm"
+                >
+                  <option value="">All Departments</option>
+                  {departmentOptions.map(dep => (
+                    <option key={dep} value={String(dep)}>{String(dep)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">User</label>
+                <select
+                  value={filterUser}
+                  onChange={e => setFilterUser(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent bg-gray-50 text-sm"
+                >
+                  <option value="">All Users</option>
+                  {userOptions.map(u => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Time Window</label>
+                <select
+                  value={timeWindow}
+                  onChange={e => setTimeWindow(e.target.value as '8' | '16' | '24')}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent bg-gray-50 text-sm"
+                >
+                  <option value="8">Last 8 hours</option>
+                  <option value="16">Last 16 hours</option>
+                  <option value="24">Last 24 hours</option>
+                </select>
+              </div>
+            </div>
+          </DashboardSection>
+        </div>
+      )}
 
       {/* Patients Tab */}
       {activeTab === 'patients' && (
@@ -1469,7 +1499,7 @@ export const HealthcareDashboard: React.FC = () => {
                   {patientPage * PATIENTS_PER_PAGE < visiblePatients.length && (
                     <button
                       onClick={() => setPatientPage(p => p + 1)}
-                      className="px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-600 transition-colors"
+                      className="px-3 py-1.5 text-sm font-medium text-white bg-[#003153] rounded-lg hover:bg-[#002240] transition-colors"
                     >
                       Load More
                     </button>
@@ -1528,7 +1558,7 @@ export const HealthcareDashboard: React.FC = () => {
                         <div key={sub.id} className="border border-gray-100 rounded-lg p-3 bg-white">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-gray-900">{sub.template_name as string || 'Audit'}</span>
-                            <span className="text-xs text-gray-500">{bestDate ? new Date(String(bestDate)).toLocaleString() : ''}</span>
+                            <span className="text-xs text-gray-500">{bestDate ? new Date(new Date(String(bestDate)).getTime() + 3 * 3600 * 1000).toLocaleString() : ''}</span>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {Object.entries(fd).slice(0, 8).map(([k, v]) => (
@@ -1562,12 +1592,12 @@ export const HealthcareDashboard: React.FC = () => {
             title={(resourceMappings.length === 1 ? (resourceMappings[0].displayName || 'Resources') : 'Resource Handover Status')}
             icon={<Package className="w-5 h-5 text-green-600" />}
             actions={(
-              <button
-                onClick={() => window.location.href = '#/resources'}
-                className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                Update Inventory
-              </button>
+                    <button
+                      onClick={() => window.location.href = '#/resources'}
+                      className="bg-[#003153] hover:bg-[#002240] text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                    >
+                      Update Inventory
+                    </button>
             )}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1597,7 +1627,7 @@ export const HealthcareDashboard: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-xs text-gray-500">
                       <span>Last Updated:</span>
-                      <span>{new Date(resource.lastUpdated).toLocaleTimeString()}</span>
+                      <span>{new Date(new Date(resource.lastUpdated).getTime() + 3 * 3600 * 1000).toLocaleTimeString()}</span>
                     </div>
                   </div>
                 </div>
@@ -1609,7 +1639,14 @@ export const HealthcareDashboard: React.FC = () => {
 
       {/* Inventory Tab */}
       {activeTab === 'inventory' && isNurseOrMidwife && (() => {
-        const allReports = Object.values(reportsByShift).flat().filter(Boolean).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const now = Date.now();
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        const allReports = Object.values(reportsByShift).flat().filter(Boolean)
+          .filter((report: any) => {
+            const reportTime = new Date(new Date(report.date).getTime() + 3 * 3600 * 1000).getTime();
+            return (now - reportTime) < TWENTY_FOUR_HOURS;
+          })
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         const invSearchLower = query.trim().toLowerCase();
 
@@ -1619,11 +1656,11 @@ export const HealthcareDashboard: React.FC = () => {
           const expiry = item.expiry_date || item.expiry;
           const badges: { label: string; cls: string; icon: React.ReactNode }[] = [];
           if (expiry) {
-            const d = new Date(expiry);
+            const d = new Date(new Date(expiry).getTime() + 3 * 3600 * 1000);
             if (!isNaN(d.getTime())) {
-              const now = new Date();
-              const diffDays = Math.ceil((d.getTime() - now.getTime()) / 86400000);
-              if (d < now) badges.push({ label: 'Expired', cls: 'bg-red-100 text-red-700', icon: <Flag className="w-3 h-3" /> });
+              const nowDate = new Date();
+              const diffDays = Math.ceil((d.getTime() - nowDate.getTime()) / 86400000);
+              if (d < nowDate) badges.push({ label: 'Expired', cls: 'bg-red-100 text-red-700', icon: <Flag className="w-3 h-3" /> });
               else if (diffDays <= 7) badges.push({ label: 'Near Expiry', cls: 'bg-amber-100 text-amber-700', icon: <AlertTriangle className="w-3 h-3" /> });
             }
           }
@@ -1640,7 +1677,6 @@ export const HealthcareDashboard: React.FC = () => {
 
         const renderResources = (resources: unknown) => {
           if (!resources) return null;
-          // Array format: [{ name, quantity, unit, type, ... }]
           if (Array.isArray(resources)) {
             const filtered = resources.filter(filterResource);
             if (filtered.length === 0) return invSearchLower ? <p className="text-sm text-gray-500 text-center py-4">No items match search</p> : <p className="text-sm text-gray-500 text-center py-4">No inventory items</p>;
@@ -1648,39 +1684,35 @@ export const HealthcareDashboard: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
-                      <th className="px-4 py-2 font-semibold">Name</th>
-                      <th className="px-4 py-2 font-semibold">Type</th>
-                      <th className="px-4 py-2 font-semibold">Qty</th>
-                      <th className="px-4 py-2 font-semibold">Unit</th>
-                      <th className="px-4 py-2 font-semibold">Standard</th>
-                      <th className="px-4 py-2 font-semibold">Expiry</th>
-                      <th className="px-4 py-2 font-semibold">Batch</th>
-                      <th className="px-4 py-2 font-semibold">Status</th>
+                    <tr className="text-left text-[10px] text-gray-400 uppercase tracking-wider">
+                      <th className="px-3 py-2 font-semibold">Name</th>
+                      <th className="px-3 py-2 font-semibold">Type</th>
+                      <th className="px-3 py-2 font-semibold text-right">Qty</th>
+                      <th className="px-3 py-2 font-semibold">Unit</th>
+                      <th className="px-3 py-2 font-semibold">Expiry</th>
+                      <th className="px-3 py-2 font-semibold">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody>
                     {filtered.map((item: any, idx: number) => {
                       const badges = resourceBadges(item);
                       return (
-                        <tr key={idx} className="hover:bg-gray-50/50">
-                          <td className="px-4 py-2 font-medium text-gray-800">{item.name || '-'}</td>
-                          <td className="px-4 py-2 text-gray-500">{item.type || '-'}</td>
-                          <td className="px-4 py-2 font-semibold text-gray-900">{item.quantity ?? '-'}</td>
-                          <td className="px-4 py-2 text-gray-500">{item.unit || '-'}</td>
-                          <td className="px-4 py-2 text-gray-500">{item.standard_quantity ?? item.standard ?? '-'}</td>
-                          <td className="px-4 py-2 text-gray-500">
+                        <tr key={idx} className="hover:bg-gray-50/80 rounded-lg transition-colors border-b border-gray-100 last:border-b-0">
+                          <td className="px-3 py-2 font-medium text-gray-800">{item.name || '-'}</td>
+                          <td className="px-3 py-2 text-gray-400">{item.type || '-'}</td>
+                          <td className="px-3 py-2 font-semibold text-gray-900 text-right">{item.quantity ?? '-'}</td>
+                          <td className="px-3 py-2 text-gray-400">{item.unit || '-'}</td>
+                          <td className="px-3 py-2 text-gray-400">
                             {item.expiry_date || item.expiry ? (
-                              <EthiopianDateDisplay date={item.expiry_date || item.expiry} format="short" />
+                              <EthiopianDateDisplay date={new Date(new Date(item.expiry_date || item.expiry).getTime() + 3 * 3600 * 1000)} format="amharic" />
                             ) : '-'}
                           </td>
-                          <td className="px-4 py-2 text-gray-500">{item.batch_number ?? item.batch ?? '-'}</td>
-                          <td className="px-4 py-2">
+                          <td className="px-3 py-2">
                             {badges.length > 0 ? (
-                              <div className="flex flex-wrap items-center gap-1.5">
+                              <div className="flex flex-wrap items-center gap-1">
                                 {badges.map((b, bi) => (
                                   <span key={bi} className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${b.cls}`}>
-                                    <span className="mr-1">{b.icon}</span>{b.label}
+                                    <span className="mr-0.5">{b.icon}</span>{b.label}
                                   </span>
                                 ))}
                               </div>
@@ -1696,7 +1728,6 @@ export const HealthcareDashboard: React.FC = () => {
               </div>
             );
           }
-          // Object format: { "DATABASE_URL": "67 Vial", ... }
           const entries = Object.entries(resources as Record<string, unknown>);
           const filteredEntries = invSearchLower ? entries.filter(([k, v]) => k.toLowerCase().includes(invSearchLower) || String(v).toLowerCase().includes(invSearchLower)) : entries;
           if (filteredEntries.length === 0) return invSearchLower ? <p className="text-sm text-gray-500 text-center py-4">No items match search</p> : <p className="text-sm text-gray-500 text-center py-4">No inventory items</p>;
@@ -1711,39 +1742,91 @@ export const HealthcareDashboard: React.FC = () => {
             </div>
           );
         };
+
+        const getInitials = (name: string) => {
+          if (!name) return '??';
+          const parts = name.trim().split(/\s+/);
+          return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+        };
+
+        const timeAgo = (date: string) => {
+          const reportTime = new Date(new Date(date).getTime() + 3 * 3600 * 1000).getTime();
+          const diffMs = now - reportTime;
+          const minutes = Math.floor(diffMs / 60000);
+          if (minutes < 1) return 'Just now';
+          if (minutes < 60) return `${minutes} minutes ago`;
+          const hours = Math.floor(minutes / 60);
+          if (hours === 1) return '1 hour ago';
+          if (hours < 24) return `${hours} hours ago`;
+          return `${Math.floor(hours / 24)} days ago`;
+        };
+
         return (
           <DashboardSection
-            title="Resource Inventory"
+            title="Inventory Timeline"
             icon={<Package className="w-5 h-5 text-green-600" />}
+            subtitle={`${allReports.length} record${allReports.length !== 1 ? 's' : ''}`}
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               {allReports.length > 0 ? (
-                allReports.map((report, idx) => (
-                  <div key={report.id || idx} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-                    <div className="px-4 py-3 bg-green-50/50 border-b border-green-100 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <Package className="w-4 h-4 text-green-600" />
+                allReports.map((report: any, idx: number) => {
+                  const reportId = report.id || `report-${idx}`;
+                  const isExpanded = expandedReport === reportId;
+                  const itemCount = Array.isArray(report.resources) ? report.resources.length : Object.keys(report.resources || {}).length;
+                  const displayNumber = allReports.length - idx;
+                  return (
+                    <div key={reportId} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-200">
+                      <button
+                        onClick={() => setExpandedReport(isExpanded ? null : reportId)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50/50 transition-colors"
+                      >
+                        <span className="text-[11px] font-bold text-gray-400 shrink-0 w-5 text-right">#{displayNumber}</span>
+                        <div className="w-10 h-10 rounded-xl bg-[#003153] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                          {getInitials(report.staffName)}
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{report.staffName}</p>
-                          <p className="text-xs text-gray-500">{new Date(report.date).toLocaleString()}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-gray-900">{report.staffName || 'Unknown'}</span>
+                            {Array.isArray(report.co_signers) && report.co_signers.length > 0 && (
+                              <span className="text-[10px] text-[#003153] bg-[#003153]/5 px-1.5 py-0.5 rounded font-medium">
+                                +{report.co_signers.length} co-sign{report.co_signers.length > 1 ? 'ers' : ''}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold text-gray-400">{itemCount} items</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-gray-500">{timeAgo(report.date)}</span>
+                            <span className="text-gray-300">·</span>
+                            <span className="text-[11px] text-gray-400">
+                              <EthiopianDateTimeDisplay date={new Date(new Date(report.date).getTime() + 3 * 3600 * 1000)} showTime format="long" />
+                            </span>
+                          </div>
+                          {Array.isArray(report.co_signers) && report.co_signers.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1 mt-1">
+                              {report.co_signers.map((name: string, i: number) => (
+                                <span key={i} className="inline-flex items-center gap-1 text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md">
+                                  <span className="w-3.5 h-3.5 rounded bg-gray-300 flex items-center justify-center text-[7px] font-bold text-white">{name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</span>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-100 text-green-700">
-                        {Array.isArray(report.resources) ? report.resources.length : Object.keys(report.resources || {}).length} items
-                      </span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                      {isExpanded && (
+                        <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                          {renderResources(report.resources)}
+                        </div>
+                      )}
                     </div>
-                    <div className="p-3">
-                      {renderResources(report.resources)}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                   <Package className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                   <h3 className="text-sm font-semibold text-gray-600">No Inventory Reports</h3>
-                  <p className="text-xs text-gray-400 mt-1">Inventory reports submitted will appear here.</p>
+                  <p className="text-xs text-gray-400 mt-1">No reports in the last 24 hours.</p>
                 </div>
               )}
             </div>
@@ -1902,7 +1985,7 @@ export const HealthcareDashboard: React.FC = () => {
                         ))}
                     </div>
                     <div className="mt-3 text-[10px] text-gray-400 text-right">
-                      {sub.submitted_at ? new Date(String(sub.submitted_at)).toLocaleString() : ''}
+                      {sub.submitted_at ? new Date(new Date(String(sub.submitted_at)).getTime() + 3 * 3600 * 1000).toLocaleString() : ''}
                     </div>
                   </div>
                 );
@@ -2014,7 +2097,7 @@ export const HealthcareDashboard: React.FC = () => {
                                   ))}
                               </div>
                               <div className="mt-3 text-[10px] text-gray-400 text-right">
-                                {sub.submitted_at ? new Date(String(sub.submitted_at)).toLocaleString() : ''}
+                                {sub.submitted_at ? new Date(new Date(String(sub.submitted_at)).getTime() + 3 * 3600 * 1000).toLocaleString() : ''}
                               </div>
                             </div>
                           );
@@ -2031,7 +2114,7 @@ export const HealthcareDashboard: React.FC = () => {
 
       {/* Add Custom Tab Modal */}
       {showAddTabModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
@@ -2046,7 +2129,7 @@ export const HealthcareDashboard: React.FC = () => {
 
             {/* Progress bar */}
             <div className="h-1 bg-gray-100 shrink-0">
-              <div className={`h-full bg-brand transition-all duration-300 ${tabModalStep === 'basic' ? 'w-1/2' : 'w-full'}`} />
+              <div className={`h-full bg-[#003153] transition-all duration-300 ${tabModalStep === 'basic' ? 'w-1/2' : 'w-full'}`} />
             </div>
 
             {/* Body */}
@@ -2068,7 +2151,7 @@ export const HealthcareDashboard: React.FC = () => {
                         }));
                       }}
                       placeholder="e.g. Maternity, Lab Results, Pharmacy..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent bg-gray-50 text-sm"
                     />
                     <p className="text-[11px] text-gray-400 mt-1">This becomes the identifier tag in dashboard mapping.</p>
                   </div>
@@ -2081,7 +2164,7 @@ export const HealthcareDashboard: React.FC = () => {
                       value={newTab.displayName || ''}
                       onChange={e => setNewTab(prev => ({ ...prev, displayName: e.target.value }))}
                       placeholder="Shown as section title (defaults to tab name)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent bg-gray-50 text-sm"
                     />
                   </div>
 
@@ -2101,7 +2184,7 @@ export const HealthcareDashboard: React.FC = () => {
                           departments: tpl?.department ? [tpl.department] : prev.departments || [],
                         }));
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                     >
                       <option value="">Select a template...</option>
                       {availableTemplates.map(t => (
@@ -2124,7 +2207,7 @@ export const HealthcareDashboard: React.FC = () => {
                           onClick={() => setNewTab(prev => ({ ...prev, dashboardType: dt }))}
                           className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                             newTab.dashboardType === dt
-                              ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                              ? 'bg-[#003153] border-[#003153] text-white'
                               : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                           }`}
                         >
@@ -2145,7 +2228,7 @@ export const HealthcareDashboard: React.FC = () => {
                         const next = dep ? (current.includes(dep) ? current : [dep, ...current.filter(d => d !== dep)]) : current.filter(d => d !== newTab.department);
                         setNewTab(prev => ({ ...prev, department: dep, departments: next }));
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                     >
                       <option value="">All Departments</option>
                       {getAllDepartments().map(d => (
@@ -2158,7 +2241,7 @@ export const HealthcareDashboard: React.FC = () => {
                         {getAllDepartments().map(d => {
                           const checked = (newTab.departments || []).includes(d);
                           return (
-                            <label key={d} className={`inline-flex items-center px-2 py-1 rounded-md border text-[11px] font-medium cursor-pointer transition-colors ${checked ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                            <label key={d} className={`inline-flex items-center px-2 py-1 rounded-md border text-[11px] font-medium cursor-pointer transition-colors ${checked ? 'bg-[#003153] border-[#003153] text-white' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
                               <input type="checkbox" className="sr-only" checked={checked}
                                 onChange={() => {
                                   const current = newTab.departments || [];
@@ -2180,7 +2263,7 @@ export const HealthcareDashboard: React.FC = () => {
                     <select
                       value={newTab.profession || ''}
                       onChange={e => setNewTab(prev => ({ ...prev, profession: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                     >
                       <option value="">All Professions</option>
                       {PROFESSIONS.map(p => (<option key={p} value={p}>{p}</option>))}
@@ -2196,7 +2279,7 @@ export const HealthcareDashboard: React.FC = () => {
                     <select
                       value={newTab.groupByField || ''}
                       onChange={e => setNewTab(prev => ({ ...prev, groupByField: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                     >
                       <option value="">No grouping (flat list)</option>
                       {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -2211,7 +2294,7 @@ export const HealthcareDashboard: React.FC = () => {
                       <select
                         value={newTab.cardFields?.primary || ''}
                         onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, primary: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                       >
                         <option value="">Select field...</option>
                         {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -2223,7 +2306,7 @@ export const HealthcareDashboard: React.FC = () => {
                       <select
                         value={newTab.cardFields?.secondary || ''}
                         onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, secondary: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                       >
                         <option value="">Select field...</option>
                         {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -2238,7 +2321,7 @@ export const HealthcareDashboard: React.FC = () => {
                       <select
                         value={newTab.cardFields?.status || ''}
                         onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, status: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                       >
                         <option value="">Select field...</option>
                         {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -2250,7 +2333,7 @@ export const HealthcareDashboard: React.FC = () => {
                       <select
                         value={newTab.cardFields?.identifier || ''}
                         onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, identifier: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                       >
                         <option value="">Select field...</option>
                         {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -2264,7 +2347,7 @@ export const HealthcareDashboard: React.FC = () => {
                     <select
                       value={newTab.cardFields?.nurse || ''}
                       onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, nurse: e.target.value } }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
                     >
                       <option value="">Select field...</option>
                       {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -2280,7 +2363,7 @@ export const HealthcareDashboard: React.FC = () => {
                         const values = Array.from((e.target as HTMLSelectElement).selectedOptions).map(o => o.value);
                         setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, extraFields: values } }));
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm h-28 bg-white"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm h-28 bg-gray-50"
                     >
                       {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
                     </select>
@@ -2295,7 +2378,7 @@ export const HealthcareDashboard: React.FC = () => {
               {tabModalStep === 'fields' ? (
                 <button
                   onClick={() => setTabModalStep('basic')}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium"
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
                 >
                   Back
                 </button>
@@ -2305,7 +2388,7 @@ export const HealthcareDashboard: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowAddTabModal(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium"
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -2313,7 +2396,7 @@ export const HealthcareDashboard: React.FC = () => {
                   <button
                     onClick={() => setTabModalStep('fields')}
                     disabled={!newTab.name?.trim() || !newTab.templateId}
-                    className="px-4 py-2 rounded-lg bg-brand text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-600 text-sm font-medium"
+                    className="px-4 py-2 rounded-lg bg-[#003153] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#002240] text-sm font-medium transition-colors"
                   >
                     Next: Field Mapping
                   </button>
@@ -2321,7 +2404,7 @@ export const HealthcareDashboard: React.FC = () => {
                   <button
                     onClick={handleAddTab}
                     disabled={!newTab.cardFields?.primary}
-                    className="px-4 py-2 rounded-lg bg-brand text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-600 text-sm font-medium"
+                    className="px-4 py-2 rounded-lg bg-[#003153] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#002240] text-sm font-medium transition-colors"
                   >
                     Add Tab
                   </button>

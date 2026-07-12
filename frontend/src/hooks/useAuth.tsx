@@ -64,6 +64,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    // Log audit trail entry before clearing session
+    fetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
     setUser(null);
     setActiveOperator(null);
     localStorage.removeItem('isbar_user');
@@ -132,7 +134,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         profession: target.profession,
         isActive: target.isActive ?? true,
         permissions,
-        createdAt: target.createdAt
+        createdAt: target.createdAt,
+        token: user?.token
       } as any;
       
       // Save root admin user before replacing

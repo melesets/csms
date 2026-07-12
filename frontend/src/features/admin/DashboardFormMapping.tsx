@@ -1,6 +1,6 @@
 // Dashboard form mapping - admin config for form-to-dashboard field mapping
 import React, { useState, useEffect, useMemo } from 'react';
-import { Save, Plus, Trash2, Settings, Eye, EyeOff, ChevronDown, ChevronRight, Copy, Search, X } from 'lucide-react';
+import { Save, Plus, Trash2, LayoutDashboard, Eye, EyeOff, ChevronDown, ChevronRight, Copy, Search, X, Pencil } from 'lucide-react';
 import { PROFESSIONS } from '../../types/auth';
 import { useDepartments } from '../../hooks/useDepartments';
 
@@ -104,6 +104,7 @@ export const DashboardFormMapping: React.FC = () => {
 
       const parsedTemplates = templatesData.map((template: any) => ({
         ...template,
+        isActive: template.is_active ?? template.isActive ?? false,
         fields: typeof template.fields === 'string' ? JSON.parse(template.fields) : (template.fields || []),
         sections: template.sections === null ? [] : (typeof template.sections === 'string' ? JSON.parse(template.sections) : (template.sections || []))
       }));
@@ -274,19 +275,20 @@ export const DashboardFormMapping: React.FC = () => {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 bg-[#003153] rounded-xl flex items-center justify-center flex-shrink-0">
+          <LayoutDashboard className="w-6 h-6 text-white" />
+        </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard Form Mapping</h2>
-          <p className="text-gray-600 mt-1">
-            Configure which forms appear on user dashboards and how they're displayed
-          </p>
+          <h2 className="text-lg font-bold text-gray-900">Dashboard Form Mapping</h2>
+          <p className="text-sm text-gray-400">Configure which forms appear on user dashboards and how they're displayed</p>
         </div>
       </div>
 
       {/* Current Mappings */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Active Dashboard Mappings</h3>
+          <h3 className="text-lg font-bold text-gray-900">Active Dashboard Mappings</h3>
           {mappings.length > 0 && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -295,7 +297,7 @@ export const DashboardFormMapping: React.FC = () => {
                 placeholder="Search mappings..."
                 value={mappingSearch}
                 onChange={e => setMappingSearch(e.target.value)}
-                className="pl-9 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="pl-9 pr-8 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {mappingSearch && (
                 <button onClick={() => setMappingSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -308,7 +310,7 @@ export const DashboardFormMapping: React.FC = () => {
 
         {filteredMappings.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <Settings className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <LayoutDashboard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <p>{mappingSearch ? 'No mappings match your search.' : 'No dashboard mappings configured yet.'}</p>
           </div>
         ) : (
@@ -318,19 +320,19 @@ export const DashboardFormMapping: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${mapping.dashboardType === 'patient' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${mapping.dashboardType === 'patient' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
                         {mapping.dashboardType?.toUpperCase()}
                       </span>
-                      <h4 className="font-medium text-gray-900">{mapping.displayName}</h4>
-                      <span className="text-sm text-gray-500">
+                      <h4 className="font-medium text-gray-900 text-sm">{mapping.displayName}</h4>
+                      <span className="text-xs text-gray-400">
                         ({mapping.department}{mapping.departments && mapping.departments.length > 1 ? ` +${mapping.departments.length - 1} more` : ''})
                       </span>
                       {mapping.identifier && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
                           {mapping.identifier}
                         </span>
                       )}
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
                         {mapping.profession || 'All'}
                       </span>
                     </div>
@@ -343,28 +345,28 @@ export const DashboardFormMapping: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={() => toggleMappingStatus(mapping)}
-                      className={`p-2 rounded-lg transition-colors ${mapping.isEnabled ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-50'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${mapping.isEnabled ? 'text-emerald-500 hover:bg-emerald-50' : 'text-gray-400 hover:bg-gray-100'}`}
                       title={mapping.isEnabled ? 'Disable' : 'Enable'}
                     >
                       {mapping.isEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => handleEditMapping(mapping)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-[#003153] hover:bg-gray-100 rounded-lg transition-colors"
                       title="Edit mapping"
                     >
-                      <Settings className="w-4 h-4" />
+                      <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleCloneMapping(mapping)}
-                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Clone mapping"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteMapping(mapping.id!)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       title="Delete mapping"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -378,10 +380,10 @@ export const DashboardFormMapping: React.FC = () => {
       </div>
 
       {/* Available Templates */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Active Form Templates</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Available Active Form Templates</h3>
         <div className="space-y-3">
-          {templates.filter(t => t.is_active).map((template) => {
+          {templates.filter(t => t.isActive ?? t.is_active).map((template) => {
             const hasMapping = mappings.some(m => m.formTemplateId === template.id);
             const isExpanded = expandedTemplate === template.id;
             return (
@@ -389,24 +391,24 @@ export const DashboardFormMapping: React.FC = () => {
                 <div className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <button onClick={() => setExpandedTemplate(isExpanded ? null : template.id)} className="p-1 hover:bg-gray-100 rounded">
-                        {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+                      <button onClick={() => setExpandedTemplate(isExpanded ? null : template.id)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                        {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                       </button>
                       <div>
-                        <h4 className="font-medium text-gray-900">{template.name}</h4>
-                        <p className="text-sm text-gray-500">{template.department} • {template.fields.length} fields</p>
+                        <h4 className="font-medium text-gray-900 text-sm">{template.name}</h4>
+                        <p className="text-xs text-gray-400">{template.department} · {template.fields.length} fields</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       {hasMapping && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Mapped</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Mapped</span>
                       )}
                       {!hasMapping && (
                         <button
                           onClick={() => handleCreateMapping(template)}
-                          className="inline-flex items-center px-3 py-1.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
+                          className="inline-flex items-center px-3 py-1.5 bg-[#003153] text-white text-xs font-semibold rounded-lg hover:bg-[#002640] transition-colors"
                         >
-                          <Plus className="w-4 h-4 mr-1" />
+                          <Plus className="w-3.5 h-3.5 mr-1" />
                           Create Mapping
                         </button>
                       )}
@@ -434,7 +436,7 @@ export const DashboardFormMapping: React.FC = () => {
       {/* Mapping Form Modal */}
       {showMappingForm && editingMapping && selectedTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               {editingMapping.id ? 'Edit Dashboard Mapping' : 'Create Dashboard Mapping'}
             </h3>
@@ -457,7 +459,7 @@ export const DashboardFormMapping: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Display Name *</label>
                   <input type="text" value={editingMapping.displayName}
                     onChange={(e) => setEditingMapping({ ...editingMapping, displayName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -469,7 +471,7 @@ export const DashboardFormMapping: React.FC = () => {
                       value={editingMapping.identifier || ''}
                       onChange={(e) => setEditingMapping({ ...editingMapping, identifier: e.target.value })}
                       placeholder="Type or select an identifier..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     {editingMapping.identifier && (
                       <button
@@ -502,7 +504,7 @@ export const DashboardFormMapping: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Dashboard Type *</label>
                   <select value={editingMapping.dashboardType}
                     onChange={(e) => setEditingMapping({ ...editingMapping, dashboardType: e.target.value as 'patient' | 'resource' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="patient">Patient Handover</option>
                     <option value="resource">Resource Handover</option>
@@ -512,7 +514,7 @@ export const DashboardFormMapping: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Profession</label>
                   <select value={editingMapping.profession || ''}
                     onChange={(e) => setEditingMapping({ ...editingMapping, profession: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">All</option>
                     {PROFESSIONS.map(p => (<option key={p} value={p}>{p}</option>))}
@@ -527,7 +529,7 @@ export const DashboardFormMapping: React.FC = () => {
                       const next = dep ? (current.includes(dep) ? current : [dep, ...current.filter(d => d !== dep)]) : current.filter(d => d !== editingMapping.department);
                       setEditingMapping({ ...editingMapping, department: dep, departments: next });
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select department...</option>
                     {allDepartments.map((d) => (<option key={d} value={d}>{d}</option>))}
@@ -541,7 +543,7 @@ export const DashboardFormMapping: React.FC = () => {
                     {allDepartments.map((d) => {
                       const checked = (editingMapping.departments || []).includes(d);
                       return (
-                        <label key={d} className={`inline-flex items-center px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${checked ? 'bg-brand-50 border-brand text-brand-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                        <label key={d} className={`inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${checked ? 'bg-[#003153] border-[#003153] text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                           <input type="checkbox" className="sr-only" checked={checked}
                             onChange={() => {
                               const current = editingMapping.departments || [];
@@ -569,7 +571,7 @@ export const DashboardFormMapping: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Primary Field (Main Title) *</label>
                     <select value={editingMapping.cardFields.primary}
                       onChange={(e) => setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, primary: e.target.value } })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select field...</option>
                       {getFieldOptions(selectedTemplate).map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -579,7 +581,7 @@ export const DashboardFormMapping: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Field (Subtitle)</label>
                     <select value={editingMapping.cardFields.secondary}
                       onChange={(e) => setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, secondary: e.target.value } })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select field...</option>
                       {getFieldOptions(selectedTemplate).map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -591,7 +593,7 @@ export const DashboardFormMapping: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status Field (Badge)</label>
                     <select value={editingMapping.cardFields.status}
                       onChange={(e) => setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, status: e.target.value } })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select field...</option>
                       {getFieldOptions(selectedTemplate).map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -601,7 +603,7 @@ export const DashboardFormMapping: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Identifier Field (Bed/ID)</label>
                     <select value={editingMapping.cardFields.identifier}
                       onChange={(e) => setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, identifier: e.target.value } })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select field...</option>
                       {getFieldOptions(selectedTemplate).map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -613,7 +615,7 @@ export const DashboardFormMapping: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nurse Name Field</label>
                     <select value={editingMapping.cardFields.nurse || ''}
                       onChange={(e) => setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, nurse: e.target.value } })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select field...</option>
                       {getFieldOptions(selectedTemplate).map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
@@ -639,8 +641,8 @@ export const DashboardFormMapping: React.FC = () => {
               </div>
 
               {/* Advanced Options */}
-              <div className="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h4 className="text-sm font-semibold text-gray-900">Advanced Options</h4>
+              <div className="mt-6 p-4 border border-gray-200 rounded-xl bg-gray-50">
+                <h4 className="text-sm font-bold text-gray-900">Advanced Options</h4>
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Highlights (expanded card fields)</label>
                   <select multiple value={editingMapping.cardFields.extraFields || []}
@@ -661,11 +663,11 @@ export const DashboardFormMapping: React.FC = () => {
                     <div className="space-x-2">
                       <button type="button" onClick={() => {
                         setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, statusValueMap: { Critical: 'critical', Subcritical: 'unstable', Stable: 'stable' } } });
-                      }} className="text-xs px-2 py-1 bg-brand text-white rounded hover:bg-brand-600">Apply Defaults</button>
+                      }} className="text-[10px] font-semibold px-2 py-1 bg-[#003153] text-white rounded-lg hover:bg-[#002640] transition-colors">Apply Defaults</button>
                       <button type="button" onClick={() => {
                         const current = editingMapping.cardFields.statusValueMap || {};
                         setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, statusValueMap: { ...current, [`Value ${Object.keys(current).length + 1}`]: 'stable' } } });
-                      }} className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Add Row</button>
+                      }} className="text-[10px] font-semibold px-2 py-1 bg-gray-50 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">Add Row</button>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -689,7 +691,7 @@ export const DashboardFormMapping: React.FC = () => {
                           const current = { ...editingMapping.cardFields.statusValueMap! };
                           delete current[k];
                           setEditingMapping({ ...editingMapping, cardFields: { ...editingMapping.cardFields, statusValueMap: current } });
-                        }} className="px-2 py-2 text-red-600 hover:bg-red-50 rounded" title="Remove">✕</button>
+                        }} className="px-2 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors text-xs" title="Remove">✕</button>
                       </div>
                     ))}
                     {Object.keys(editingMapping.cardFields.statusValueMap || {}).length === 0 && (
@@ -701,12 +703,12 @@ export const DashboardFormMapping: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-200">
               <button onClick={() => { setShowMappingForm(false); setEditingMapping(null); setSelectedTemplate(null); setValidationErrors([]); }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                className="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">Cancel</button>
               <button onClick={handleSaveMapping}
-                className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-600 transition-colors flex items-center">
-                <Save className="w-4 h-4 mr-2" /> Save Mapping
+                className="px-4 py-2 bg-[#003153] text-white rounded-lg text-xs font-semibold hover:bg-[#002640] transition-colors inline-flex items-center gap-1.5">
+                <Save className="w-3.5 h-3.5" /> Save Mapping
               </button>
             </div>
           </div>

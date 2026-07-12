@@ -305,13 +305,19 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
       const dt = parseDateSafe(iso);
       if (isNaN(dt.getTime())) return 'Just now';
 
+      // Apply UTC+3 offset for Ethiopia
+      dt.setTime(dt.getTime() + 3 * 3600 * 1000);
+
       // If parsed date is in the future by more than 60s, try treating as UTC
       const now = Date.now();
       if (dt.getTime() - now > 60 * 1000) {
         // try append Z
         const alt = parseDateSafe(String(iso) + 'Z');
-        if (!isNaN(alt.getTime()) && alt.getTime() <= now) {
-          return timeAgo(alt);
+        if (!isNaN(alt.getTime())) {
+          alt.setTime(alt.getTime() + 3 * 3600 * 1000);
+          if (alt.getTime() <= now) {
+            return timeAgo(alt);
+          }
         }
       }
 

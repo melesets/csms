@@ -38,13 +38,13 @@ export const UserList: React.FC<UserListProps> = ({
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {
       case 'admin':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-50 text-red-700 border border-red-200';
       case 'staff':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-50 text-blue-700 border border-blue-200';
       case 'viewer':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-600 border border-gray-200';
       default:
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
     }
   };
 
@@ -52,14 +52,14 @@ export const UserList: React.FC<UserListProps> = ({
   const isLimitedAdmin = (user: User) => user.id === 'limited-admin-local';
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-bold text-gray-900">
           Users ({users.length})
         </h3>
-        <div className="text-sm text-gray-500">
-          <span className="inline-flex items-center">
-            <Shield className="w-4 h-4 text-purple-600 mr-1" />
+        <div className="text-xs text-gray-400">
+          <span className="inline-flex items-center gap-1">
+            <Shield className="w-3.5 h-3.5 text-[#003153]" />
             <span>Limited Admin</span>
           </span>
         </div>
@@ -120,7 +120,7 @@ export const UserList: React.FC<UserListProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${getRoleBadgeColor(user.role)}`}>
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </span>
                 </td>
@@ -146,14 +146,14 @@ export const UserList: React.FC<UserListProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                  {user.createdAt ? new Date(new Date(user.createdAt).getTime() + 3 * 3600 * 1000).toLocaleDateString() : 'N/A'}
                 </td>
                 {hasEditPermission && (
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
+                    <div className="flex justify-end gap-1">
                       <button
                         onClick={() => onSetPin(user)}
-                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-1.5 rounded-md'}`}
+                        className={`${isLimitedAdmin(user) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-[#003153] hover:bg-gray-100'} p-1.5 rounded-lg transition-colors`}
                         disabled={!hasEditPermission || isLimitedAdmin(user)}
                         title={isLimitedAdmin(user) ? 'Limited admin PIN cannot be changed' : 'Set Unit Access PIN'}
                       >
@@ -161,7 +161,7 @@ export const UserList: React.FC<UserListProps> = ({
                       </button>
                       <button
                         onClick={() => onRotateUnit(user)}
-                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-emerald-600 hover:text-emerald-900 bg-emerald-50 p-1.5 rounded-md'}`}
+                        className={`${isLimitedAdmin(user) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50'} p-1.5 rounded-lg transition-colors`}
                         disabled={!hasEditPermission || isLimitedAdmin(user)}
                         title={isLimitedAdmin(user) ? 'Limited admin cannot be rotated' : 'Rotate Unit (Change Department)'}
                       >
@@ -169,7 +169,7 @@ export const UserList: React.FC<UserListProps> = ({
                       </button>
                       <button
                         onClick={() => onEdit(user)}
-                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-900'}`}
+                        className={`${isLimitedAdmin(user) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-[#003153] hover:bg-gray-100'} p-1.5 rounded-lg transition-colors`}
                         disabled={!hasEditPermission || isLimitedAdmin(user)}
                         title={isLimitedAdmin(user) ? 'Limited admin cannot be edited' : 'Edit user'}
                       >
@@ -177,7 +177,7 @@ export const UserList: React.FC<UserListProps> = ({
                       </button>
                       <button
                         onClick={() => onToggleStatus(user.id)}
-                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-yellow-600 hover:text-yellow-900'}`}
+                        className={`${isLimitedAdmin(user) ? 'text-gray-300 cursor-not-allowed' : user.isActive ? 'text-gray-400 hover:text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50'} p-1.5 rounded-lg transition-colors`}
                         disabled={!hasEditPermission || isLimitedAdmin(user)}
                         title={isLimitedAdmin(user) ? 'Limited admin status cannot be changed' : user.isActive ? 'Deactivate user' : 'Activate user'}
                       >
@@ -189,7 +189,7 @@ export const UserList: React.FC<UserListProps> = ({
                       </button>
                       <button
                         onClick={() => onDelete(user.id)}
-                        className={`${isLimitedAdmin(user) ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`}
+                        className={`${isLimitedAdmin(user) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'} p-1.5 rounded-lg transition-colors`}
                         disabled={!hasEditPermission || isLimitedAdmin(user)}
                         title={isLimitedAdmin(user) ? 'Limited admin cannot be deleted' : 'Delete user'}
                       >

@@ -18,7 +18,11 @@ import {
   UserCircle,
   Shield,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  FileText,
+  LayoutDashboard,
+  Plug,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
@@ -36,8 +40,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { user, activeOperator, logout, hasPermission, revertImpersonation } = useAuth();
+  const { user, logout, hasPermission, revertImpersonation } = useAuth();
   const { shift, setShift, activeSession } = useShift();
   const isAdminImpersonating = !!localStorage.getItem('isbar_admin_impersonator');
   const { query, setQuery } = useSearch();
@@ -58,16 +63,27 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
 
   const sidebarExpanded = isCollapsed ? isHovering : true;
 
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard' },
-    { id: 'isbar', label: 'Report', icon: ClipboardList, module: 'isbar' },
-    { id: 'staff', label: 'Department Activity', icon: Users, module: 'staff' },
-    { id: 'resources', label: 'Resources', icon: Package, module: 'resources' },
-    { id: 'database', label: 'All Records', icon: Database, module: 'database' },
-    { id: 'trends', label: 'Analytics', icon: TrendingUp, module: 'trends' },
-    { id: 'form-builder', label: 'Form Builder', icon: Settings, module: 'form-builder', adminOnly: true },
-    { id: 'dashboard-mapping', label: 'Dashboard Mapping', icon: Settings, module: 'form-builder', adminOnly: true },
-    { id: 'user-management', label: 'User Management', icon: UserPlus, module: 'user-management', adminOnly: true },
+    { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard', group: 'main' as const },
+    { id: 'isbar', label: 'Report', icon: ClipboardList, module: 'isbar', group: 'main' as const },
+    { id: 'staff', label: 'Department Activity', icon: Users, module: 'staff', group: 'main' as const },
+    { id: 'resources', label: 'Resources', icon: Package, module: 'resources', group: 'main' as const },
+    { id: 'database', label: 'All Records', icon: Database, module: 'database', group: 'main' as const },
+    { id: 'trends', label: 'Analytics', icon: TrendingUp, module: 'trends', group: 'main' as const },
+    { id: 'form-builder', label: 'Form Builder', icon: FileText, module: 'form-builder', adminOnly: true, group: 'admin' as const },
+    { id: 'dashboard-mapping', label: 'Dashboard Mapping', icon: LayoutDashboard, module: 'form-builder', adminOnly: true, group: 'admin' as const },
+    { id: 'integrations', label: 'Integrations', icon: Plug, module: 'form-builder', adminOnly: true, group: 'admin' as const },
+    { id: 'user-management', label: 'User Management', icon: UserPlus, module: 'user-management', adminOnly: true, group: 'admin' as const },
+    { id: 'admin-settings', label: 'Settings', icon: Settings, module: 'user-management', adminOnly: true, group: 'admin' as const },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -86,14 +102,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
       <div
         onMouseEnter={handleSidebarEnter}
         onMouseLeave={handleSidebarLeave}
-        className={`fixed inset-y-0 left-0 z-50 ${sidebarExpanded ? 'w-64' : 'w-20'} bg-[#003153] text-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 lg:translate-x-0 lg:static lg:inset-0`}
+        className={`fixed inset-y-0 left-0 z-50 ${sidebarExpanded ? 'w-64' : 'w-20'} bg-[#003153] text-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}
       >
         <div className="flex items-center justify-between h-16 px-6 bg-[#003153] text-white border-b border-white/10">
           <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-white/10 border-2 border-white flex items-center justify-center mr-3 flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-white/10 border-2 border-white/20 flex items-center justify-center mr-3 flex-shrink-0 transition-all duration-300 group-hover:border-white/40">
               <Stethoscope className="w-6 h-6 text-white" />
             </div>
-            <h1 className={`text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>AGH-CSMS</h1>
+            <h1 className={`text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>AGH-CSMS</h1>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -103,8 +119,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
           </button>
         </div>
 
-        <nav className="mt-6">
-          {filteredMenuItems.map((item) => {
+        <nav className="mt-6 space-y-1">
+          {/* Main Navigation - always expanded */}
+          {filteredMenuItems.filter(item => item.group === 'main').map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
             return (
@@ -114,39 +131,92 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
                   onNavigate(item.id);
                   setIsSidebarOpen(false);
                 }}
-                className={`group w-full flex items-center ${sidebarExpanded ? 'px-6' : 'justify-center px-0'} py-3 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${isActive ? 'bg-white/20 text-white border-l-4 border-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
-                  }`}
+                className={`group w-full flex items-center ${sidebarExpanded ? 'px-6' : 'justify-center px-0'} py-3 text-left transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-lg mx-2 ${sidebarExpanded ? '' : 'w-[calc(100%-1rem)]'} ${
+                  isActive
+                    ? 'bg-white/15 text-white shadow-sm'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
                 title={!sidebarExpanded ? item.label : undefined}
               >
-                <Icon className={`w-5 h-5 flex-shrink-0 ${sidebarExpanded ? 'mr-3' : ''} ${isActive ? 'text-white' : 'text-white/80 group-hover:text-white'}`} />
-                <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>{item.label}</span>
+                <div className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out ${isActive ? 'bg-white/20' : 'group-hover:bg-white/10'}`}>
+                  <Icon className={`w-5 h-5 flex-shrink-0 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`} />
+                  {isActive && (
+                    <span className="absolute -left-5 w-1 h-5 bg-white rounded-r-full transition-all duration-300" />
+                  )}
+                </div>
+                <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto ml-3' : 'opacity-0 w-0'}`}>{item.label}</span>
               </button>
             );
           })}
+
+          {/* Admin Section - collapsible */}
+          {user?.role === 'admin' && filteredMenuItems.some(item => item.group === 'admin') && (
+            <div>
+              <div>
+                {sidebarExpanded && (
+                  <button
+                    onClick={() => toggleSection('admin')}
+                    className="w-full flex items-center justify-between px-6 py-1.5 group"
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Admin</span>
+                    <ChevronDown className={`w-3 h-3 text-white/30 transition-transform duration-300 ${collapsedSections.has('admin') ? '-rotate-90' : ''}`} />
+                  </button>
+                )}
+                {!sidebarExpanded && <div className="border-t border-white/10 mx-4 my-2" />}
+              </div>
+              {filteredMenuItems.filter(item => item.group === 'admin' && !collapsedSections.has('admin')).map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      onNavigate(item.id);
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`group w-full flex items-center ${sidebarExpanded ? 'px-6' : 'justify-center px-0'} py-3 text-left transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-lg mx-2 ${sidebarExpanded ? '' : 'w-[calc(100%-1rem)]'} ${
+                      isActive
+                        ? 'bg-white/15 text-white shadow-sm'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                    title={!sidebarExpanded ? item.label : undefined}
+                  >
+                    <div className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out ${isActive ? 'bg-white/20' : 'group-hover:bg-white/10'}`}>
+                      <Icon className={`w-5 h-5 flex-shrink-0 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`} />
+                      {isActive && (
+                        <span className="absolute -left-5 w-1 h-5 bg-white rounded-r-full transition-all duration-300" />
+                      )}
+                    </div>
+                    <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto ml-3' : 'opacity-0 w-0'}`}>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         {/* User Info */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
           <div className="flex items-center mb-2">
-            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-              <User className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center mr-3 flex-shrink-0 transition-all duration-300">
+              <User className="w-4 h-4 text-white/70" />
             </div>
-            <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
+            <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
               <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-xs text-white/70">{user?.department}</p>
+              <p className="text-xs text-white/50">{user?.department}</p>
             </div>
           </div>
           <button
             onClick={() => {
               logout();
             }}
-            className="w-full flex items-center justify-center px-3 py-2 text-sm text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center px-3 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white rounded-lg transition-all duration-300 ease-in-out"
             title={!sidebarExpanded ? 'Sign Out' : undefined}
           >
-            <LogOut className={`w-4 h-4 flex-shrink-0 ${sidebarExpanded ? 'mr-2' : ''}`} />
-            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>Sign Out</span>
+            <LogOut className={`w-4 h-4 flex-shrink-0 transition-all duration-300 ${sidebarExpanded ? 'mr-2' : ''}`} />
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>Sign Out</span>
           </button>
-          <p className={`text-center text-[10px] text-white/30 mt-3 transition-all duration-300 ${sidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>v2.0.0</p>
+          <p className={`text-center text-[10px] text-white/30 mt-3 transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100' : 'opacity-0'}`}>v2.0.0</p>
         </div>
       </div>
 
@@ -219,6 +289,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
                       return 'Form Builder';
                     case 'dashboard-mapping':
                       return 'Dashboard Mapping';
+                    case 'integrations':
+                      return 'Integrations';
                     case 'user-management':
                       return 'User Management';
                     case 'units':

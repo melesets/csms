@@ -46,7 +46,7 @@ export const ETHIOPIAN_MONTHS_SHORT = [
 ];
 
 export const ETHIOPIAN_MONTHS_AMHARIC = [
-  'መስከረም', 'ጥቅምት', 'ኅዳር', 'ταход', 'ጥር', 'የካቲት',
+  'መስከረም', 'ጥቅምት', 'ኅዳር', 'ታህሳስ', 'ጥር', 'የካቲት',
   'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ', 'ጳጉሜ'
 ];
 
@@ -350,7 +350,9 @@ export function getEthiopianWeekdayName(date: Date, format: 'full' | 'short' = '
  */
 export function formatEthiopianRelativeTime(date: Date | string): string {
   const now = new Date();
-  const then = typeof date === 'string' ? new Date(date) : date;
+  const thenRaw = typeof date === 'string' ? new Date(date) : new Date(date);
+  // Apply UTC+3 offset for Ethiopia
+  const then = new Date(thenRaw.getTime() + 3 * 3600 * 1000);
   const diffMs = now.getTime() - then.getTime();
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);

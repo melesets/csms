@@ -1,5 +1,5 @@
 // Resource management - inventory tracking with shift-based access control
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { apiPost, apiGet } from '../../api';
 import {
   Package, Pen, AlertTriangle, MinusCircle, Clock, Search, Plus,
@@ -10,6 +10,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
 import { Resource } from '../../types';
 import { gregorianToEthiopian, formatEthiopianDate } from '../../utils/ethiopianCalendar';
+import { CoSignModal } from '../../components/shared/CoSignModal';
+import { CustomSelect } from '../../components/shared/CustomSelect';
 import ExcelJS from 'exceljs';
 
 function ResourceManagement() {
@@ -35,6 +37,20 @@ function ResourceManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editResourceId, setEditResourceId] = useState<string | number | null>(null);
+  const [showCoSignModal, setShowCoSignModal] = useState(false);
+  const [pendingReport, setPendingReport] = useState<any>(null);
+  const [showReporterDropdown, setShowReporterDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowReporterDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   /* ─── Permissions ────────────────────────────────── */
   const isAdmin = user?.role === 'admin';
@@ -58,8 +74,7 @@ function ResourceManagement() {
         .then(data => {
           const checkedIn = data.filter((s: any) => s.session_id);
           setActiveStaffList(checkedIn);
-          if (checkedIn.length > 0 && !selectedReporterId) setSelectedReporterId(checkedIn[0].id.toString());
-          else if (checkedIn.length === 0) setSelectedReporterId('');
+          if (checkedIn.length === 0) setSelectedReporterId('');
         })
         .catch(() => {});
     }
@@ -79,7 +94,7 @@ function ResourceManagement() {
   const getResourceStatus = (r: Resource) => {
     const q = Number(r.quantity);
     const s = Number(r.standard_quantity as any);
-    const exp = new Date(r.expiry_date as any);
+    const exp = new Date(new Date(r.expiry_date as any).getTime() + 3 * 3600 * 1000);
     const hasStock = !isNaN(q) && q > 0;
     const isLow = !isNaN(q) && q <= 0 || (!isNaN(q) && !isNaN(s) && s > 0 && q > 0 && q < 2 && s >= 2);
     let isExpired = false;
@@ -281,77 +296,91 @@ function ResourceManagement() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleExport} disabled={!filteredResources.length}
-            className="px-4 py-2 bg-gray-50 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 disabled:opacity-40 inline-flex items-center gap-1.5 transition-colors">
+            className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-100 disabled:opacity-40 inline-flex items-center gap-1.5 transition-all duration-200">
             <Download className="w-4 h-4" />Export
           </button>
           {canEdit && (
             <button onClick={() => { setShowModal(true); setEditMode(false); setEditResourceId(null); setNewResource({ name: '', type: 'Drug', quantity: '', standardQuantity: '', unit: '', expiredDate: '', batchNumber: '' }); }}
-              className="px-4 py-2 bg-[#003153] text-white rounded-lg text-sm font-semibold hover:bg-[#002640] inline-flex items-center gap-1.5 transition-colors shadow-sm">
+              className="px-4 py-2 bg-[#003153] text-white rounded-xl text-sm font-semibold hover:bg-[#002640] inline-flex items-center gap-1.5 transition-all duration-200 shadow-sm">
               <Plus className="w-4 h-4" />Add Resource
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Reporting Section ────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-gray-100 rounded-lg shrink-0">
-              <Clock className="w-5 h-5 text-gray-600" />
+      {/* ── Reporter Card ───────────────────────────── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-[#003153]/5 flex items-center justify-center">
+              <Clock className="w-4.5 h-4.5 text-[#003153]" />
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              {hasCheckedInStaff && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Reporter</span>
-                    <select value={selectedReporterId} onChange={e => setSelectedReporterId(e.target.value)}
-                      className="text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer min-w-[200px]">
-                      {activeStaffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  </div>
-                </>
-              )}
-              {!hasCheckedInStaff && (
-                <span className="inline-flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg text-xs font-medium border border-amber-200 w-fit">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  No staff on duty
-                </span>
-              )}
+            <div>
+              <h3 className="text-sm font-bold text-gray-900">Report Submission</h3>
+              <p className="text-[11px] text-gray-400">Select a reporter to start co-signing</p>
             </div>
           </div>
 
-          <button disabled={!hasCheckedInStaff || !resources.length}
-            onClick={async () => {
-              if (!resources.length) { alert('No resources to save.'); return; }
-              const deptResources = resources.filter(r => r.department === user?.department);
-              const staff = activeStaffList.find(s => s.id.toString() === selectedReporterId);
-              const report = {
-                shift: currentGlobalShift || 'General', shift_session_id: activeSession?.id || null,
-                staffName: staff?.name || user?.name, staffId: staff?.id || user?.id,
-                department: user?.department || '', date: new Date().toISOString(),
-                resources: deptResources.map(r => ({ ...r })),
-              };
-              try {
-                await apiPost('/inventory-reports', report);
-                window.dispatchEvent(new CustomEvent('inventory_report_saved', { detail: { shift: report.shift, date: report.date, department: report.department, staffName: report.staffName } }));
-                alert('Inventory report saved successfully!');
-              } catch (err: any) { alert('Failed: ' + (err?.message || err)); }
-            }}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-2 transition-colors ${
-              hasCheckedInStaff && resources.length
-                ? 'bg-[#003153] text-white hover:bg-[#0026400] shadow-sm'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}>
-            <Package className="w-4 h-4" />
-            {!hasCheckedInStaff ? 'Waiting for check-in' : 'Save Inventory Report'}
-          </button>
+          {hasCheckedInStaff ? (
+            <div className="relative" ref={dropdownRef}>
+              <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1.5 block">Reporter</label>
+              <button
+                type="button"
+                onClick={() => setShowReporterDropdown(!showReporterDropdown)}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-left bg-gray-50 hover:bg-white hover:border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 cursor-pointer flex items-center justify-between"
+              >
+                {selectedReporterId ? (
+                  <span className="text-gray-900">
+                    {activeStaffList.find(s => s.id.toString() === selectedReporterId)?.name}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">Select reporter...</span>
+                )}
+                <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showReporterDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showReporterDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                  <div className="max-h-48 overflow-y-auto">
+                    {activeStaffList.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedReporterId(s.id.toString());
+                          setShowReporterDropdown(false);
+                          if (!resources.length) { alert('No resources to save.'); return; }
+                          const deptResources = resources.filter(r => r.department === user?.department);
+                          const report = {
+                            shift: currentGlobalShift || 'General', shift_session_id: activeSession?.id || null,
+                            staffName: s.name, staffId: s.id,
+                            department: user?.department || '', date: new Date().toISOString(),
+                            resources: deptResources.map(r => ({ ...r })),
+                          };
+                          setPendingReport(report);
+                          setShowCoSignModal(true);
+                        }}
+                        className={`block w-full px-4 py-2.5 text-sm text-left transition-colors duration-150 ${
+                          selectedReporterId === s.id.toString()
+                            ? 'bg-gray-100 text-gray-900 font-semibold'
+                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="inline-flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2.5 rounded-lg text-xs font-medium border border-amber-200/60">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              Waiting for staff check-in...
+            </span>
+          )}
         </div>
-        {!hasCheckedInStaff && (
-          <p className="text-xs text-amber-600 mt-3 ml-12">
-            Staff must check in from the dashboard before inventory can be edited and reports saved.
-          </p>
-        )}
       </div>
 
       {/* ── Stat Cards ──────────────────────────────── */}
@@ -382,36 +411,50 @@ function ResourceManagement() {
               value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
           </div>
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="All">All Types</option>
-            <option value="Drug">Drug</option>
-            <option value="Equipment">Equipment</option>
-          </select>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="All">All Status</option>
-            <option value="OK">OK</option>
-            <option value="Low Stock">Low Stock</option>
-            <option value="Near Expiry">Near Expiry</option>
-            <option value="Expired">Expired</option>
-          </select>
+          <CustomSelect
+            value={filterType}
+            onChange={setFilterType}
+            options={[
+              { value: 'All', label: 'All Types' },
+              { value: 'Drug', label: 'Drug' },
+              { value: 'Equipment', label: 'Equipment' },
+            ]}
+          />
+          <CustomSelect
+            value={filterStatus}
+            onChange={setFilterStatus}
+            options={[
+              { value: 'All', label: 'All Status' },
+              { value: 'OK', label: 'OK' },
+              { value: 'Low Stock', label: 'Low Stock' },
+              { value: 'Near Expiry', label: 'Near Expiry' },
+              { value: 'Expired', label: 'Expired' },
+            ]}
+          />
           {isAdmin && (
             <>
-              <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[140px]">
-                <option value="">All Depts</option>
-                {Array.from(new Set(resources.map(r => r.department).filter(Boolean))).map(d => (
-                  <option key={d} value={String(d)}>{String(d)}</option>
-                ))}
-              </select>
-              <select value={userFilter} onChange={e => setUserFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[140px]">
-                <option value="">Live Inventory</option>
-                {Array.from(new Set(reports.map(r => r.staffName).filter(Boolean))).map(n => (
-                  <option key={n} value={String(n)}>{String(n)}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={deptFilter}
+                onChange={setDeptFilter}
+                options={[
+                  { value: '', label: 'All Depts' },
+                  ...Array.from(new Set(resources.map(r => r.department).filter(Boolean))).map(d => ({
+                    value: String(d), label: String(d)
+                  })),
+                ]}
+                className="min-w-[140px]"
+              />
+              <CustomSelect
+                value={userFilter}
+                onChange={setUserFilter}
+                options={[
+                  { value: '', label: 'Live Inventory' },
+                  ...Array.from(new Set(reports.map(r => r.staffName).filter(Boolean))).map(n => ({
+                    value: String(n), label: String(n)
+                  })),
+                ]}
+                className="min-w-[140px]"
+              />
             </>
           )}
           {(search || filterType !== 'All' || filterStatus !== 'All' || deptFilter || userFilter) && (
@@ -449,7 +492,7 @@ function ResourceManagement() {
                 const st = getResourceStatus(resource);
                 const cfg = statusConfig[st];
                 const StatusIcon = cfg.icon;
-                const exp = resource.expiry_date ? new Date(resource.expiry_date) : null;
+                const exp = resource.expiry_date ? new Date(new Date(resource.expiry_date).getTime() + 3 * 3600 * 1000) : null;
                 const diffDays = exp && !isNaN(exp.getTime()) ? Math.ceil((exp.getTime() - now.getTime()) / 86400000) : null;
                 return (
                   <tr key={resource.id} className="hover:bg-gray-50">
@@ -615,6 +658,24 @@ function ResourceManagement() {
           </div>
         </div>
       )}
+
+      <CoSignModal
+        isOpen={showCoSignModal}
+        onClose={() => { setShowCoSignModal(false); setPendingReport(null); }}
+        onConfirm={async (coSigners) => {
+          if (!pendingReport) return;
+          const report = { ...pendingReport, co_signers: coSigners };
+          try {
+            await apiPost('/inventory-reports', report);
+            window.dispatchEvent(new CustomEvent('inventory_report_saved', { detail: { shift: report.shift, date: report.date, department: report.department, staffName: report.staffName } }));
+            alert('Inventory report saved successfully!');
+          } catch (err: any) { alert('Failed: ' + (err?.message || err)); }
+          setShowCoSignModal(false);
+          setPendingReport(null);
+        }}
+        staffList={activeStaffList}
+        currentStaffName={activeStaffList.find(s => s.id.toString() === selectedReporterId)?.name || user?.name || ''}
+      />
     </div>
   );
 }

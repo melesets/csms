@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Plus, Move, Settings, Eye } from 'lucide-react';
+import { Layers, Plus } from 'lucide-react';
 
 interface FormBuilderGuideProps {
   onAddSection: () => void;
@@ -64,7 +64,7 @@ export const FormBuilderGuide: React.FC<FormBuilderGuideProps> = ({
         
         <button
           onClick={onAddSection}
-          className="inline-flex items-center px-6 py-3 bg-brand text-white rounded-lg hover:bg-brand-600 mt-6"
+          className="inline-flex items-center px-6 py-3 bg-[#003153] text-white rounded-lg hover:bg-[#002640] mt-6 text-sm font-semibold transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create First Section
@@ -95,31 +95,5 @@ export const FormBuilderGuide: React.FC<FormBuilderGuideProps> = ({
     );
   }
 
-  // Has sections - show tips
-  return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-      <h4 className="text-sm font-medium text-blue-900 mb-3 flex items-center">
-        <Eye className="w-4 h-4 mr-2" />
-        Form Builder Tips
-      </h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-blue-700">
-        <div className="flex items-start space-x-2">
-          <Move className="w-3 h-3 mt-0.5 flex-shrink-0" />
-          <span>Drag fields from the library to sections</span>
-        </div>
-        <div className="flex items-start space-x-2">
-          <Settings className="w-3 h-3 mt-0.5 flex-shrink-0" />
-          <span>Click fields to edit their properties</span>
-        </div>
-        <div className="flex items-start space-x-2">
-          <Layers className="w-3 h-3 mt-0.5 flex-shrink-0" />
-          <span>Use the "Sections" tab to manage sections</span>
-        </div>
-        <div className="flex items-start space-x-2">
-          <Eye className="w-3 h-3 mt-0.5 flex-shrink-0" />
-          <span>Click "Preview" to test your form</span>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 };

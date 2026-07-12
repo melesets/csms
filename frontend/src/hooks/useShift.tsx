@@ -37,7 +37,6 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const refreshShiftContext = useCallback(async () => {
     if (!user || !user.department || user.role === 'admin') {
-      // Fallback for admin or logged-out
       setShiftContext({ current: 'All', isHandoverWindow: false, minutesToHandover: null });
       setShift('All');
       return;
@@ -47,7 +46,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const data = await apiGet(`/shifts/context?department=${encodeURIComponent(user.department)}`);
       setShiftContext(data);
       setShift(data.current);
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.status === 401) return;
       console.error('Failed to refresh shift context:', err);
     }
   }, [user]);

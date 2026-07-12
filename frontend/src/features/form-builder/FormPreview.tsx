@@ -24,46 +24,33 @@ export const FormPreview: React.FC<FormPreviewProps> = ({ template, onBack }) =>
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={onBack}
-              className="flex items-center text-gray-600 hover:text-gray-800"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
-            </button>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Form Preview</h2>
-              <p className="text-gray-600">
-                {template.name} • {template.department}
-              </p>
-            </div>
+        <div className="flex items-center gap-4">
+          <button onClick={onBack}
+            className="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 inline-flex items-center gap-1.5 transition-colors">
+            <ArrowLeft className="w-3.5 h-3.5" />Back
+          </button>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Form Preview</h2>
+            <p className="text-xs text-gray-400">{template.name} · {template.department}</p>
           </div>
         </div>
-        
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={isInteractive}
-              onChange={(e) => setIsInteractive(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label className="text-sm text-gray-700">Interactive Mode</label>
-          </div>
-          
-          <div className="flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-            <Play className="w-4 h-4 mr-1" />
-            Preview Mode
-          </div>
+
+        <div className="flex items-center gap-4">
+          <label className="inline-flex items-center gap-2 text-xs text-gray-700">
+            <input type="checkbox" checked={isInteractive} onChange={(e) => setIsInteractive(e.target.checked)}
+              className="w-3.5 h-3.5 text-[#003153] rounded border-gray-300 focus:ring-[#003153]" />
+            Interactive Mode
+          </label>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+            <Play className="w-3 h-3" />Preview Mode
+          </span>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
-          <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+          <h3 className="text-lg font-bold text-gray-900">{template.name}</h3>
+          <p className="text-xs text-gray-400 mt-1">{template.description}</p>
         </div>
         <div className="p-6">
           <DynamicFormRenderer

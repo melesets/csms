@@ -44,11 +44,15 @@ export const DepartmentStaffPanel = () => {
   const [requirePin, setRequirePin] = useState(true);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filterDept, setFilterDept] = useState('');
 
   const fetchStaff = async () => {
-    if (!user?.department || user.role === 'admin') return;
+    if (!user) return;
     try {
-      const data = await apiGet(`/shifts/active-staff/${encodeURIComponent(user.department)}`);
+      const url = user.role === 'admin'
+        ? '/shifts/active-staff'
+        : `/shifts/active-staff/${encodeURIComponent(user.department)}`;
+      const data = await apiGet(url);
       setStaff(data);
     } catch (err) {
       console.error('Failed to fetch department staff:', err);
@@ -67,10 +71,15 @@ export const DepartmentStaffPanel = () => {
     };
   }, [user]);
 
-  if (!user || user.role === 'admin' || !user.department) return null;
+  if (!user) return null;
 
-  const onlineStaff = staff.filter(s => s.session_id);
-  const offlineStaff = staff.filter(s => !s.session_id);
+  const isAdmin = user.role === 'admin';
+  const filteredStaff = isAdmin && filterDept
+    ? staff.filter(s => s.department === filterDept)
+    : staff;
+  const onlineStaff = filteredStaff.filter(s => s.session_id);
+  const offlineStaff = filteredStaff.filter(s => !s.session_id);
+  const departments = [...new Set(staff.map(s => s.department).filter(Boolean))].sort();
 
   const handleAction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,11 +201,26 @@ export const DepartmentStaffPanel = () => {
               <Users className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Active Staff — {user.department}</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                Active Staff — {isAdmin ? (filterDept || 'All Departments') : user.department}
+              </h1>
               <p className="text-sm text-gray-500">Tap a name to clock in or out</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {isAdmin && departments.length > 1 && (
+              <select
+                value={filterDept}
+                onChange={e => setFilterDept(e.target.value)}
+                className="px-3 py-1.5 text-xs font-semibold border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:ring-2 focus:ring-[#003153] focus:border-transparent"
+              >
+                <option value="">All Departments ({staff.length})</option>
+                {departments.map(d => {
+                  const count = staff.filter(s => s.department === d).length;
+                  return <option key={d} value={d}>{d} ({count})</option>;
+                })}
+              </select>
+            )}
             <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
               <span className="w-2 h-2 rounded-full bg-[#003153] animate-pulse" />
               <span className="text-xs font-semibold text-gray-600">{shiftContext?.current || '—'} Shift</span>
@@ -225,8 +249,31 @@ export const DepartmentStaffPanel = () => {
               <span className="w-2 h-2 rounded-full bg-gray-300" />
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Off Duty ({offlineStaff.length})</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
-              {offlineStaff.map(s => <StaffCard key={s.id} s={s} isOnline={false} />)}
+            <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+              {offlineStaff.map(s => {
+                const avatarColor = getAvatarColor(s.name);
+                const hasPhoto = s.profile_picture && s.profile_picture !== 'null' && s.profile_picture !== 'undefined' && s.profile_picture.length > 5;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => { setSelectedStaff(s); setRequirePin(!!s.has_pin); setPin(''); setError(''); }}
+                    className="flex items-center gap-3 px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors text-left w-full"
+                  >
+                    <div className={`relative w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}>
+                      {hasPhoto ? (
+                        <img src={getMediaUrl(s.profile_picture!)} alt={s.name} className="w-full h-full rounded-full object-cover" loading="lazy" decoding="async" />
+                      ) : (
+                        <span>{s.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-700 truncate">{s.name}</span>
+                      <span className="text-xs text-gray-400 ml-2">{s.profession}</span>
+                    </div>
+                    {s.department && <span className="text-[10px] text-gray-400 shrink-0">{s.department}</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -236,7 +283,12 @@ export const DepartmentStaffPanel = () => {
             <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Users className="w-7 h-7 text-gray-400" />
             </div>
-            <p className="text-sm text-gray-500 font-medium">No staff registered in {user.department}</p>
+            <p className="text-sm text-gray-500 font-medium">
+              {isAdmin
+                ? (filterDept ? `No staff registered in ${filterDept}` : 'No staff registered')
+                : `No staff registered in ${user.department}`
+              }
+            </p>
           </div>
         )}
       </div>
@@ -316,6 +368,7 @@ export const DepartmentStaffPanel = () => {
                 {requirePin && (
                   <input
                     type="password"
+                    autoComplete="one-time-code"
                     maxLength={4}
                     pattern="\d{4}"
                     autoFocus

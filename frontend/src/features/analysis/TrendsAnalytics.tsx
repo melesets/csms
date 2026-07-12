@@ -11,7 +11,17 @@ import {
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 import { useAuth } from '../../hooks/useAuth';
+import { CustomSelect } from '../../components/shared/CustomSelect';
 import { gregorianToEthiopian, formatEthiopianDate } from '../../utils/ethiopianCalendar';
+
+// Apply UTC+3 offset for Ethiopia
+const toLocal = (date: string | Date | null | undefined): Date | null => {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  d.setTime(d.getTime() + 3 * 3600 * 1000);
+  return d;
+};
 
 /* ─── Colors ──────────────────────────────────────────── */
 const C = {
@@ -157,8 +167,8 @@ export const TrendsAnalytics = () => {
     const cutoff = timeframe === 'today' ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : new Date(now.getTime() - days * 86400000);
     const prevCutoff = new Date(cutoff.getTime() - days * 86400000);
 
-    const cur = filteredRecords.filter(r => new Date(r.submitted_at || r.created_at) >= cutoff);
-    const prev = filteredRecords.filter(r => { const d = new Date(r.submitted_at || r.created_at); return d >= prevCutoff && d < cutoff; });
+    const cur = filteredRecords.filter(r => { const d = toLocal(r.submitted_at || r.created_at); return d && d >= cutoff; });
+    const prev = filteredRecords.filter(r => { const d = toLocal(r.submitted_at || r.created_at); return d && d >= prevCutoff && d < cutoff; });
 
     const norm = (v: unknown): 'stable' | 'unstable' | 'critical' => {
       const s = String(v ?? '').trim().toLowerCase();
@@ -197,7 +207,7 @@ export const TrendsAnalytics = () => {
     // Daily stacked
     const byDate: Record<string, Record<string, number>> = {};
     cur.forEach(r => {
-      const d = new Date(r.submitted_at || r.created_at); d.setHours(0, 0, 0, 0);
+      const d = toLocal(r.submitted_at || r.created_at); if (!d) return; d.setHours(0, 0, 0, 0);
       const key = d.toISOString(); const n = norm(getStab(r.form_data));
       if (!byDate[key]) byDate[key] = { stable: 0, unstable: 0, critical: 0 };
       byDate[key][n]++;
@@ -213,11 +223,11 @@ export const TrendsAnalytics = () => {
 
     // Hourly
     const hourly = Array.from({ length: 24 }, (_, i) => ({ hour: `${String(i).padStart(2, '0')}:00`, count: 0 }));
-    cur.forEach(r => { const h = new Date(r.submitted_at || r.created_at).getHours(); hourly[h].count++; });
+    cur.forEach(r => { const d = toLocal(r.submitted_at || r.created_at); if (d) hourly[d.getHours()].count++; });
 
     // Heatmap: day x hour
     const heatRaw: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
-    cur.forEach(r => { const d = new Date(r.submitted_at || r.created_at); heatRaw[d.getDay()][d.getHours()]++; });
+    cur.forEach(r => { const d = toLocal(r.submitted_at || r.created_at); if (d) heatRaw[d.getDay()][d.getHours()]++; });
     const heatMax = Math.max(...heatRaw.flat(), 1);
 
     // Resource metrics
@@ -273,7 +283,7 @@ export const TrendsAnalytics = () => {
     const now = new Date();
     const days = timeframe === 'today' ? 0 : timeframe === 'week' ? 7 : timeframe === 'month' ? 30 : 90;
     const cutoff = timeframe === 'today' ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : new Date(now.getTime() - days * 86400000);
-    const data = filteredRecords.filter(r => new Date(r.submitted_at || r.created_at) >= cutoff);
+    const data = filteredRecords.filter(r => { const d = toLocal(r.submitted_at || r.created_at); return d && d >= cutoff; });
     if (!data.length) return;
 
     const GREEN = 'FF09B8A0';
@@ -330,7 +340,7 @@ export const TrendsAnalytics = () => {
 
     data.forEach((r: any, i) => {
       const fd = r.form_data && typeof r.form_data === 'object' ? r.form_data : {};
-      const d = r.submitted_at ? new Date(r.submitted_at) : null;
+      const d = r.submitted_at ? toLocal(r.submitted_at) : null;
       const dateStr = d && !isNaN(d.getTime())
         ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
           d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -407,11 +417,11 @@ export const TrendsAnalytics = () => {
     const today = new Date();
     scopedR.forEach((r: any, i) => {
       const q = Number(r.quantity ?? r.qty); const s = Number(r.standard_quantity ?? r.standard);
-      const exp = new Date(r.expiry_date); const expValid = !isNaN(exp.getTime());
+      const exp = toLocal(r.expiry_date); const expValid = exp && !isNaN(exp.getTime());
       let status = 'OK';
       if (!isNaN(q) && q <= 0) status = 'Stock Out';
-      else if (expValid && exp < today) status = 'Expired';
-      else if (expValid && (exp.getTime() - today.getTime()) / 86400000 <= 30) status = 'Near Expiry';
+      else if (expValid && exp! < today) status = 'Expired';
+      else if (expValid && (exp!.getTime() - today.getTime()) / 86400000 <= 30) status = 'Near Expiry';
       else if (!isNaN(q) && !isNaN(s) && s > 0 && q < s) status = 'Low Stock';
       const row = [i + 1, r.name || '', r.type || r.Type || '', r.department || '', isNaN(q) ? '' : q, isNaN(s) ? '' : s, expValid ? exp.toLocaleDateString('en-GB') : '', status];
       const rowObj = ws3.addRow(row);
@@ -491,10 +501,11 @@ export const TrendsAnalytics = () => {
         </div>
         <div className="flex items-center gap-2">
           {user?.role === 'admin' && (
-            <select value={selectedDepartment} onChange={e => setSelectedDepartment(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              {departments.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
+            <CustomSelect
+              value={selectedDepartment}
+              onChange={setSelectedDepartment}
+              options={departments.map(d => ({ value: d, label: d }))}
+            />
           )}
           <div className="flex bg-gray-100 rounded-lg p-0.5">
             {([['today', 'Today'], ['week', '7D'], ['month', '30D'], ['quarter', '90D']] as const).map(([v, l]) => (

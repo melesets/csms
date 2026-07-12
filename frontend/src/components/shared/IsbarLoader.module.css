@@ -12,7 +12,7 @@
 
 .baseRing {
   border-radius: 50%;
-  border-color: #dbeafe;
+  border-color: rgba(0, 49, 83, 0.1);
 }
 
 .outerArc {
