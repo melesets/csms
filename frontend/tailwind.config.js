@@ -31,6 +31,10 @@ export default {
           900: '#142c5e',
         },
       },
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'sans-serif'],
+      },
       animation: {
         'typing-bounce': 'typing-bounce 1.4s infinite ease-in-out',
       },
