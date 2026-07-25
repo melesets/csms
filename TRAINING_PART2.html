@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISBAR Clinical System — Part II | Adare General Hospital</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; }
+  .slide { width: 100vw; height: 100vh; display: none; padding: 60px 80px; position: relative; overflow: hidden; }
+  .slide.active { display: flex; flex-direction: column; }
+  .slide-number { position: absolute; bottom: 30px; right: 40px; font-size: 14px; color: #555; font-weight: 500; }
+  .slide-tag { position: absolute; top: 30px; left: 80px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #00d4aa; font-weight: 600; }
+
+  .title-slide { justify-content: center; align-items: center; text-align: center; background: linear-gradient(135deg, #0a1628 0%, #0d2137 40%, #0a1628 100%); }
+  .title-slide::before { content: ''; position: absolute; top: -200px; right: -200px; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,170,0.08) 0%, transparent 70%); }
+  .title-slide h1 { font-size: 52px; font-weight: 800; color: #fff; margin-bottom: 12px; letter-spacing: -1px; }
+  .title-slide h1 span { color: #00d4aa; }
+  .title-slide .subtitle { font-size: 22px; color: #94a3b8; font-weight: 300; margin-bottom: 30px; }
+  .title-slide .hospital-name { font-size: 16px; color: #64748b; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px; }
+  .title-slide .version-badge { display: inline-block; background: rgba(0,212,170,0.1); border: 1px solid rgba(0,212,170,0.3); color: #00d4aa; padding: 8px 24px; border-radius: 30px; font-size: 13px; font-weight: 600; letter-spacing: 2px; margin-top: 20px; }
+
+  .section-divider { justify-content: center; align-items: center; text-align: center; }
+  .section-divider .section-number { font-size: 120px; font-weight: 900; color: rgba(0,212,170,0.08); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .section-divider h2 { font-size: 44px; font-weight: 700; color: #fff; position: relative; z-index: 1; }
+  .section-divider p { font-size: 18px; color: #94a3b8; margin-top: 16px; position: relative; z-index: 1; max-width: 700px; line-height: 1.6; }
+
+  .content-slide { padding-top: 80px; }
+  .content-slide h2 { font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .content-slide h2 span { color: #00d4aa; }
+  .content-slide .slide-desc { font-size: 15px; color: #94a3b8; margin-bottom: 36px; line-height: 1.6; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; flex: 1; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px; flex: 1; }
+  .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 28px; flex: 1; }
+
+  .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 28px; }
+  .card.highlight { border-color: rgba(0,212,170,0.2); background: rgba(0,212,170,0.03); }
+  .card.blue { border-color: rgba(59,130,246,0.2); background: rgba(59,130,246,0.03); }
+  .card.amber { border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.03); }
+  .card.red { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.03); }
+  .card.purple { border-color: rgba(168,85,247,0.2); background: rgba(168,85,247,0.03); }
+  .card h3 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .card p { font-size: 13px; color: #94a3b8; line-height: 1.7; }
+  .card .tag { display: inline-block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #00d4aa; font-weight: 600; margin-bottom: 8px; }
+
+  .feature-list { list-style: none; }
+  .feature-list li { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; color: #cbd5e1; display: flex; align-items: flex-start; gap: 12px; line-height: 1.6; }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list li .bullet { width: 6px; height: 6px; border-radius: 50%; background: #00d4aa; margin-top: 7px; flex-shrink: 0; }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th { text-align: left; padding: 10px 14px; background: rgba(0,212,170,0.06); color: #00d4aa; font-weight: 600; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid rgba(0,255,255,0.1); }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #cbd5e1; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.green { background: rgba(34,197,94,0.12); color: #22c55e; }
+  .badge.blue { background: rgba(59,130,246,0.12); color: #3b82f6; }
+  .badge.amber { background: rgba(245,158,11,0.12); color: #f59e0b; }
+  .badge.red { background: rgba(239,68,68,0.12); color: #ef4444; }
+  .badge.purple { background: rgba(168,85,247,0.12); color: #a855f7; }
+  .badge.teal { background: rgba(0,212,170,0.12); color: #00d4aa; }
+
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .flow-step { background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.15); padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 500; color: #00d4aa; white-space: nowrap; }
+  .flow-arrow { color: #475569; font-size: 18px; }
+
+  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10,10,10,0.95); border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; gap: 12px; z-index: 100; backdrop-filter: blur(10px); }
+  .nav-btn { padding: 8px 24px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; border-radius: 8px; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s; }
+  .nav-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .nav-btn.primary { background: rgba(0,212,170,0.1); border-color: rgba(0,212,170,0.3); color: #00d4aa; }
+  .nav-btn.primary:hover { background: rgba(0,212,170,0.2); }
+  .nav-info { color: #555; font-size: 13px; margin: 0 16px; }
+
+  .scrollable { overflow-y: auto; flex: 1; padding-right: 10px; }
+  .scrollable::-webkit-scrollbar { width: 4px; }
+  .scrollable::-webkit-scrollbar-track { background: transparent; }
+  .scrollable::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+  .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mini-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; padding: 16px; }
+  .mini-card h4 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .mini-card p { font-size: 12px; color: #94a3b8; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ==================== SLIDE 1: PART II TITLE ==================== -->
+<div class="slide title-slide active" id="s1">
+  <div class="hospital-name">Adare General Hospital</div>
+  <h1>ISBAR <span>Clinical System</span></h1>
+  <div class="subtitle">Part II — Administration, Analytics, AI &amp; Advanced Features</div>
+  <div class="version-badge">COMPREHENSIVE TRAINING MANUAL</div>
+  <div class="slide-number">1 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 2: PART II DIVIDER ==================== -->
+<div class="slide section-divider" id="s2" style="background: linear-gradient(135deg, #0a1628, #0d2137);">
+  <div class="section-number">II</div>
+  <h2>PART II</h2>
+  <p>Form Builder, Dashboard Mapping, Custom Tabs, Scheduling, Analytics, AI Insights, Integrations, Admin Settings &amp; Future Roadmap</p>
+  <div class="slide-number">2 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 3: FORM BUILDER ==================== -->
+<div class="slide content-slide" id="s3">
+  <div class="slide-tag">Admin Feature</div>
+  <h2>Visual <span>Form Builder</span></h2>
+  <div class="slide-desc">Drag-and-drop template designer — create any clinical form without writing code. Templates are immediately available for staff submission.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🎨 Form Designer Layout</h3>
+        <div style="display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 12px; margin-top: 12px;">
+          <div style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+            <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">Left Panel</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Field Library<br>Clinical Concepts<br>Terminology Search</div>
+          </div>
+          <div style="background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+            <div style="font-weight: 600; color: #00d4aa; font-size: 13px;">Center Canvas</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Sectioned Form<br>Drag &amp; Drop Reorder<br>Live Preview Toggle</div>
+          </div>
+          <div style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.15); border-radius: 10px; padding: 14px; text-align: center;">
+            <div style="font-weight: 600; color: #a855f7; font-size: 13px;">Right Panel</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Field Properties<br>Validation Rules<br>Skip Logic Config</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🧩 Field Library Categories</h3>
+        <div class="sub-grid">
+          <div class="mini-card"><h4>Basic</h4><p>Text, Number, Textarea, Date, Time, Select, Multi-Select, Radio, Checkbox</p></div>
+          <div class="mini-card"><h4>Medical</h4><p>Vital Signs, Patient Info, Coded Text (ICD-11/LOINC), Rating</p></div>
+          <div class="mini-card"><h4>ISBAR</h4><p>Identification, Situation, Background, Assessment, Recommendation sections</p></div>
+          <div class="mini-card"><h4>Advanced</h4><p>Divider, Stability indicator, Calculated fields, Skip logic fields</p></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>⚙️ Template Configuration</h3>
+        <table class="data-table">
+          <tr><th>Property</th><th>Description</th></tr>
+          <tr><td>Name</td><td>Template display name</td></tr>
+          <tr><td>Department(s)</td><td>Multi-department support via TEXT[] array</td></tr>
+          <tr><td>Profession</td><td>Optional profession filter</td></tr>
+          <tr><td>Version</td><td>Incremented on each save</td></tr>
+          <tr><td>Active Status</td><td>Only active templates appear in staff form picker</td></tr>
+          <tr><td>Sections</td><td>Color-coded collapsible groups with field counts</td></tr>
+        </table>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔄 Template Lifecycle</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 8px;">
+          <div class="flow-step" style="text-align: left;">1. Admin creates template in Form Builder</div>
+          <div class="flow-step" style="text-align: left;">2. Designs form with drag-and-drop fields</div>
+          <div class="flow-step" style="text-align: left;">3. Configures skip logic and calculations</div>
+          <div class="flow-step" style="text-align: left;">4. Sets department(s) and profession filter</div>
+          <div class="flow-step" style="text-align: left;">5. Activates template (makes visible to staff)</div>
+          <div class="flow-step" style="text-align: left;">6. Staff selects template in ISBAR form picker</div>
+          <div class="flow-step" style="text-align: left;">7. Submissions stored in form_submissions (JSONB)</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>📥 Import / Export</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>CSV import/export for templates and fields</li>
+          <li><span class="bullet"></span>Kobo CSV format export for external tools</li>
+          <li><span class="bullet"></span>Bahmni concept seeding for terminology</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">3 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 4: SKIP LOGIC & CALCULATIONS ==================== -->
+<div class="slide content-slide" id="s4">
+  <div class="slide-tag">Advanced Forms</div>
+  <h2>Skip Logic &amp; <span>Calculations</span></h2>
+  <div class="slide-desc">Intelligent form behavior — fields appear or hide based on previous answers, and computed values are calculated automatically.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔀 Skip Logic Engine</h3>
+        <p style="margin-bottom: 12px;">Conditionally show/hide fields based on user input. Supports complex logic chains.</p>
+        <table class="data-table">
+          <tr><th>Operator</th><th>Example</th></tr>
+          <tr><td>equals</td><td>Show "Allergy Details" if "Has Allergies" = "Yes"</td></tr>
+          <tr><td>not_equals</td><td>Hide "Pregnancy Notes" if "Gender" ≠ "Female"</td></tr>
+          <tr><td>contains</td><td>Show "Diabetes Management" if "Diagnosis" contains "diabetes"</td></tr>
+          <tr><td>greater_than</td><td>Show "Critical Alert" if "Heart Rate" > 120</td></tr>
+          <tr><td>less_than</td><td>Show "Low BP Protocol" if "Systolic BP" < 90</td></tr>
+          <tr><td>is_empty</td><td>Show "Initial Assessment" if "Previous Visit" is empty</td></tr>
+        </table>
+        <p style="margin-top: 12px;"><strong>Logical operators:</strong> AND / OR for combining multiple conditions.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🧮 Calculation Engine</h3>
+        <p style="margin-bottom: 12px;">Auto-computed fields with formula support and dependency tracking.</p>
+        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 16px; margin-bottom: 12px; font-family: monospace; font-size: 12px; color: #00d4aa;">
+          // BMI Calculation<br>
+          formula: "weight / (height * height)"<br>
+          fields: ["weight", "height"]<br>
+          resultField: "bmi"<br><br>
+          // Risk Score<br>
+          formula: "(age > 65 ? 2 : 0) + (hasDiabetes ? 1 : 0) + (bp > 140 ? 1 : 0)"<br>
+          resultField: "riskScore"
+        </div>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>JavaScript-style expressions</li>
+          <li><span class="bullet"></span>Automatic dependency tracking</li>
+          <li><span class="bullet"></span>Recalculates when inputs change</li>
+          <li><span class="bullet"></span>Results stored in form_data JSONB</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔍 Terminology Integration</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>ICD-11</strong> — 30+ common diagnoses pre-seeded</li>
+          <li><span class="bullet"></span><strong>LOINC</strong> — 30+ vital signs and lab codes</li>
+          <li><span class="bullet"></span><strong>UCUM</strong> — 40+ unit of measure codes</li>
+          <li><span class="bullet"></span>ConceptPicker component for coded-text fields</li>
+          <li><span class="bullet"></span>Search across systems via /api/terminology/search</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">4 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 5: DASHBOARD MAPPING ==================== -->
+<div class="slide content-slide" id="s5">
+  <div class="slide-tag">Admin Feature</div>
+  <h2>Dashboard <span>Form Mapping</span></h2>
+  <div class="slide-desc">Configure how form template fields map to dashboard display cards — control what clinicians see on the main dashboard.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🗺️ Mapping Configuration</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Source</strong> — Select a form template</li>
+          <li><span class="bullet"></span><strong>Dashboard Type</strong> — Patient card or Resource card</li>
+          <li><span class="bullet"></span><strong>Display Name</strong> — What appears on the dashboard</li>
+          <li><span class="bullet"></span><strong>Department(s)</strong> — Which departments see this mapping</li>
+          <li><span class="bullet"></span><strong>Profession</strong> — Optional profession filter</li>
+          <li><span class="bullet"></span><strong>Group By Field</strong> — Field used to group records</li>
+          <li><span class="bullet"></span><strong>Card Fields</strong> — Which fields appear on the card (primary, secondary, status, identifier, nurse)</li>
+          <li><span class="bullet"></span><strong>Toggle</strong> — Enable/disable without deletion</li>
+          <li><span class="bullet"></span><strong>Sort Order</strong> — Control display order</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📊 Card Field Slots</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+          <div style="padding: 12px; border-radius: 8px; background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.12);">
+            <div style="font-weight: 600; color: #00d4aa; font-size: 13px;">Primary Field</div>
+            <div style="font-size: 11px; color: #94a3b8;">Main title (e.g., Patient Name)</div>
+          </div>
+          <div style="padding: 12px; border-radius: 8px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.12);">
+            <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">Secondary Field</div>
+            <div style="font-size: 11px; color: #94a3b8;">Subtitle (e.g., MRN, Age)</div>
+          </div>
+          <div style="padding: 12px; border-radius: 8px; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.12);">
+            <div style="font-weight: 600; color: #f59e0b; font-size: 13px;">Status Field</div>
+            <div style="font-size: 11px; color: #94a3b8;">Stability indicator color</div>
+          </div>
+          <div style="padding: 12px; border-radius: 8px; background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.12);">
+            <div style="font-weight: 600; color: #a855f7; font-size: 13px;">Identifier Field</div>
+            <div style="font-size: 11px; color: #94a3b8;">Bed number, room, etc.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🔗 How It Connects</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="flow-step" style="text-align: left;">Form Template → Dashboard Mapping → Dashboard Card Display</div>
+          <div class="flow-step" style="text-align: left;">Staff submits form → Data stored in form_submissions</div>
+          <div class="flow-step" style="text-align: left;">Dashboard queries mappings by department + profession</div>
+          <div class="flow-step" style="text-align: left;">Patient cards rendered with mapped field values</div>
+        </div>
+        <p style="margin-top: 10px;">Live preview available in the mapping configuration page.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">5 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 6: CUSTOM TABS ==================== -->
+<div class="slide content-slide" id="s6">
+  <div class="slide-tag">Admin Feature</div>
+  <h2>Custom <span>Tab Manager</span></h2>
+  <div class="slide-desc">Create custom dashboard tabs to display filtered form submissions — no code changes needed. Tabs stored in browser localStorage.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📑 Two-Step Wizard</h3>
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+          <div style="flex: 1; padding: 16px; border-radius: 10px; background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.15); text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">Step 1</div>
+            <div style="font-weight: 600; color: #00d4aa;">Basic Settings</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Name, Template, Department(s), Profession</div>
+          </div>
+          <div style="display: flex; align-items: center; color: #475569; font-size: 20px;">→</div>
+          <div style="flex: 1; padding: 16px; border-radius: 10px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">Step 2</div>
+            <div style="font-weight: 600; color: #3b82f6;">Field Mapping</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Group By, Primary/Secondary/Status fields</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <tr><th>Setting</th><th>Options</th></tr>
+          <tr><td>View Style</td><td><span class="badge green">Card</span> <span class="badge blue">Table</span> <span class="badge purple">List</span> <span class="badge teal">Compact</span></td></tr>
+          <tr><td>Retention</td><td>Forever / 24 hours / 12 hours / 8 hours</td></tr>
+          <tr><td>Dashboard Type</td><td>Patient or Resource</td></tr>
+          <tr><td>Group By</td><td>Any form field (e.g., ward, stability)</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🖼️ View Styles</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+          <div style="padding: 14px; border-radius: 8px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.12); text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">🃏</div>
+            <div style="font-weight: 600; color: #22c55e; font-size: 13px;">Card View</div>
+            <div style="font-size: 11px; color: #94a3b8;">Grid of cards with key fields</div>
+          </div>
+          <div style="padding: 14px; border-radius: 8px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.12); text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">📊</div>
+            <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">Table View</div>
+            <div style="font-size: 11px; color: #94a3b8;">Full data table with columns</div>
+          </div>
+          <div style="padding: 14px; border-radius: 8px; background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.12); text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">📋</div>
+            <div style="font-weight: 600; color: #a855f7; font-size: 13px;">List View</div>
+            <div style="font-size: 11px; color: #94a3b8;">Horizontal rows with details</div>
+          </div>
+          <div style="padding: 14px; border-radius: 8px; background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.12); text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">📝</div>
+            <div style="font-weight: 600; color: #00d4aa; font-size: 13px;">Compact View</div>
+            <div style="font-size: 11px; color: #94a3b8;">Dense, minimal space</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>💾 Storage</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Persisted in <code>localStorage</code> key: <code>isbar_custom_tabs</code></li>
+          <li><span class="bullet"></span>No backend dependency — fast, offline-capable</li>
+          <li><span class="bullet"></span>Per-browser — each admin configures their own tabs</li>
+          <li><span class="bullet"></span>Retention auto-expires tabs after configured duration</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">6 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 7: STAFF SCHEDULING ==================== -->
+<div class="slide content-slide" id="s7">
+  <div class="slide-tag">Scheduling</div>
+  <h2>Staff <span>Scheduling</span> System</h2>
+  <div class="slide-desc">Visual scheduling grid with conflict detection, minimum staffing rules, Ethiopian holidays, and export capabilities.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📅 Schedule Grid</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Matrix view</strong> — Staff (rows) × Dates (columns)</li>
+          <li><span class="bullet"></span><strong>Color-coded shift types</strong> — Day (blue), Night (purple), Evening (amber), Off (gray), On-Call (teal), Leave (red)</li>
+          <li><span class="bullet"></span><strong>Grouped by profession</strong> — Collapsible profession headers</li>
+          <li><span class="bullet"></span><strong>Today indicator</strong> — Cyan highlight on current date column</li>
+          <li><span class="bullet"></span><strong>Weekend indicator</strong> — Gray background on Sat/Sun</li>
+          <li><span class="bullet"></span><strong>Holiday indicator</strong> — Amber background on Ethiopian holidays</li>
+          <li><span class="bullet"></span><strong>Lock mode</strong> — Prevent editing when schedule is finalized</li>
+          <li><span class="bullet"></span><strong>Cell click</strong> — Dropdown portal for shift selection</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📤 Export Options</h3>
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+          <div style="flex: 1; padding: 14px; border-radius: 10px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15); text-align: center;">
+            <div style="font-weight: 600; color: #22c55e;">PNG Export</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Full grid screenshot via html2canvas. Temporarily expands grid for complete capture.</div>
+          </div>
+          <div style="flex: 1; padding: 14px; border-radius: 10px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); text-align: center;">
+            <div style="font-weight: 600; color: #3b82f6;">Excel Export</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Formatted spreadsheet with shift colors and staff names.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>⚠️ Conflict Detection</h3>
+        <p style="margin-bottom: 10px;">Automated checks on every schedule create/update:</p>
+        <table class="data-table">
+          <tr><th>Conflict Type</th><th>Description</th></tr>
+          <tr><td><span class="badge red">Double Booking</span></td><td>Same staff assigned to two shifts on same date</td></tr>
+          <tr><td><span class="badge amber">Unavailable</span></td><td>Staff has approved time-off for that date</td></tr>
+          <tr><td><span class="badge purple">Understaffed</span></td><td>Below minimum staffing threshold for that shift</td></tr>
+        </table>
+        <p style="margin-top: 10px;">Conflicts generate <strong>warnings</strong> (not blockers) — admin can override if needed.</p>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📏 Minimum Staffing Rules</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Per shift type, per department, per day-of-week</li>
+          <li><span class="bullet"></span>Special holiday staffing rules</li>
+          <li><span class="bullet"></span>System warns when schedule falls below minimums</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📝 Change Log</h3>
+        <p>Every schedule mutation logged with: who changed, when, old shift type → new shift type. Full audit trail viewable in Change Log modal.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">7 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 8: SCHEDULING FEATURES ==================== -->
+<div class="slide content-slide" id="s8">
+  <div class="slide-tag">Scheduling Details</div>
+  <h2>Scheduling <span>Advanced Features</span></h2>
+  <div class="slide-desc">Bulk operations, staff unavailability, shift type management, and Ethiopian holiday integration.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📦 Bulk Operations</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Bulk Create</strong> — Assign shifts to multiple staff/dates in one operation</li>
+          <li><span class="bullet"></span>Per-assignment conflict warnings returned in response</li>
+          <li><span class="bullet"></span><strong>Upsert Behavior</strong> — Re-creating existing assignment updates it</li>
+          <li><span class="bullet"></span><strong>Date Range Selection</strong> — Ethiopian calendar date picker for start/end dates</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🚫 Staff Unavailability</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Staff can request time off with date range and reason</li>
+          <li><span class="bullet"></span>Admin approval workflow (approve/reject)</li>
+          <li><span class="bullet"></span>Approved unavailability checked during schedule conflict detection</li>
+          <li><span class="bullet"></span>Date range validation: end ≥ start</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔄 Shift Type Management</h3>
+        <table class="data-table">
+          <tr><th>Default Types</th><th>Color</th><th>Hours</th></tr>
+          <tr><td>Day</td><td><span style="color: #3b82f6;">■</span> Blue</td><td>8</td></tr>
+          <tr><td>Night</td><td><span style="color: #a855f7;">■</span> Purple</td><td>8</td></tr>
+          <tr><td>Evening</td><td><span style="color: #f59e0b;">■</span> Amber</td><td>8</td></tr>
+          <tr><td>Off</td><td><span style="color: #6b7280;">■</span> Gray</td><td>0</td></tr>
+          <tr><td>On-Call</td><td><span style="color: #00d4aa;">■</span> Teal</td><td>8</td></tr>
+          <tr><td>Leave</td><td><span style="color: #ef4444;">■</span> Red</td><td>0</td></tr>
+        </table>
+        <p style="margin-top: 8px;">Admins can create custom shift types with custom colors and default hours.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🏖️ Ethiopian Holiday Integration</h3>
+        <p style="margin-bottom: 10px;">Schedule grid automatically highlights Ethiopian holidays. Holiday detection uses the Bahire Hasab algorithm for movable holidays.</p>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Holidays shown as amber columns in schedule grid</li>
+          <li><span class="bullet"></span>Minimum staffing rules can have special holiday settings</li>
+          <li><span class="bullet"></span>11 fixed holidays + 6 movable holidays computed annually</li>
+          <li><span class="bullet"></span>Holiday API endpoint for date range queries</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔍 Filters &amp; Views</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Department filter</strong> — View single department schedule</li>
+          <li><span class="bullet"></span><strong>Role filter</strong> — Show only nurses, doctors, etc.</li>
+          <li><span class="bullet"></span><strong>Individual staff</strong> — Filter to specific person</li>
+          <li><span class="bullet"></span><strong>Date range</strong> — Ethiopian calendar-based range selection</li>
+          <li><span class="bullet"></span><strong>Profession grouping</strong> — Staff grouped under collapsible headers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📊 Shift Type Seeding</h3>
+        <p>On system startup, 6 default shift types are seeded if the table is empty. Duplicate shift types (same name + department) are automatically cleaned up.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">8 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 9: ANALYTICS ==================== -->
+<div class="slide content-slide" id="s9">
+  <div class="slide-tag">Analytics</div>
+  <h2>Trends &amp; <span>Analytics</span></h2>
+  <div class="slide-desc">Interactive charts and metrics powered by Recharts — visualize submission trends, department performance, resource usage, and more.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📊 Chart Types</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+          <div style="padding: 14px; border-radius: 10px; background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.15); text-align: center;">
+            <div style="font-size: 24px;">📈</div>
+            <div style="font-weight: 600; color: #22c55e; font-size: 13px;">Area Chart</div>
+            <div style="font-size: 11px; color: #94a3b8;">Submission trends over time</div>
+          </div>
+          <div style="padding: 14px; border-radius: 10px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); text-align: center;">
+            <div style="font-size: 24px;">📊</div>
+            <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">Bar Chart</div>
+            <div style="font-size: 11px; color: #94a3b8;">Department breakdown</div>
+          </div>
+          <div style="padding: 14px; border-radius: 10px; background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.15); text-align: center;">
+            <div style="font-size: 24px;">🥧</div>
+            <div style="font-weight: 600; color: #a855f7; font-size: 13px;">Pie Chart</div>
+            <div style="font-size: 11px; color: #94a3b8;">Template usage distribution</div>
+          </div>
+          <div style="padding: 14px; border-radius: 10px; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); text-align: center;">
+            <div style="font-size: 24px;">📉</div>
+            <div style="font-weight: 600; color: #f59e0b; font-size: 13px;">Resource Trends</div>
+            <div style="font-size: 11px; color: #94a3b8;">Usage patterns over time</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🔢 Stat Cards</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Total submissions count</li>
+          <li><span class="bullet"></span>Active patients</li>
+          <li><span class="bullet"></span>Department performance metrics</li>
+          <li><span class="bullet"></span>Resource utilization rates</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔍 Analytics Dimensions</h3>
+        <table class="data-table">
+          <tr><th>Dimension</th><th>Options</th></tr>
+          <tr><td>Time Range</td><td>Today, Week, Month, Quarter, Year, 5 Years</td></tr>
+          <tr><td>Department</td><td>Filter by specific department</td></tr>
+          <tr><td>Template</td><td>Filter by form template type</td></tr>
+          <tr><td>Profession</td><td>Filter by staff profession</td></tr>
+        </table>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📤 Export</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Excel Export</strong> — Full analytics data as formatted spreadsheet via ExcelJS</li>
+          <li><span class="bullet"></span>Includes all chart data, stat cards, trend data</li>
+          <li><span class="bullet"></span>Department dropdown widened (minWidth: 200px) for better UX</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📈 Data Sources</h3>
+        <p>Analytics are computed from:</p>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><code>form_submissions</code> — All clinical form data</li>
+          <li><span class="bullet"></span><code>resources</code> — Inventory levels and changes</li>
+          <li><span class="bullet"></span><code>inventory_reports</shift_session_id> — Shift-based reports</li>
+          <li><span class="bullet"></span><code>shift_sessions</code> — Staff attendance data</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">9 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 10: AI INSIGHTS ==================== -->
+<div class="slide content-slide" id="s10">
+  <div class="slide-tag">AI-Powered</div>
+  <h2>AI <span>Clinical Insights</span></h2>
+  <div class="slide-desc">LLM-powered patient analysis with automatic alerts, risk assessment, and care recommendations — the key differentiator of Version II.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🤖 AI Engine Architecture</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <div style="flex: 1; padding: 14px; border-radius: 10px; background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.15);">
+            <div style="font-weight: 600; color: #00d4aa; font-size: 13px;">Primary: Groq</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Cloud-hosted llama-3.3-70b-versatile. Fast, free tier.</div>
+          </div>
+          <div style="flex: 1; padding: 14px; border-radius: 10px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15);">
+            <div style="font-weight: 600; color: #3b82f6; font-size: 13px;">Fallback: Rule-Based</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">No API key? System uses rule-based analysis instead.</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <tr><th>Supported Providers</th><th>Type</th></tr>
+          <tr><td>Groq</td><td><span class="badge green">Cloud (Free)</span></td></tr>
+          <tr><td>Gemini</td><td><span class="badge green">Cloud (Free)</span></td></tr>
+          <tr><td>OpenAI</td><td><span class="badge amber">Cloud (Paid)</span></td></tr>
+          <tr><td>Mistral</td><td><span class="badge amber">Cloud (Paid)</span></td></tr>
+          <tr><td>Ollama</td><td><span class="badge blue">Local (Port 11434)</span></td></tr>
+          <tr><td>LM Studio</td><td><span class="badge blue">Local (Port 1234)</span></td></tr>
+          <tr><td>Jan AI</td><td><span class="badge blue">Local (Port 1337)</span></td></tr>
+          <tr><td>llama.cpp</td><td><span class="badge blue">Local (Port 8080)</span></td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🧠 AI Output Structure</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Clinical Summary</strong> — Overview of all patient statuses</li>
+          <li><span class="bullet"></span><strong>Patient Alerts</strong> — Critical (red), Warning (amber), Info (blue)</li>
+          <li><span class="bullet"></span><strong>Care Recommendations</strong> — Actionable clinical suggestions</li>
+          <li><span class="bullet"></span><strong>Patient Analysis</strong> — Per-patient breakdown with vitals, AI analysis, monitoring plan, concerns</li>
+          <li><span class="bullet"></span><strong>Risk Factors</strong> — System-wide risk identification</li>
+          <li><span class="bullet"></span><strong>Positive Indicators</strong> — What's going well</li>
+          <li><span class="bullet"></span><strong>Trend Insights</strong> — Changes over time</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>⚙️ AI Parameters</h3>
+        <table class="data-table">
+          <tr><td>Temperature</td><td>0.3 (conservative for clinical)</td></tr>
+          <tr><td>Max Tokens</td><td>2500</td></tr>
+          <tr><td>Response Format</td><td>JSON (parsed via regex)</td></tr>
+          <tr><td>Time Ranges</td><td>24h, 7d, 30d</td></tr>
+          <tr><td>Stability Normalization</td><td>Automatic (sub-critical → unstable, etc.)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">10 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 11: AI PATIENT ANALYSIS ==================== -->
+<div class="slide content-slide" id="s11">
+  <div class="slide-tag">AI Deep Dive</div>
+  <h2>AI <span>Patient Analysis</span> Dashboard</h2>
+  <div class="slide-desc">Real-time AI-powered dashboard with per-patient analysis, vital sign evaluation, and clinical decision support.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📊 Dashboard Metrics</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+          <div style="flex: 1; min-width: 80px; padding: 12px; border-radius: 8px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.15); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: #3b82f6;">Σ</div>
+            <div style="font-size: 11px; color: #94a3b8;">Total Patients</div>
+          </div>
+          <div style="flex: 1; min-width: 80px; padding: 12px; border-radius: 8px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: #ef4444;">🔴</div>
+            <div style="font-size: 11px; color: #94a3b8;">Critical</div>
+          </div>
+          <div style="flex: 1; min-width: 80px; padding: 12px; border-radius: 8px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.15); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: #f59e0b;">🟡</div>
+            <div style="font-size: 11px; color: #94a3b8;">Unstable</div>
+          </div>
+          <div style="flex: 1; min-width: 80px; padding: 12px; border-radius: 8px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.15); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: #22c55e;">🟢</div>
+            <div style="font-size: 11px; color: #94a3b8;">Stable</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🩺 Vital Sign Evaluation</h3>
+        <table class="data-table">
+          <tr><th>Vital</th><th>Normal</th><th>Warning</th><th>Critical</th></tr>
+          <tr><td>Heart Rate</td><td>60-100 bpm</td><td>50-60 or 100-120</td><td>&lt;50 or &gt;120</td></tr>
+          <tr><td>Systolic BP</td><td>90-140 mmHg</td><td>80-90 or 140-160</td><td>&lt;80 or &gt;160</td></tr>
+          <tr><td>SpO2</td><td>95-100%</td><td>90-95%</td><td>&lt;90%</td></tr>
+          <tr><td>Temperature</td><td>36.1-37.2°C</td><td>37.2-38.3 or &lt;36</td><td>&gt;38.3 or &lt;35</td></tr>
+          <tr><td>Respiratory Rate</td><td>12-20/min</td><td>20-24 or 10-12</td><td>&gt;24 or &lt;10</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔍 Per-Patient Analysis</h3>
+        <p style="margin-bottom: 10px;">Each patient card in the AI dashboard shows:</p>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Vitals Grid</strong> — Color-coded vital signs with status evaluation</li>
+          <li><span class="bullet"></span><strong>AI Analysis</strong> — LLM-generated clinical assessment</li>
+          <li><span class="bullet"></span><strong>Monitoring Plan</strong> — Suggested monitoring frequency</li>
+          <li><span class="bullet"></span><strong>Key Concerns</strong> — Highlighted risk areas</li>
+          <li><span class="bullet"></span>Expandable cards for detailed view</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>⏱️ Time Range Selection</h3>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <div style="flex: 1; padding: 12px; border-radius: 8px; background: rgba(0,212,170,0.06); border: 1px solid rgba(0,212,170,0.12); text-align: center;">
+            <div style="font-weight: 600; color: #00d4aa;">24 Hours</div>
+            <div style="font-size: 11px; color: #94a3b8;">Real-time</div>
+          </div>
+          <div style="flex: 1; padding: 12px; border-radius: 8px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.12); text-align: center;">
+            <div style="font-weight: 600; color: #3b82f6;">7 Days</div>
+            <div style="font-size: 11px; color: #94a3b8;">Weekly trends</div>
+          </div>
+          <div style="flex: 1; padding: 12px; border-radius: 8px; background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.12); text-align: center;">
+            <div style="font-weight: 600; color: #a855f7;">30 Days</div>
+            <div style="font-size: 11px; color: #94a3b8;">Monthly overview</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🛡️ Privacy Safeguard</h3>
+        <p>AI-generated content is automatically stripped from form submissions before storage (<code>stripAIContent()</code>). Removes keys &gt;200 chars, markdown headers, and AI-specific patterns. Patient data stays in your system.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">11 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 12: INTEGRATIONS ==================== -->
+<div class="slide content-slide" id="s12">
+  <div class="slide-tag">Integrations</div>
+  <h2>External System <span>Integrations</span></h2>
+  <div class="slide-desc">Connect to EMR systems (Bahmni, OpenMRS, HL7 FHIR) with read-only safety, field mapping, and connection testing.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔗 Supported Systems</h3>
+        <table class="data-table">
+          <tr><th>System</th><th>Type</th><th>Status</th></tr>
+          <tr><td>Bahmni</td><td>EMR</td><td><span class="badge green">Preset Ready</span></td></tr>
+          <tr><td>OpenMRS</td><td>EMR</td><td><span class="badge green">Preset Ready</span></td></tr>
+          <tr><td>HL7 FHIR</td><td>Standard</td><td><span class="badge green">Preset Ready</span></td></tr>
+          <tr><td>Custom REST</td><td>Generic</td><td><span class="badge blue">Configurable</span></td></tr>
+        </table>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>⚙️ Configuration</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Base URL</strong> — External system endpoint</li>
+          <li><span class="bullet"></span><strong>Auth Type</strong> — None, Basic, Bearer Token, Custom Header</li>
+          <li><span class="bullet"></span><strong>Field Mappings</strong> — Source → Target field mapping editor</li>
+          <li><span class="bullet"></span><strong>Sync Settings</strong> — Auto-sync interval, data filters</li>
+          <li><span class="bullet"></span><strong>Preset Configurations</strong> — Pre-built for Bahmni, OpenMRS, FHIR</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔒 Safety Features</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>READ-ONLY by default</strong> — All external HTTP calls restricted to GET only</li>
+          <li><span class="bullet"></span><strong>Connection Test</strong> — 10-second timeout, reports success/failure</li>
+          <li><span class="bullet"></span><strong>Sync</strong> — Fetches patient data, maps fields via configuration, returns mapped data</li>
+          <li><span class="bullet"></span><strong>Sync Timeout</strong> — 30-second limit for large data pulls</li>
+          <li><span class="bullet"></span><strong>Toggle Active/Inactive</strong> — Disable without deletion</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔄 Integration Workflow</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="flow-step" style="text-align: left;">1. Admin selects system preset or creates custom</div>
+          <div class="flow-step" style="text-align: left;">2. Configures URL, auth, field mappings</div>
+          <div class="flow-step" style="text-align: left;">3. Tests connection (GET request with timeout)</div>
+          <div class="flow-step" style="text-align: left;">4. Syncs patients (read-only GET → field mapping)</div>
+          <div class="flow-step" style="text-align: left;">5. Mapped data available for display/import</div>
+          <div class="flow-step" style="text-align: left;">6. Activity logged in admin audit trail</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">12 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 13: ADMIN SETTINGS ==================== -->
+<div class="slide content-slide" id="s13">
+  <div class="slide-tag">Admin</div>
+  <h2>Admin <span>Settings</span> Panel</h2>
+  <div class="slide-desc">Comprehensive system administration with tabbed interface — Overview, Migration, Backup, Theme, Data, Security, Notifications, Audit Trail, and Maintenance.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div class="scrollable">
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📊 Overview Tab</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>System info: Node.js version, uptime, database status</li>
+          <li><span class="bullet"></span>Entity counts: users, reports, templates</li>
+          <li><span class="bullet"></span>Quick actions: backup, health check, restart</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🗄️ Backup Tab</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Create JSON backup to <code>backups/</code> directory</li>
+          <li><span class="bullet"></span>List existing backups with timestamps</li>
+          <li><span class="bullet"></span>Export data: users, templates, or all (JSON format)</li>
+          <li><span class="bullet"></span>Import data (replaces table contents)</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🎨 Theme Tab</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Brand color customization</li>
+          <li><span class="bullet"></span>Dark mode toggle</li>
+          <li><span class="bullet"></span>Compact mode option</li>
+          <li><span class="bullet"></span>Settings stored in <code>admin_settings</code> table</li>
+        </ul>
+      </div>
+    </div>
+    <div class="scrollable">
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔒 Security Tab</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Password policy configuration</li>
+          <li><span class="bullet"></span>Session timeout settings</li>
+          <li><span class="bullet"></span>Applied via <code>POST /api/admin/security</code></li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔔 Notifications Tab</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Notification preferences</li>
+          <li><span class="bullet"></span>Email alerts configuration</li>
+          <li><span class="bullet"></span>Settings stored in <code>admin_settings</code> table</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📋 Audit Trail Tab</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>View recent admin activity log</li>
+          <li><span class="bullet"></span>Auto-purged every hour (24h retention)</li>
+          <li><span class="bullet"></span>Manual clear available</li>
+          <li><span class="bullet"></span>Filterable by module, action, user</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔧 Maintenance Tab</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Purge old inventory reports (90+ days)</li>
+          <li><span class="bullet"></span>Clear expired resources</li>
+          <li><span class="bullet"></span>Factory reset (clears reports, submissions, sessions, logs)</li>
+          <li><span class="bullet"></span>Clear application cache</li>
+          <li><span class="bullet"></span>Server restart (PM2 auto-restarts process)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">13 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 14: AUTO-MIGRATIONS ==================== -->
+<div class="slide content-slide" id="s14">
+  <div class="slide-tag">System</div>
+  <h2>Auto-<span>Migrations</span> &amp; Background Jobs</h2>
+  <div class="slide-desc">Automatic schema management on startup and background processes that keep the system running smoothly.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔄 Migration System</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Auto-runs on startup</strong> — No manual migration step needed</li>
+          <li><span class="bullet"></span><strong>SQL-based</strong> — Reads .sql files from <code>backend/migrations/</code></li>
+          <li><span class="bullet"></span><strong>Tracking table</strong> — <code>_migrations</code> records applied files</li>
+          <li><span class="bullet"></span><strong>Idempotent</strong> — Already-applied migrations skipped</li>
+          <li><span class="bullet"></span><strong>Smart seeding</strong> — Detects existing tables and marks migrations as applied</li>
+          <li><span class="bullet"></span><strong>Error resilient</strong> — Individual statement failures logged but don't halt</li>
+        </table>
+      </div>
+      <div class="card">
+        <h3>📦 Migration Files (15)</h3>
+        <table class="data-table">
+          <tr><th>File</th><th>Purpose</th></tr>
+          <tr><td>20250722_add_user_fields</td><td>Initial user columns</td></tr>
+          <tr><td>20250723_create_users_table</td><td>Users table creation</td></tr>
+          <tr><td>20250723_create_department_staff</td><td>Staff directory</td></tr>
+          <tr><td>20250731_create_form_submissions</td><td>Form data storage</td></tr>
+          <tr><td>20250824_add_indexes</td><td>Performance indexes</td></tr>
+          <tr><td>20250830_departments_array</td><td>Multi-department support</td></tr>
+          <tr><td>20260208_skip_logic</td><td>Skip logic documentation</td></tr>
+          <tr><td>20260704_profile_picture</td><td>9 ALTER TABLE statements</td></tr>
+          <tr><td>20260704_admin_activity_log</td><td>Audit trail table</td></tr>
+          <tr><td>20260718_superadmin_role</td><td>parent_user_id + seed superadmin</td></tr>
+          <tr><td>20260718_scheduling_tables</td><td>5 scheduling tables</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>⏰ Background Jobs</h3>
+        <table class="data-table">
+          <tr><th>Job</th><th>Interval</th><th>Purpose</th></tr>
+          <tr><td>Auto-Checkout</td><td>Every 60s</td><td>Checks out staff exceeding max shift hours</td></tr>
+          <tr><td>Audit Log Cleanup</td><td>Every hour</td><td>Deletes logs older than 24 hours</td></tr>
+          <tr><td>Shift Type Dedup</td><td>On startup</td><td>Removes duplicate shift types, seeds defaults</td></tr>
+          <tr><td>Initial Auto-Checkout</td><td>30s after start</td><td>First run on server boot</td></tr>
+        </table>
+      </div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🏗️ Process Management</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>PM2</strong> — 2 instances, auto-restart on crash</li>
+          <li><span class="bullet"></span><strong>Memory limit</strong> — 1GB per instance</li>
+          <li><span class="bullet"></span><strong>Port 4000</strong> — Express server</li>
+          <li><span class="bullet"></span><strong>ESM modules</strong> — <code>"type": "module"</code> in package.json</li>
+          <li><span class="bullet"></span><strong>Server restart</strong> — <code>process.exit(0)</code> → PM2 restarts</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📁 File Processing</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Profile photos</strong> — Sharp resizes to 200×200 WebP (quality 80)</li>
+          <li><span class="bullet"></span><strong>Storage</strong> — <code>backend/uploads/profiles/</code></li>
+          <li><span class="bullet"></span><strong>Serving</strong> — Static files with 7-day cache headers</li>
+          <li><span class="bullet"></span><strong>Upload limit</strong> — 5MB per file (Multer memory storage)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">14 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 15: LEAFLET/PATIENT DATA ==================== -->
+<div class="slide content-slide" id="s15">
+  <div class="slide-tag">Patient Data</div>
+  <h2>Patient Data <span>Extraction</span> &amp; Normalization</h2>
+  <div class="slide-desc">Intelligent patient record extraction from form submissions with field name normalization and MRN-based indexing.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔍 How Patient Data Works</h3>
+        <ol style="padding-left: 20px; font-size: 13px; color: #cbd5e1; line-height: 2;">
+          <li>Staff submits clinical form with patient data</li>
+          <li>Data stored as JSONB in <code>form_submissions</code></li>
+          <li>System extracts MRN from form fields</li>
+          <li>Groups submissions by unique MRN</li>
+          <li>Returns <strong>latest submission</strong> per patient</li>
+          <li>Normalizes field names across naming conventions</li>
+          <li>Patient appears on Dashboard with mapped fields</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>🔗 API Endpoints</h3>
+        <table class="data-table">
+          <tr><td><code>GET /api/patient-data</code></td><td>List all patients (by department)</td></tr>
+          <tr><td><code>GET /api/patient-data/mrn/:mrn</code></td><td>Single patient detail</td></tr>
+          <tr><td><code>GET /api/patient-data/mrns</code></td><td>List all MRNs with names</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📝 Field Name Normalization</h3>
+        <p style="margin-bottom: 10px;">The system recognizes 10+ naming variants for each field:</p>
+        <table class="data-table">
+          <tr><th>Concept</th><th>Accepted Variants</th></tr>
+          <tr><td>Patient Name</td><td>Patient Name, patientName, patient_name, PatientName, name, Name</td></tr>
+          <tr><td>MRN</td><td>MRN, mrn, mrn_number, medicalRecordNumber</td></tr>
+          <tr><td>Age</td><td>Age, age, patientAge, patient_age</td></tr>
+          <tr><td>Gender</td><td>Gender, gender, sex, Sex</td></tr>
+          <tr><td>Bed</td><td>Bed, bed, bedNumber, bed_number, Bed Number</td></tr>
+          <tr><td>Diagnosis</td><td>Diagnosis, diagnosis, Dx, dx</td></tr>
+          <tr><td>Allergies</td><td>Allergies, allergies, Allergy, allergy</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>🔍 Patient Search</h3>
+        <p>Full-text search across: MRN, patientName, bedNumber, age, gender, diagnosis, allergies. Used by the Dashboard global search and Database Records page.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">15 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 16: NOTIFICATION SYSTEM ==================== -->
+<div class="slide content-slide" id="s16">
+  <div class="slide-tag">Notifications</div>
+  <h2>Notification <span>System</span></h2>
+  <div class="slide-desc">Real-time notifications for check-in/out events, shift handovers, and system alerts.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🔔 Notification Bell</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Location</strong> — Top header bar, right side</li>
+          <li><span class="bullet"></span><strong>Unread count badge</strong> — Red circle with number</li>
+          <li><span class="bullet"></span><strong>Dropdown panel</strong> — Recent events list</li>
+          <li><span class="bullet"></span><strong>Event types</strong> — Check-in, check-out, shift changes</li>
+          <li><span class="bullet"></span><strong>Auto-updates</strong> — Listens to custom <code>staff-updated</code> DOM events</li>
+          <li><span class="bullet"></span><strong>Real-time</strong> — No page refresh needed</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📡 Event Flow</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="flow-step" style="text-align: left;">Staff checks in/out via DepartmentStaffPanel</div>
+          <div class="flow-step" style="text-align: left;">API call to /api/shifts/staff-action</div>
+          <div class="flow-step" style="text-align: left;">Backend creates/updates shift_session</div>
+          <div class="flow-step" style="text-align: left;">Frontend dispatches 'staff-updated' CustomEvent</div>
+          <div class="flow-step" style="text-align: left;">CheckInNotificationBell receives event</div>
+          <div class="flow-step" style="text-align: left;">Fetches latest check-in logs and updates dropdown</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>📋 Notification Events</h3>
+        <table class="data-table">
+          <tr><th>Event</th><th>Details Shown</th></tr>
+          <tr><td>Staff Check-In</td><td>Name, department, shift, timestamp</td></tr>
+          <tr><td>Staff Check-Out</td><td>Name, department, duration, timestamp</td></tr>
+          <tr><td>Handover Complete</td><td>From → To, ward, shift</td></tr>
+          <tr><td>Shift Change</td><td>New shift name, time</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>🔔 Handover Banner</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Appears on Dashboard during handover window</li>
+          <li><span class="bullet"></span>Countdown timer to shift end</li>
+          <li><span class="bullet"></span>"Complete Handover" action button</li>
+          <li><span class="bullet"></span>Auto-detected based on shift type max hours</li>
+          <li><span class="bullet"></span>Dismissable but reappears until handover completed</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">16 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 17: DATA EXPORT ==================== -->
+<div class="slide content-slide" id="s17">
+  <div class="slide-tag">Export</div>
+  <h2>Data <span>Export</span> Capabilities</h2>
+  <div class="slide-desc">Export system data in multiple formats — Excel, CSV, PNG, JSON — for reporting, analysis, and backup.</div>
+  <div class="grid-3" style="flex: 1;">
+    <div class="card">
+      <h3>📊 Excel Export</h3>
+      <p style="margin-bottom: 10px;">Formatted spreadsheets via ExcelJS library.</p>
+      <ul class="feature-list">
+        <li><span class="bullet"></span><strong>Resources</strong> — Full inventory with quantities, status</li>
+        <li><span class="bullet"></span><strong>Analytics</strong> — Charts data, metrics, trends</li>
+        <li><span class="bullet"></span><strong>Schedule</strong> — Staff × dates grid with shift colors</li>
+        <li><span class="bullet"></span>Formatted headers, auto-column widths</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>📄 CSV Export</h3>
+      <p style="margin-bottom: 10px;">Simple comma-separated values for universal compatibility.</p>
+      <ul class="feature-list">
+        <li><span class="bullet"></span><strong>Database Records</strong> — Filtered submissions</li>
+        <li><span class="bullet"></span><strong>Attendance Reports</strong> — Staff attendance data</li>
+        <li><span class="bullet"></span><strong>Form Templates</strong> — Template definitions</li>
+        <li><span class="bullet"></span>Compatible with Excel, Google Sheets, any tool</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🖼️ PNG Export</h3>
+      <p style="margin-bottom: 10px;">Visual grid screenshots via html2canvas.</p>
+      <ul class="feature-list">
+        <li><span class="bullet"></span><strong>Schedule Grid</strong> — Full schedule capture</li>
+        <li><span class="bullet"></span>Temporarily expands grid to capture all content</li>
+        <li><span class="bullet"></span>Widens staff column to 260px for readability</li>
+        <li><span class="bullet"></span>Removes truncation for complete capture</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-number">17 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 18: COMPONENT LIBRARY ==================== -->
+<div class="slide content-slide" id="s18">
+  <div class="slide-tag">Components</div>
+  <h2>Shared <span>Component</span> Library</h2>
+  <div class="slide-desc">Reusable UI components ensuring consistency across the application.</div>
+  <div class="scrollable" style="flex: 1;">
+    <div class="grid-3">
+      <div class="card">
+        <h3>🕐 Date &amp; Time</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>EthiopianDateInput</strong> — Day/Month/Year dropdown picker</li>
+          <li><span class="bullet"></span><strong>EthiopianDateDisplay</strong> — Read-only display</li>
+          <li><span class="bullet"></span><strong>EthiopianDateTimeDisplay</strong> — Date + time</li>
+          <li><span class="bullet"></span><strong>EthiopianDateTimePicker</strong> — Full picker</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🎨 UI Elements</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>IsbarLoader</strong> — Animated stethoscope spinner</li>
+          <li><span class="bullet"></span><strong>ErrorBoundary</strong> — React error fallback</li>
+          <li><span class="bullet"></span><strong>CustomSelect</strong> — Styled dropdown with minWidth</li>
+          <li><span class="bullet"></span><strong>Spinner</strong> — Simple loading indicator</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔔 Notifications</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>CheckInNotificationBell</strong> — Real-time events</li>
+          <li><span class="bullet"></span><strong>CoSignModal</strong> — Staff selection for co-signing</li>
+          <li><span class="bullet"></span><strong>DashboardSection</strong> — Reusable section wrapper</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📋 Forms</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>DynamicFormRenderer</strong> — Any template rendering</li>
+          <li><span class="bullet"></span><strong>DynamicHandoverForm</strong> — Handover-specific form</li>
+          <li><span class="bullet"></span><strong>ConceptPicker</strong> — ICD-11/LOINC search</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📊 Charts</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Area charts (trends)</li>
+          <li><span class="bullet"></span>Bar charts (departments)</li>
+          <li><span class="bullet"></span>Pie charts (distribution)</li>
+          <li><span class="bullet"></span>Resource trend lines</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🧩 Features</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>CustomTabManager</strong> — Tab CRUD wizard</li>
+          <li><span class="bullet"></span><strong>Layout</strong> — Sidebar + header + content</li>
+          <li><span class="bullet"></span><strong>LoginForm</strong> — Authentication UI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">18 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 19: COMPLETE WORKFLOW SUMMARY ==================== -->
+<div class="slide content-slide" id="s19">
+  <div class="slide-tag">Summary</div>
+  <h2>Complete <span>System Workflow</span></h2>
+  <div class="slide-desc">End-to-end workflow from system setup to daily clinical operations.</div>
+  <div class="scrollable" style="flex: 1;">
+    <div class="grid-2">
+      <div class="card" style="border-color: rgba(0,212,170,0.2);">
+        <h3>🏗️ Setup Phase (Admin)</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="flow-step" style="text-align: left;">1. Install system (Node.js + PostgreSQL)</div>
+          <div class="flow-step" style="text-align: left;">2. Auto-migrations create all tables on startup</div>
+          <div class="flow-step" style="text-align: left;">3. Create departments and staff accounts</div>
+          <div class="flow-step" style="text-align: left;">4. Set PINs for all staff members</div>
+          <div class="flow-step" style="text-align: left;">5. Create form templates in Form Builder</div>
+          <div class="flow-step" style="text-align: left;">6. Configure Dashboard Form Mappings</div>
+          <div class="flow-step" style="text-align: left;">7. Create Custom Tabs if needed</div>
+          <div class="flow-step" style="text-align: left;">8. Build staff schedules</div>
+          <div class="flow-step" style="text-align: left;">9. Configure integrations (optional)</div>
+          <div class="flow-step" style="text-align: left;">10. Set theme and notification preferences</div>
+        </div>
+      </div>
+      <div class="card" style="border-color: rgba(59,130,246,0.2);">
+        <h3>🏥 Daily Clinical Operations</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="flow-step" style="text-align: left;">1. Staff logs in with profession</div>
+          <div class="flow-step" style="text-align: left;">2. Checks in via PIN at Department Panel</div>
+          <div class="flow-step" style="text-align: left;">3. Views Dashboard for patient overview</div>
+          <div class="flow-step" style="text-align: left;">4. Submits ISBAR/Clinical forms</div>
+          <div class="flow-step" style="text-align: left;">5. Updates resource quantities as needed</div>
+          <div class="flow-step" style="text-align: left;">6. Completes handover during window</div>
+          <div class="flow-step" style="text-align: left;">7. Checks out at shift end</div>
+          <div class="flow-step" style="text-align: left;">8. AI generates insights in background</div>
+          <div class="flow-step" style="text-align: left;">9. Admin reviews analytics and attendance</div>
+          <div class="flow-step" style="text-align: left;">10. System auto-checkout if forgotten</div>
+        </div>
+      </div>
+      <div class="card" style="border-color: rgba(168,85,247,0.2);">
+        <h3>📊 Reporting Phase</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="flow-step" style="text-align: left;">1. View Trends &amp; Analytics dashboard</div>
+          <div class="flow-step" style="text-align: left;">2. Check Attendance Reports for compliance</div>
+          <div class="flow-step" style="text-align: left;">3. Review Check-in Logs for patterns</div>
+          <div class="flow-step" style="text-align: left;">4. Generate AI Clinical Insights</div>
+          <div class="flow-step" style="text-align: left;">5. Export data (Excel/CSV) for meetings</div>
+          <div class="flow-step" style="text-align: left;">6. Schedule PNG for wall display</div>
+        </div>
+      </div>
+      <div class="card" style="border-color: rgba(245,158,11,0.2);">
+        <h3>🔧 Maintenance Phase</h3>
+        <div class="flow" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <div class="flow-step" style="text-align: left;">1. Regular backups via Admin Settings</div>
+          <div class="flow-step" style="text-align: left;">2. Review audit trail for security</div>
+          <div class="flow-step" style="text-align: left;">3. Update form templates as protocols change</div>
+          <div class="flow-step" style="text-align: left;">4. Manage user accounts and permissions</div>
+          <div class="flow-step" style="text-align: left;">5. Monitor system health</div>
+          <div class="flow-step" style="text-align: left;">6. Clear expired resources and old reports</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">19 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 20: FUTURE ROADMAP ==================== -->
+<div class="slide content-slide" id="s20">
+  <div class="slide-tag">Future</div>
+  <h2>Future <span>Roadmap</span></h2>
+  <div class="slide-desc">Planned enhancements and features for upcoming versions — building on the foundation of Version II.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🎯 Short-Term (Next Release)</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>Push Notifications</strong> — Browser push for handover reminders</li>
+          <li><span class="bullet"></span><strong>Mobile Responsive</strong> — Optimized layouts for tablets/phones</li>
+          <li><span class="bullet"></span><strong>Offline Support</strong> — Service worker for form submission queuing</li>
+          <li><span class="bullet"></span><strong>Print-Optimized</strong> — Formatted print views for clinical records</li>
+          <li><span class="bullet"></span><strong>Bulk SMS</strong> — Shift reminders via SMS gateway</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔒 Security Enhancements</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Two-factor authentication (2FA)</li>
+          <li><span class="bullet"></span>Session management dashboard</li>
+          <li><span class="bullet"></span>IP whitelist for admin access</li>
+          <li><span class="bullet"></span>Encrypted data at rest</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3>🚀 Medium-Term</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>EMR Integration</strong> — Two-way sync with Bahmni/OpenMRS</li>
+          <li><span class="bullet"></span><strong>AI Advancements</strong> — Voice-to-ISBAR, predictive deterioration alerts</li>
+          <li><span class="bullet"></span><strong>Multi-Hospital</strong> — Federated reporting across facilities</li>
+          <li><span class="bullet"></span><strong>Lab Integration</strong> — Direct lab result import</li>
+          <li><span class="bullet"></span><strong>Pharmacy Module</strong> — Drug interaction checking</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🌟 Long-Term Vision</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>AI Scribing</strong> — Voice-based clinical documentation</li>
+          <li><span class="bullet"></span><strong>Predictive Analytics</strong> — Ward capacity forecasting</li>
+          <li><span class="bullet"></span><strong>Patient Portal</strong> — Patient-facing records access</li>
+          <li><span class="bullet"></span><strong>Research Module</strong> — De-identified data for research</li>
+          <li><span class="bullet"></span><strong>Interoperability</strong> — HL7 FHIR R4 full compliance</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">20 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 21: KEY TAKEAWAYS ==================== -->
+<div class="slide content-slide" id="s21">
+  <div class="slide-tag">Key Takeaways</div>
+  <h2>Key <span>Takeaways</span></h2>
+  <div class="slide-desc">What makes the ISBAR Clinical System a significant upgrade for Adare General Hospital.</div>
+  <div class="grid-2" style="flex: 1;">
+    <div>
+      <div class="card highlight" style="margin-bottom: 16px;">
+        <h3>✅ What's New in Version II</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span><strong>AI-Powered Insights</strong> — LLM clinical analysis with Groq/local models</li>
+          <li><span class="bullet"></span><strong>Advanced Scheduling</strong> — Conflict detection, bulk operations, holidays</li>
+          <li><span class="bullet"></span><strong>Custom Dashboards</strong> — Admin-configurable tab views</li>
+          <li><span class="bullet"></span><strong>Visual Form Builder</strong> — Drag-and-drop template designer</li>
+          <li><span class="bullet"></span><strong>Ethiopian Calendar</strong> — Native 13-month support throughout</li>
+          <li><span class="bullet"></span><strong>Real-time Notifications</strong> — Check-in/out event feed</li>
+          <li><span class="bullet"></span><strong>Attendance Tracking</strong> — Logs, reports, compliance metrics</li>
+          <li><span class="bullet"></span><strong>External Integrations</strong> — EMR connection with safety controls</li>
+          <li><span class="bullet"></span><strong>Open-Source Stack</strong> — No vendor lock-in, community-maintained</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card blue" style="margin-bottom: 16px;">
+        <h3>🏛️ Development Philosophy</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Built by the <strong>Quality Team</strong> at Adare General Hospital</li>
+          <li><span class="bullet"></span>Feedback collected from <strong>all departments</strong></li>
+          <li><span class="bullet"></span>Iterative improvement: Paper → Excel → Python → Web v1 → Web v2</li>
+          <li><span class="bullet"></span>Each version addressed limitations of the previous</li>
+          <li><span class="bullet"></span>Version II embraces AI and modern web technology</li>
+          <li><span class="bullet"></span>Designed for <strong>Ethiopian healthcare context</strong></li>
+        </ul>
+      </div>
+      <div class="card purple">
+        <h3>🎯 Impact</h3>
+        <ul class="feature-list">
+          <li><span class="bullet"></span>Standardized clinical communication (ISBAR)</li>
+          <li><span class="bullet"></span>Real-time visibility into ward activity</li>
+          <li><span class="bullet"></span>Data-driven decision making</li>
+          <li><span class="bullet"></span>Reduced handover errors</li>
+          <li><span class="bullet"></span>Improved staff accountability</li>
+          <li><span class="bullet"></span>AI-assisted clinical decision support</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="slide-number">21 / 22</div>
+</div>
+
+<!-- ==================== SLIDE 22: THANK YOU ==================== -->
+<div class="slide title-slide" id="s22">
+  <div class="hospital-name">Adare General Hospital</div>
+  <h1>Thank <span>You</span></h1>
+  <div class="subtitle">ISBAR Clinical System — Quality Team<br>Version II — AI-Enhanced — 2026</div>
+  <div style="margin-top: 40px; display: flex; gap: 20px;">
+    <div style="padding: 16px 28px; border-radius: 12px; background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.2);">
+      <div style="font-weight: 600; color: #00d4aa;">Part I</div>
+      <div style="font-size: 12px; color: #94a3b8;">Clinical Operations</div>
+    </div>
+    <div style="padding: 16px 28px; border-radius: 12px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);">
+      <div style="font-weight: 600; color: #3b82f6;">Part II</div>
+      <div style="font-size: 12px; color: #94a3b8;">Administration &amp; AI</div>
+    </div>
+  </div>
+  <div class="slide-number">22 / 22</div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav-bar">
+  <button class="nav-btn" onclick="prevSlide()">← Previous</button>
+  <span class="nav-info" id="slideInfo">1 / 22</span>
+  <button class="nav-btn primary" onclick="nextSlide()">Next →</button>
+</div>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+
+  function showSlide(n) {
+    slides[current].classList.remove('active');
+    current = (n + total) % total;
+    slides[current].classList.add('active');
+    document.getElementById('slideInfo').textContent = `${current + 1} / ${total}`;
+  }
+
+  function nextSlide() { showSlide(current + 1); }
+  function prevSlide() { showSlide(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(total - 1); }
+  });
+</script>
+
+</body>
+</html>
