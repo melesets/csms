@@ -8,9 +8,9 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #e0e0e0; overflow: hidden; }
-  .slide { width: 100vw; height: 100vh; display: none; padding: 60px 80px; position: relative; overflow: hidden; }
+  .slide { width: 100vw; height: 100vh; display: none; padding: 60px 80px 70px; position: relative; overflow: hidden; }
   .slide.active { display: flex; flex-direction: column; }
-  .slide-number { position: absolute; bottom: 30px; right: 40px; font-size: 14px; color: #555; font-weight: 500; }
+  .slide-number { position: absolute; bottom: 16px; right: 40px; font-size: 14px; color: #444; font-weight: 500; }
   .slide-tag { position: absolute; top: 30px; left: 80px; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #00d4aa; font-weight: 600; }
 
   /* Title Slide */
@@ -91,7 +91,10 @@
   .flow-arrow { color: #475569; font-size: 18px; }
 
   /* Navigation */
-  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10,10,10,0.95); border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; gap: 12px; z-index: 100; backdrop-filter: blur(10px); }
+  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10,10,10,0.95); border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; gap: 12px; z-index: 100; backdrop-filter: blur(10px); opacity: 0; transform: translateY(100%); transition: opacity 0.3s ease, transform 0.3s ease; pointer-events: none; }
+  .nav-bar:hover, .nav-bar.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .nav-bar-hint { position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #333; letter-spacing: 1px; z-index: 99; transition: opacity 0.3s ease; }
+  .nav-bar.visible ~ .nav-bar-hint { opacity: 0; }
   .nav-btn { padding: 8px 24px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; border-radius: 8px; cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s; }
   .nav-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
   .nav-btn.primary { background: rgba(0,212,170,0.1); border-color: rgba(0,212,170,0.3); color: #00d4aa; }
@@ -1286,16 +1289,21 @@
 </div>
 
 <!-- NAVIGATION -->
-<div class="nav-bar">
+<div class="nav-bar" id="navBar">
   <button class="nav-btn" onclick="prevSlide()">← Previous</button>
   <span class="nav-info" id="slideInfo">1 / 21</span>
   <button class="nav-btn primary" onclick="nextSlide()">Next →</button>
 </div>
 
+<div class="nav-bar-hint" id="navHint">hover here for navigation</div>
+
 <script>
   let current = 0;
   const slides = document.querySelectorAll('.slide');
   const total = slides.length;
+  const navBar = document.getElementById('navBar');
+  const navHint = document.getElementById('navHint');
+  let hideTimer;
 
   function showSlide(n) {
     slides[current].classList.remove('active');
@@ -1312,6 +1320,26 @@
     if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
     if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
     if (e.key === 'End') { e.preventDefault(); showSlide(total - 1); }
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    const y = e.clientY;
+    const h = window.innerHeight;
+    if (y > h - 80) {
+      navBar.classList.add('visible');
+      clearTimeout(hideTimer);
+    } else if (!navBar.matches(':hover')) {
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => navBar.classList.remove('visible'), 800);
+    }
+  });
+
+  navBar.addEventListener('mouseleave', () => {
+    hideTimer = setTimeout(() => navBar.classList.remove('visible'), 600);
+  });
+
+  navBar.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimer);
   });
 </script>
 
