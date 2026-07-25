@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGH-CSMS — Adare General Hospital Training</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #003153; --primary-light: #004a7a; --accent: #00b8d4;
+    --green: #10b981; --amber: #f59e0b; --red: #ef4444;
+    --bg: #f0f4f8; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; }
+
+  .slide-deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    justify-content: center; padding: 50px 70px 70px; opacity: 0;
+    transform: translateX(60px); pointer-events: none;
+    transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto;
+  }
+  .slide.active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+  .slide.exit-left { opacity: 0; transform: translateX(-60px); }
+
+  /* Title slide */
+  .slide-title {
+    background: linear-gradient(135deg, #003153 0%, #004a7a 40%, #00b8d4 100%);
+    color: white; text-align: center; justify-content: center; align-items: center;
+  }
+  .slide-title .logo { width: 90px; height: 90px; background: rgba(255,255,255,0.15); border-radius: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 32px; border: 2px solid rgba(255,255,255,0.2); }
+  .slide-title h1 { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 10px; }
+  .slide-title .subtitle { font-size: 1.15rem; opacity: 0.8; margin-bottom: 32px; }
+  .slide-title .badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); padding: 8px 22px; border-radius: 50px; font-size: 0.82rem; font-weight: 600; backdrop-filter: blur(10px); }
+
+  /* Content slides */
+  .slide-content { background: var(--bg); align-items: flex-start; justify-content: flex-start; }
+  .slide-header { width: 100%; margin-bottom: 28px; flex-shrink: 0; }
+  .slide-header .tag { display: inline-block; background: var(--primary); color: white; font-size: 0.65rem; font-weight: 700; padding: 3px 12px; border-radius: 50px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .slide-header h2 { font-size: 1.9rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
+  .slide-header p { font-size: 0.92rem; color: var(--muted); margin-top: 4px; max-width: 700px; }
+
+  /* Grids */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; width: 100%; }
+  .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; width: 100%; }
+
+  /* Cards */
+  .card { background: var(--card); border-radius: 14px; padding: 22px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+  .card p, .card li { font-size: 0.8rem; color: var(--muted); line-height: 1.55; }
+
+  .icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 1.2rem; }
+  .icon.blue { background: #dbeafe; color: #2563eb; }
+  .icon.green { background: #d1fae5; color: #059669; }
+  .icon.amber { background: #fef3c7; color: #d97706; }
+  .icon.red { background: #fee2e2; color: #dc2626; }
+  .icon.purple { background: #ede9fe; color: #7c3aed; }
+  .icon.teal { background: #ccfbf1; color: #0d9488; }
+  .icon.pink { background: #fce7f3; color: #db2777; }
+  .icon.primary { background: #003153; color: white; }
+
+  /* Steps */
+  .step { display: flex; gap: 14px; padding: 16px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px; }
+  .step-num { width: 32px; height: 32px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; flex-shrink: 0; }
+  .step-num.green { background: var(--green); }
+  .step-num.amber { background: var(--amber); }
+  .step-num.red { background: var(--red); }
+  .step h4 { font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
+  .step p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .step .detail { font-size: 0.75rem; color: var(--primary); font-weight: 600; margin-top: 4px; }
+
+  /* Tables */
+  .tbl { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); font-size: 0.78rem; }
+  .tbl th { background: #f8fafc; padding: 10px 14px; text-align: left; font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid var(--border); }
+  .tbl td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .badge-sm { display: inline-block; padding: 2px 8px; border-radius: 50px; font-size: 0.65rem; font-weight: 600; }
+  .bg { background: #d1fae5; color: #065f46; }
+  .bb { background: #dbeafe; color: #1e40af; }
+  .ba { background: #fef3c7; color: #92400e; }
+  .br { background: #fee2e2; color: #991b1b; }
+  .bgr { background: #f1f5f9; color: #475569; }
+
+  /* Two column */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; width: 100%; }
+  .two-wide { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 28px; width: 100%; }
+  .two-narrow { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: 28px; width: 100%; }
+
+  /* Lists */
+  .ck { list-style: none; }
+  .ck li { padding: 5px 0; font-size: 0.8rem; display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
+  .ck li .c { width: 18px; height: 18px; border-radius: 5px; background: #d1fae5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+
+  /* Highlight */
+  .hl { background: linear-gradient(135deg, #003153, #004a7a); color: white; border-radius: 14px; padding: 24px; width: 100%; }
+  .hl h3 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+  .hl ul { list-style: none; }
+  .hl li { padding: 4px 0; font-size: 0.8rem; opacity: 0.9; padding-left: 18px; position: relative; }
+  .hl li::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+  /* Warning box */
+  .warn { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 18px; width: 100%; }
+  .warn h4 { font-size: 0.85rem; font-weight: 700; color: #92400e; margin-bottom: 6px; }
+  .warn p, .warn li { font-size: 0.78rem; color: #78350f; line-height: 1.5; }
+
+  /* Scenario box */
+  .scenario { background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 14px; padding: 20px; width: 100%; }
+  .scenario h4 { font-size: 0.88rem; font-weight: 700; color: #166534; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .scenario p, .scenario li { font-size: 0.78rem; color: #15803d; line-height: 1.5; }
+
+  /* Mock UI */
+  .mock { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .mock-field { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+  .mock-field label { font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px; }
+  .mock-field .val { font-size: 0.82rem; color: var(--text); }
+  .mock-btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; font-size: 0.82rem; cursor: pointer; width: 100%; }
+  .mock-btn.green { background: var(--green); }
+  .mock-btn.amber { background: var(--amber); }
+
+  /* Shift chips */
+  .chip { display: inline-block; padding: 3px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; color: white; margin: 2px; }
+
+  /* Nav */
+  .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; z-index: 100; }
+  .nav-bar .progress { display: flex; align-items: center; gap: 5px; }
+  .nav-bar .dot-ind { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; transition: all 0.3s; cursor: pointer; }
+  .nav-bar .dot-ind.active { background: var(--primary); width: 22px; border-radius: 4px; }
+  .nav-bar .controls { display: flex; align-items: center; gap: 10px; }
+  .nav-bar .page-info { font-size: 0.75rem; font-weight: 600; color: var(--muted); min-width: 55px; text-align: center; }
+  .nav-btn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; color: var(--text); }
+  .nav-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav-btn:disabled:hover { background: white; color: var(--text); border-color: var(--border); }
+  .key-hint { font-size: 0.68rem; color: #94a3b8; }
+  .kbd { display: inline-block; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 3px; padding: 0 5px; font-size: 0.6rem; font-family: monospace; font-weight: 600; }
+
+  /* Section divider */
+  .slide-section { background: linear-gradient(135deg, #003153 0%, #00b8d4 100%); color: white; text-align: center; align-items: center; }
+  .slide-section h2 { font-size: 2.2rem; font-weight: 900; margin-bottom: 8px; }
+  .slide-section p { font-size: 1rem; opacity: 0.75; }
+  .slide-section .num { font-size: 5rem; font-weight: 900; opacity: 0.12; position: absolute; top: 40px; right: 60px; }
+</style>
+</head>
+<body>
+
+<div class="slide-deck" id="deck">
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 1 — TITLE
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-title active" data-slide="0">
+  <div class="logo">
+    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+  </div>
+  <h1>AGH-CSMS</h1>
+  <div class="subtitle">Adare General Hospital — Clinical Staff Management System</div>
+  <div class="badge">Complete End-to-End User Training Guide — v2.0</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 2 — WHAT IS THIS SYSTEM
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="1">
+  <div class="slide-header">
+    <div class="tag">Introduction</div>
+    <h2>What is AGH-CSMS?</h2>
+    <p>AGH-CSMS is the digital system Adare General Hospital uses to manage daily clinical operations. Every nurse, doctor, and department head uses it every day.</p>
+  </div>
+  <div class="two">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="icon primary">🏥</div>
+        <h3>Why Does Adare General Hospital Use This System?</h3>
+        <p style="margin-bottom: 10px;">Before this system, staff check-in was done on paper. Shift handovers were口头 (verbal). Records were scattered. This system solves all of that:</p>
+        <ul class="ck">
+          <li><span class="c">1</span><strong>Digital check-in/out</strong> — Every staff member clocks in and out with a personal 4-digit PIN. The hospital knows exactly who is on duty at any moment.</li>
+          <li><span class="c">2</span><strong>ISBAR clinical reports</strong> — Standardized handover reports ensure nothing is missed when a patient is transferred between shifts.</li>
+          <li><span class="c">3</span><strong>Staff scheduling</strong> — Department heads plan weekly shifts digitally. Staff can see their schedule anytime.</li>
+          <li><span class="c">4</span><strong>Patient records</strong> — All clinical data is stored in one place, searchable by MRN or patient name.</li>
+          <li><span class="c">5</span><strong>Real-time visibility</strong> — Administrators see hospital-wide status: who is on duty, how many patients, resource availability.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="margin-bottom: 12px;">📱 What You Need</h3>
+        <ul class="ck">
+          <li><span class="c">✓</span>A computer, tablet, or smartphone with a web browser (Chrome recommended)</li>
+          <li><span class="c">✓</span>Internet connection (hospital WiFi)</li>
+          <li><span class="c">✓</span>Your personal username and password (given by your department head or admin)</li>
+          <li><span class="c">✓</span>Your 4-digit personal PIN (set by your department head — <strong>you must remember this</strong>)</li>
+        </ul>
+      </div>
+      <div class="warn">
+        <h4>⚠️ Important for All Staff</h4>
+        <p>Your PIN is how the system knows it is you. Never share your PIN with anyone. If you forget your PIN, ask your department head to reset it for you (see Section 8).</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 3 — YOUR ROLE
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="2">
+  <div class="slide-header">
+    <div class="tag">Understanding Access</div>
+    <h2>What Can You See? It Depends on Your Role</h2>
+    <p>The system shows different pages to different people. Here is what each role can do.</p>
+  </div>
+  <div class="g4">
+    <div class="card" style="border-top: 4px solid #ef4444;">
+      <h3>Superadmin</h3>
+      <p style="color: var(--muted); margin-bottom: 10px;"><strong>Who:</strong> System owner / IT director</p>
+      <ul class="ck">
+        <li><span class="c">✓</span>Sees everything in the entire hospital</li>
+        <li><span class="c">✓</span>Can log in as any user (impersonate)</li>
+        <li><span class="c">✓</span>Manages admin users</li>
+        <li><span class="c">✓</span>Full system configuration</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 4px solid var(--primary);">
+      <h3>Admin</h3>
+      <p style="color: var(--muted); margin-bottom: 10px;"><strong>Who:</strong> Hospital administrator</p>
+      <ul class="ck">
+        <li><span class="c">✓</span>Sees all departments</li>
+        <li><span class="c">✓</span>Creates and manages all users</li>
+        <li><span class="c">✓</span>Form Builder, Custom Tabs</li>
+        <li><span class="c">✓</span>Check-In Logs, Attendance Reports</li>
+        <li><span class="c">✓</span>Settings and integrations</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 4px solid var(--green);">
+      <h3>Department Head</h3>
+      <p style="color: var(--muted); margin-bottom: 10px;"><strong>Who:</strong> Ward manager, senior nurse</p>
+      <ul class="ck">
+        <li><span class="c">✓</span>Manages their own department staff</li>
+        <li><span class="c">✓</span>Creates ISBAR reports</li>
+        <li><span class="c">✓</span>Plans staff schedules</li>
+        <li><span class="c">✓</span>Resets staff PINs (with password)</li>
+        <li><span class="c">✓</span>Sees analytics for their department</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top: 4px solid var(--accent);">
+      <h3>Staff</h3>
+      <p style="color: var(--muted); margin-bottom: 10px;"><strong>Who:</strong> Nurses, doctors, midwives</p>
+      <ul class="ck">
+        <li><span class="c">✓</span>Views the dashboard</li>
+        <li><span class="c">✓</span>Views their shift schedule</li>
+        <li><span class="c">✓</span>Checks in/out with PIN</li>
+        <li><span class="c">✓</span>Edits forms assigned to them</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 4 — SECTION: LOGIN
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-section" data-slide="3">
+  <div class="num">01</div>
+  <h2>Logging In</h2>
+  <p>Step-by-step guide to access the system for the first time</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 5 — LOGIN DETAIL
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="4">
+  <div class="slide-header">
+    <div class="tag">Step-by-Step</div>
+    <h2>How to Log In — Detailed Walkthrough</h2>
+  </div>
+  <div class="two-wide">
+    <div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Open Your Web Browser</h4>
+          <p>On your computer, open <strong>Google Chrome</strong> (recommended). On your phone, open Chrome or Safari.</p>
+          <div class="detail">💡 Tip: Bookmark the login page so you can find it quickly next time.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Type the Hospital URL</h4>
+          <p>In the address bar at the top, type the web address given to you by IT. It looks something like: <code>http://192.168.x.x:5173</code> or the hospital domain.</p>
+          <div class="detail">💡 Tip: Do NOT search for it on Google. Type the address directly.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>See the Login Screen</h4>
+          <p>You will see a blue screen with the hospital logo and two fields: <strong>Username</strong> and <strong>Password</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>Enter Your Username</h4>
+          <p>Type the username your department head gave you. This is usually your name or a short code (e.g., <code>melese.t</code>).</p>
+          <div class="detail">💡 Usernames are case-sensitive — type exactly as given.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <h4>Enter Your Password</h4>
+          <p>Type the password your department head gave you. The characters will show as dots (••••) for security.</p>
+          <div class="detail">⚠️ If you get "Invalid credentials" — check caps lock is off, and retype carefully.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num green">6</div>
+        <div>
+          <h4>Click "Login"</h4>
+          <p>Click the blue Login button. If your username and password are correct, you will see the Dashboard.</p>
+          <div class="detail">💡 The first time you log in, your department head will guide you through the system.</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="mock" style="margin-bottom: 16px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="width: 60px; height: 60px; background: var(--primary); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3 style="font-size: 1rem;">Adare General Hospital</h3>
+          <p style="font-size: 0.75rem; color: var(--muted);">Clinical Staff Management System</p>
+        </div>
+        <div class="mock-field">
+          <label>Username</label>
+          <div class="val" style="color: var(--muted);">melese.t</div>
+        </div>
+        <div class="mock-field">
+          <label>Password</label>
+          <div class="val" style="color: var(--muted);">••••••••</div>
+        </div>
+        <div class="mock-btn" style="margin-top: 12px;">Login</div>
+      </div>
+      <div class="warn">
+        <h4>⚠️ Common Login Problems</h4>
+        <ul style="list-style: none; margin-top: 8px;">
+          <li style="padding: 4px 0; font-size: 0.78rem;"><strong>"Invalid credentials"</strong> — Wrong username or password. Check caps lock.</li>
+          <li style="padding: 4px 0; font-size: 0.78rem;"><strong>Page won't load</strong> — Check your internet/WiFi connection.</li>
+          <li style="padding: 4px 0; font-size: 0.78rem;"><strong>"Account inactive"</strong> — Contact your department head or admin.</li>
+          <li style="padding: 4px 0; font-size: 0.78rem;"><strong>Forgot password</strong> — Ask your department head to help you reset it.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 6 — SECTION: DASHBOARD
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-section" data-slide="5">
+  <div class="num">02</div>
+  <h2>The Dashboard</h2>
+  <p>What you see after logging in — your hospital's home screen</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 7 — DASHBOARD DETAIL
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="6">
+  <div class="slide-header">
+    <div class="tag">Your Home Screen</div>
+    <h2>Understanding the Dashboard</h2>
+    <p>After login, you see the Dashboard. Here is what every section means.</p>
+  </div>
+  <div class="two">
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3>📊 Dashboard Tabs (Top)</h3>
+        <p style="margin-bottom: 8px;">At the top of the dashboard you see tabs. Click each tab to see different information:</p>
+        <table class="tbl">
+          <thead><tr><th>Tab</th><th>Shows</th><th>Who Sees</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Clinical</strong></td><td>Patient cards, ISBAR reports</td><td><span class="badge-sm bb">All</span></td></tr>
+            <tr><td><strong>Staff</strong></td><td>Who is on duty, check-in panel</td><td><span class="badge-sm bb">All</span></td></tr>
+            <tr><td><strong>Resources</strong></td><td>Nurses, midwives availability</td><td><span class="badge-sm bb">Nurses, Midwives</span></td></tr>
+            <tr><td><strong>Admin</strong></td><td>Admin tools (admin only)</td><td><span class="badge-sm br">Admin only</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>👤 Staff Panel (Right Side)</h3>
+        <p style="margin-bottom: 8px;">Shows all staff in your department with their current status:</p>
+        <ul class="ck">
+          <li><span class="c" style="background: #d1fae5;">●</span><strong>Green dot + "On Duty"</strong> — This person has clocked in and is currently working</li>
+          <li><span class="c" style="background: #f1f5f9; color: #94a3b8;">●</span><strong>Gray dot + "Off Duty"</strong> — This person has not clocked in, or has clocked out</li>
+          <li><span class="c" style="background: #dbeafe; color: #2563eb;">⏰</span><strong>Shift badge</strong> — Shows which shift they are on (Day, Night, etc.)</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3>🏥 Patient Cards (Clinical Tab)</h3>
+        <p style="margin-bottom: 8px;">Each patient has a card showing:</p>
+        <ul class="ck">
+          <li><span class="c">1</span><strong>Patient name and MRN</strong> — Medical Record Number</li>
+          <li><span class="c">2</span><strong>Department</strong> — Which ward they are in</li>
+          <li><span class="c">3</span><strong>Status</strong> — Current condition summary</li>
+          <li><span class="c">4</span><strong>Last updated</strong> — When the record was last changed</li>
+        </ul>
+        <p style="margin-top: 8px;"><strong>To see full details:</strong> Click on any patient card. It expands to show the complete ISBAR report.</p>
+      </div>
+      <div class="scenario">
+        <h4>📋 Example: Your First Morning on the Dashboard</h4>
+        <p>You log in at 7:00 AM. You see:</p>
+        <ul class="ck" style="margin-top: 8px;">
+          <li><span class="c">→</span>3 patients in ICU with their ISBAR summaries</li>
+          <li><span class="c">→</span>5 nurses on duty (green), 3 off duty (gray)</li>
+          <li><span class="c">→</span>Your department has 2 nurses and 1 midwife available</li>
+        </ul>
+        <p style="margin-top: 8px;">You click a patient card to read the latest handover notes before starting your rounds.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 8 — SECTION: CHECK-IN/OUT
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-section" data-slide="7">
+  <div class="num">03</div>
+  <h2>Staff Check-In / Check-Out</h2>
+  <p>The most important daily task — how to clock in and out of your shift</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 9 — CHECK-IN DETAIL
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="8">
+  <div class="slide-header">
+    <div class="tag">Daily Workflow</div>
+    <h2>How to Check In — Every Step Explained</h2>
+    <p>You MUST check in at the start of every shift and check out at the end. This tracks your attendance.</p>
+  </div>
+  <div class="two-wide">
+    <div>
+      <h3 style="margin-bottom: 12px; font-size: 0.95rem;">🕐 Clocking IN (Start of Shift)</h3>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h4>Go to Department Activity</h4>
+          <p>Click <strong>"Department Activity"</strong> in the sidebar (under Clinical group). Or you can use the Staff panel on the Dashboard.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h4>Find Your Name</h4>
+          <p>Look for your name in the list. If you are <strong>Off Duty</strong>, your name has a gray dot. If you are <strong>On Duty</strong>, it has a green dot.</p>
+          <div class="detail">💡 Your name appears in the "Off Duty" section when you haven't checked in yet.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h4>Click Your Name</h4>
+          <p>A popup modal appears with your name, photo (if uploaded), and profession.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <h4>Enter Your 4-Digit PIN</h4>
+          <p>Type your personal 4-digit PIN using the on-screen keypad. The numbers show as dots (••••).</p>
+          <div class="detail">⚠️ If you don't have a PIN set yet, ask your department head to set one for you (see PIN Management section).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num green">5</div>
+        <div>
+          <h4>Click "Clock In"</h4>
+          <p>The button says <strong>"Clock In"</strong> in blue. Click it. If your PIN is correct, you are now checked in. Your name moves to the "On Duty" section with a green dot.</p>
+          <div class="detail">✅ Done! You are now on duty. The system recorded the exact time you clocked in.</div>
+        </div>
+      </div>
+
+      <h3 style="margin: 20px 0 12px; font-size: 0.95rem;">🌙 Clocking OUT (End of Shift)</h3>
+      <div class="step">
+        <div class="step-num red">1</div>
+        <div>
+          <h4>Click Your Name (Again)</h4>
+          <p>Find your name in the "On Duty" section (green dot). Click it.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num red">2</div>
+        <div>
+          <h4>Enter Your PIN → Click "Clock Out"</h4>
+          <p>The button now says <strong>"Clock Out"</strong> in orange. Enter your PIN and click it. You are now off duty.</p>
+          <div class="detail">✅ Done! The system recorded your check-out time. Your total hours are now calculated.</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="mock" style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+          <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem;">M</div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.88rem;">Melese Tikusie</div>
+            <div style="font-size: 0.72rem; color: var(--muted);">Nurse · ICU</div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: var(--green);">⬆ Clock In</span>
+          <span style="font-size: 0.7rem; background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 50px; font-weight: 600;">PIN On</span>
+        </div>
+        <div style="text-align: center; margin-bottom: 16px;">
+          <div style="display: inline-flex; gap: 8px;">
+            <div style="width: 50px; height: 50px; border: 2px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; color: var(--muted);">•</div>
+            <div style="width: 50px; height: 50px; border: 2px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; color: var(--muted);">•</div>
+            <div style="width: 50px; height: 50px; border: 2px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; color: var(--muted);">•</div>
+            <div style="width: 50px; height: 50px; border: 2px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; color: var(--muted);">•</div>
+          </div>
+        </div>
+        <div class="mock-btn green">Clock In</div>
+      </div>
+      <div class="warn">
+        <h4>⚠️ Rules to Remember</h4>
+        <ul style="list-style: none; margin-top: 6px;">
+          <li style="padding: 4px 0; font-size: 0.78rem;">• You <strong>MUST</strong> clock in at the start of every shift</li>
+          <li style="padding: 4px 0; font-size: 0.78rem;">• You <strong>MUST</strong> clock out at the end of every shift</li>
+          <li style="padding: 4px 0; font-size: 0.78rem;">• If you forget to clock out, the system auto-checks you out after your shift max hours</li>
+          <li style="padding: 4px 0; font-size: 0.78rem;">• Your clock-in/out times are recorded permanently in the logs</li>
+          <li style="padding: 4px 0; font-size: 0.78rem;">• <strong>Never</strong> clock in for someone else — this is a serious violation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 10 — PIN FORGOT SCENARIO
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="9">
+  <div class="slide-header">
+    <div class="tag">Common Problem</div>
+    <h2>"I Forgot My PIN!" — What To Do</h2>
+    <p>This happens to everyone. Here is exactly what to do.</p>
+  </div>
+  <div class="two">
+    <div>
+      <div class="scenario" style="margin-bottom: 16px;">
+        <h4>📋 Scenario: You Forgot Your PIN</h4>
+        <p>It is 7:00 AM. You arrive at work and try to clock in. The system asks for your PIN. You cannot remember it. What do you do?</p>
+      </div>
+      <div class="step">
+        <div class="step-num amber">1</div>
+        <div>
+          <h4>Do NOT Panic</h4>
+          <p>Your department head can reset your PIN in less than 1 minute. This is a normal, everyday occurrence.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num amber">2</div>
+        <div>
+          <h4>Find Your Department Head</h4>
+          <p>Walk to your ward manager or senior nurse (your department head). Tell them: <em>"I forgot my PIN, can you reset it please?"</em></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num amber">3</div>
+        <div>
+          <h4>They Will Reset It</h4>
+          <p>Your department head goes to <strong>User Management</strong>, finds your name, enters their OWN password for security, then sets a new PIN for you.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num green">4</div>
+        <div>
+          <h4>You Get Your New PIN</h4>
+          <p>Your department head tells you the new PIN. <strong>Write it down somewhere safe</strong> or save it in your phone.</p>
+          <div class="detail">💡 Tip: Use a simple pattern you can remember, like your birth year digits or a lucky number.</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="margin-bottom: 10px;">🛡️ Why Does the Department Head Need Their Password?</h3>
+        <p>This is a <strong>security feature</strong>. It prevents anyone from resetting your PIN without permission. Only your direct department head — the person who manages you — can reset your PIN.</p>
+        <ul class="ck" style="margin-top: 10px;">
+          <li><span class="c">✓</span>Admin can reset ANYONE's PIN</li>
+          <li><span class="c">✓</span>Department head can reset ONLY their own staff's PINs</li>
+          <li><span class="c">✗</span>Other staff CANNOT reset your PIN</li>
+          <li><span class="c">✗</span>You CANNOT reset your own PIN</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom: 8px;">📌 For Department Heads: How to Reset a Staff PIN</h3>
+        <ul class="ck">
+          <li><span class="c">1</span>Go to <strong>Admin → User Management</strong></li>
+          <li><span class="c">2</span>Find the staff member in the list</li>
+          <li><span class="c">3</span>Click <strong>"Set Access PIN"</strong> or <strong>"Reset"</strong></li>
+          <li><span class="c">4</span>Enter YOUR password (security check)</li>
+          <li><span class="c">5</span>Enter the new 4-digit PIN for the staff</li>
+          <li><span class="c">6</span>Click <strong>Save PIN</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 11 — SECTION: ISBAR
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-section" data-slide="10">
+  <div class="num">04</div>
+  <h2>ISBAR Clinical Reports</h2>
+  <p>How to write structured handover reports for patient care</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 12 — ISBAR DETAIL
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="11">
+  <div class="slide-header">
+    <div class="tag">Clinical Reporting</div>
+    <h2>Writing an ISBAR Report — Complete Guide</h2>
+    <p>ISBAR is a structured way to communicate patient information during handovers. Every nurse and doctor at Adare General Hospital must know this format.</p>
+  </div>
+  <div class="two">
+    <div>
+      <div class="card" style="border-left: 4px solid #2563eb; margin-bottom: 10px;">
+        <h3 style="color: #2563eb;"><span style="font-size: 1.8rem; font-weight: 900;">I</span> — Identify</h3>
+        <p><strong>Who is the patient?</strong></p>
+        <p>Patient full name, MRN (Medical Record Number), age, gender, which ward/department they are in, and who you are (your name and role).</p>
+        <p style="margin-top: 6px;"><em>Example: "This is Nurse Melese. I am calling about Mr. Ahmed Hassan, MRN 12345, male, 65 years old, in ICU Bed 3."</em></p>
+      </div>
+      <div class="card" style="border-left: 4px solid #059669; margin-bottom: 10px;">
+        <h3 style="color: #059669;"><span style="font-size: 1.8rem; font-weight: 900;">S</span> — Situation</h3>
+        <p><strong>What is happening right now?</strong></p>
+        <p>The current problem. Why are you calling or handing over? What is the patient's main complaint today?</p>
+        <p style="margin-top: 6px;"><em>Example: "Mr. Ahmed's oxygen levels have dropped to 88% in the last 2 hours despite being on 4L nasal cannula."</em></p>
+      </div>
+      <div class="card" style="border-left: 4px solid #d97706; margin-bottom: 10px;">
+        <h3 style="color: #d97706;"><span style="font-size: 1.8rem; font-weight: 900;">B</span> — Background</h3>
+        <p><strong>What is the patient's history?</strong></p>
+        <p>Relevant medical history, allergies, current medications, recent surgeries, why they were admitted, and any important past events.</p>
+        <p style="margin-top: 6px;"><em>Example: "Mr. Ahmed was admitted 3 days ago for pneumonia. He is diabetic (Type 2), allergic to penicillin, and is on Metformin, Amoxicillin, and supplemental oxygen."</em></p>
+      </div>
+      <div class="card" style="border-left: 4px solid #dc2626; margin-bottom: 10px;">
+        <h3 style="color: #dc2626;"><span style="font-size: 1.8rem; font-weight: 900;">A</span> — Assessment</h3>
+        <p><strong>What do you think is happening?</strong></p>
+        <p>Your clinical findings — vital signs (BP, HR, Temp, SpO2, RR), physical exam findings, lab results, and your professional judgment.</p>
+        <p style="margin-top: 6px;"><em>Example: "Current vitals: BP 130/80, HR 95, Temp 38.2°C, SpO2 88%, RR 24. I am concerned his pneumonia is worsening. His chest sounds diminished on the right side."</em></p>
+      </div>
+      <div class="card" style="border-left: 4px solid #7c3aed;">
+        <h3 style="color: #7c3aed;"><span style="font-size: 1.8rem; font-weight: 900;">R</span> — Recommendation</h3>
+        <p><strong>What should happen next?</strong></p>
+        <p>Your suggested plan of action, what you need from the doctor, time frames, and any immediate interventions needed.</p>
+        <p style="margin-top: 6px;"><em>Example: "I recommend increasing oxygen to 6L, ordering a chest X-ray, and reviewing antibiotics. Can you please come assess within 30 minutes?"</em></p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3 style="margin-bottom: 10px;">📝 How to Submit an ISBAR Report</h3>
+        <div class="step" style="margin-bottom: 8px;">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">1</div>
+          <div><h4>Click "Report" in the sidebar</h4></div>
+        </div>
+        <div class="step" style="margin-bottom: 8px;">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">2</div>
+          <div><h4>Select the patient (or create a new one)</h4></div>
+        </div>
+        <div class="step" style="margin-bottom: 8px;">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">3</div>
+          <div><h4>Fill in each ISBAR section (I, S, B, A, R)</h4></div>
+        </div>
+        <div class="step" style="margin-bottom: 8px;">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">4</div>
+          <div><h4>Click "Submit"</h4></div>
+        </div>
+        <div class="step">
+          <div class="step-num green" style="width: 26px; height: 26px; font-size: 0.7rem;">✓</div>
+          <div><h4>Report is saved. You can find it later in "All Records"</h4></div>
+        </div>
+      </div>
+      <div class="hl">
+        <h3>💡 Tips for Good ISBAR Reports</h3>
+        <ul>
+          <li>Be <strong>specific</strong> — say "SpO2 is 88%" not "oxygen is low"</li>
+          <li>Include <strong>exact numbers</strong> for vital signs</li>
+          <li>Mention <strong>time frames</strong> — "in the last 2 hours"</li>
+          <li>State your <strong>concern level</strong> — "I am worried because..."</li>
+          <li>Give a <strong>clear recommendation</strong> — "Please come within 30 minutes"</li>
+          <li>Use the patient's <strong>MRN</strong> — never rely on name alone</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 13 — SECTION: SCHEDULE
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-section" data-slide="12">
+  <div class="num">05</div>
+  <h2>Staff Schedule</h2>
+  <p>Viewing your weekly shift schedule and understanding shift types</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 14 — SCHEDULE DETAIL
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="13">
+  <div class="slide-header">
+    <div class="tag">Weekly Planning</div>
+    <h2>Understanding Your Shift Schedule</h2>
+    <p>Your department head creates the weekly schedule. Here is how to read it.</p>
+  </div>
+  <div class="two">
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3 style="margin-bottom: 10px;">📅 How to View Your Schedule</h3>
+        <div class="step" style="margin-bottom: 8px;">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">1</div>
+          <div><h4>Click "Staff Schedule" in the sidebar</h4></div>
+        </div>
+        <div class="step" style="margin-bottom: 8px;">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">2</div>
+          <div><h4>You see a grid — rows are staff names, columns are days</h4></div>
+        </div>
+        <div class="step" style="margin-bottom: 8px;">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">3</div>
+          <div><h4>Find your name and look at the colored chips in your row</h4></div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="width: 26px; height: 26px; font-size: 0.7rem;">4</div>
+          <div><h4>Use ← → arrows to navigate between weeks</h4></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom: 10px;">🎨 Shift Types — What the Colors Mean</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+          <span class="chip" style="background: #10b981;">DAY</span>
+          <span class="chip" style="background: #f59e0b;">EVE</span>
+          <span class="chip" style="background: #1e293b;">NGT</span>
+          <span class="chip" style="background: #ef4444;">LVE</span>
+          <span class="chip" style="background: #94a3b8;">OFF</span>
+          <span class="chip" style="background: #3b82f6;">ONC</span>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Chip</th><th>Full Name</th><th>What It Means</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip" style="background: #10b981; font-size: 0.6rem;">DAY</span></td><td>Day Shift</td><td>You work the morning/afternoon shift (usually 7AM–7PM)</td></tr>
+            <tr><td><span class="chip" style="background: #f59e0b; font-size: 0.6rem;">EVE</span></td><td>Evening Shift</td><td>You work the evening shift (usually 2PM–10PM)</td></tr>
+            <tr><td><span class="chip" style="background: #1e293b; font-size: 0.6rem;">NGT</span></td><td>Night Shift</td><td>You work the night shift (usually 10PM–7AM)</td></tr>
+            <tr><td><span class="chip" style="background: #ef4444; font-size: 0.6rem;">LVE</span></td><td>Leave</td><td>You are on approved leave this day</td></tr>
+            <tr><td><span class="chip" style="background: #94a3b8; font-size: 0.6rem;">OFF</span></td><td>Day Off</td><td>This is your rest day — no work</td></tr>
+            <tr><td><span class="chip" style="background: #3b82f6; font-size: 0.6rem;">ONC</span></td><td>On-Call</td><td>You are on call — stay reachable, may be called in</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3 style="margin-bottom: 10px;">🎨 Calendar Visual Cues</h3>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem;">
+            <div style="width: 22px; height: 22px; border-radius: 4px; background: #e0f7fa; border: 2px solid #00b8d4;"></div> Today (highlighted cyan)
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem;">
+            <div style="width: 22px; height: 22px; border-radius: 4px; background: #e2e8f0;"></div> Weekend (Saturday/Sunday)
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem;">
+            <div style="width: 22px; height: 22px; border-radius: 4px; background: #fef3c7;"></div> Holiday
+          </div>
+        </div>
+        <p style="font-size: 0.78rem;">The schedule uses the <strong>Ethiopian calendar</strong>. Each column header shows: weekday, Ethiopian day number, and month abbreviation.</p>
+      </div>
+      <div class="scenario">
+        <h4>📋 Example: Reading a Schedule</h4>
+        <p>You are <strong>Melese Tikusie</strong>, Nurse in ICU. You look at your row and see:</p>
+        <ul class="ck" style="margin-top: 8px;">
+          <li><span class="c">→</span><strong>SAT 18:</strong> <span class="chip" style="background: #ef4444; font-size: 0.6rem;">LVE</span> — You are on leave</li>
+          <li><span class="c">→</span><strong>SUN 19:</strong> <span class="chip" style="background: #94a3b8; font-size: 0.6rem;">OFF</span> — Your rest day</li>
+          <li><span class="c">→</span><strong>MON 20:</strong> <span class="chip" style="background: #10b981; font-size: 0.6rem;">DAY</span> — Day shift, clock in at 7AM</li>
+          <li><span class="c">→</span><strong>TUE 21:</strong> <span class="chip" style="background: #10b981; font-size: 0.6rem;">DAY</span> — Day shift again</li>
+          <li><span class="c">→</span><strong>WED 22:</strong> <span class="chip" style="background: #1e293b; font-size: 0.6rem;">NGT</span> — Night shift, clock in at 10PM</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-top: 14px;">
+        <h3 style="margin-bottom: 8px;">📤 Export Your Schedule</h3>
+        <ul class="ck">
+          <li><span class="c">🖼️</span><strong>PNG image</strong> — Click the download icon. Full schedule as a picture you can print or share.</li>
+          <li><span class="c">📊</span><strong>Excel file</strong> — Click the document icon. Opens in Microsoft Excel with colors preserved.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 15 — SECTION: RESOURCES & RECORDS
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-section" data-slide="14">
+  <div class="num">06</div>
+  <h2>Resources & Patient Records</h2>
+  <p>Checking ward resources and browsing patient records</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 16 — RESOURCES & RECORDS DETAIL
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="15">
+  <div class="slide-header">
+    <div class="tag">Daily Operations</div>
+    <h2>Resources & Patient Records</h2>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <div class="icon teal">📦</div>
+        <h3>Resources — What to Know</h3>
+        <p style="margin-bottom: 10px;">The Resources page shows your department's staffing levels at a glance. This helps you know if you are short-staffed.</p>
+        <ul class="ck">
+          <li><span class="c" style="background: #d1fae5; color: #059669;">●</span><strong>Green</strong> — Sufficient staff available</li>
+          <li><span class="c" style="background: #fef3c7; color: #d97706;">●</span><strong>Amber</strong> — Staffing is borderline, may need support</li>
+          <li><span class="c" style="background: #fee2e2; color: #dc2626;">●</span><strong>Red</strong> — critically short-staffed, alert admin</li>
+        </ul>
+        <p style="margin-top: 10px;"><strong>How to use:</strong> Check Resources at the start of your shift to see how many nurses and midwives are available in your ward. If staffing is red, notify your department head immediately.</p>
+      </div>
+      <div class="card">
+        <div class="icon purple">🔍</div>
+        <h3>All Records — Searching Patient Data</h3>
+        <p style="margin-bottom: 10px;">The "All Records" page lets you search and browse all submitted ISBAR reports.</p>
+        <ul class="ck">
+          <li><span class="c">1</span><strong>Search by MRN</strong> — Type the patient's Medical Record Number</li>
+          <li><span class="c">2</span><strong>Search by name</strong> — Type the patient's name</li>
+          <li><span class="c">3</span><strong>Filter by department</strong> — Select your ward from the dropdown</li>
+          <li><span class="c">4</span><strong>Filter by date</strong> — Set start and end dates</li>
+          <li><span class="c">5</span><strong>Click any record</strong> to see the full ISBAR details</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <div class="icon amber">📊</div>
+        <h3>Analytics — Understanding Charts</h3>
+        <p style="margin-bottom: 10px;">The Analytics page shows trends and statistics. Here is how to read the charts:</p>
+        <ul class="ck">
+          <li><span class="c">1</span><strong>Select time range</strong> — Today, 7 days, 30 days, or 90 days</li>
+          <li><span class="c">2</span><strong>Department filter</strong> (admin only) — Choose a specific department or view all</li>
+          <li><span class="c">3</span><strong>Charts show</strong> — reports by department, by profession, severity levels</li>
+          <li><span class="c">4</span><strong>Export</strong> — Click "Export" to download as Excel for offline analysis</li>
+        </ul>
+      </div>
+      <div class="hl">
+        <h3>📋 Your Daily Routine at Adare General Hospital</h3>
+        <ul>
+          <li><strong>7:00 AM:</strong> Log in → Check In with your PIN</li>
+          <li><strong>7:05 AM:</strong> Review Dashboard — see patients, staff status</li>
+          <li><strong>7:10 AM:</strong> Check Resources — verify staffing levels</li>
+          <li><strong>During shift:</strong> Submit ISBAR reports as needed</li>
+          <li><strong>During shift:</strong> Check All Records for patient history</li>
+          <li><strong>End of shift:</strong> Check Out with your PIN</li>
+          <li><strong>Weekly:</strong> View your schedule to plan ahead</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 17 — SECTION: ADMIN TOOLS
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-section" data-slide="16">
+  <div class="num">07</div>
+  <h2>Admin & Department Head Tools</h2>
+  <p>Check-In Logs, Attendance Reports, Custom Tabs, and Form Builder</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 18 — ADMIN TOOLS DETAIL
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="17">
+  <div class="slide-header">
+    <div class="tag">Admin Features</div>
+    <h2>Admin & Department Head Tools — Detailed</h2>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="icon primary">📋</div>
+        <h3>Check-In Logs</h3>
+        <p style="margin-bottom: 8px;">See the complete history of every staff member's check-in and check-out.</p>
+        <ul class="ck">
+          <li><span class="c">→</span><strong>Filter by date range</strong> — See logs for today, this week, or any period</li>
+          <li><span class="c">→</span><strong>Filter by department</strong> — View one ward or all wards</li>
+          <li><span class="c">→</span><strong>Search by staff name</strong> — Find a specific person's records</li>
+          <li><span class="c">→</span><strong>See duration</strong> — How long each person worked (e.g., "7h 30m")</li>
+          <li><span class="c">→</span><strong>Active vs Completed</strong> — Green badge = currently on duty</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="icon green">📊</div>
+        <h3>Attendance Reports</h3>
+        <p style="margin-bottom: 8px;">Summary reports showing total shifts and hours per staff member.</p>
+        <ul class="ck">
+          <li><span class="c">→</span><strong>Daily / Weekly / Monthly</strong> — Quick period buttons at the top</li>
+          <li><span class="c">→</span><strong>Summary cards</strong> — Total staff, total shifts, total hours</li>
+          <li><span class="c">→</span><strong>Department breakdown</strong> — Bar chart showing hours per department</li>
+          <li><span class="c">→</span><strong>Individual table</strong> — Per-staff shifts, hours, active status</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="icon purple">🎨</div>
+        <h3>Custom Tabs</h3>
+        <p style="margin-bottom: 8px;">Admins create custom data-entry forms that appear as tabs on the Dashboard.</p>
+        <ul class="ck">
+          <li><span class="c">→</span><strong>4 view styles:</strong> Card, Table, List, Compact</li>
+          <li><span class="c">→</span><strong>Data retention:</strong> Forever, 24h, 12h, or 8h auto-delete</li>
+          <li><span class="c">→</span><strong>Ethiopian timestamps</strong> on all submissions</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="icon amber">📝</div>
+        <h3>Form Builder (Admin)</h3>
+        <p style="margin-bottom: 8px;">Create custom ISBAR form templates for different departments.</p>
+        <ul class="ck">
+          <li><span class="c">1</span>Click <strong>Form Builder</strong> in sidebar</li>
+          <li><span class="c">2</span>Click <strong>"Create New Form"</strong></li>
+          <li><span class="c">3</span>Add fields: text, dropdown, checkbox, date</li>
+          <li><span class="c">4</span>Set validation rules (required, min/max length)</li>
+          <li><span class="c">5</span>Assign form to specific department(s)</li>
+          <li><span class="c">6</span>Preview → Save → Publish</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom: 12px;">
+        <h3 style="margin-bottom: 8px;">🔄 Dashboard Mapping (Admin)</h3>
+        <p>Map custom forms to specific sections of the Dashboard. Control which forms appear where and in what order.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom: 8px;">👥 User Management (Admin)</h3>
+        <p style="margin-bottom: 8px;">Create, edit, and manage all system users.</p>
+        <ul class="ck">
+          <li><span class="c">→</span><strong>Create users</strong> — Set username, password, role, department</li>
+          <li><span class="c">→</span><strong>Set/Reset PINs</strong> — With password verification</li>
+          <li><span class="c">→</span><strong>Rotate staff</strong> — Move staff between departments</li>
+          <li><span class="c">→</span><strong>Toggle active/inactive</strong> — Disable accounts</li>
+          <li><span class="c">→</span><strong>Delete users</strong> — Remove from system permanently</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 19 — ETHIOPIAN CALENDAR
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="18">
+  <div class="slide-header">
+    <div class="tag">Localization</div>
+    <h2>Ethiopian Calendar — How Dates Work in This System</h2>
+    <p>The entire system uses the Ethiopian (Ge'ez) calendar. Here is what you need to know.</p>
+  </div>
+  <div class="two">
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3 style="margin-bottom: 10px;">📅 Date Format</h3>
+        <div style="background: #f8fafc; border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 10px;">
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">Hamle 18, 2018</div>
+          <div style="font-size: 0.78rem; color: var(--muted); margin-top: 4px;">Month Name + Day Number + Year</div>
+        </div>
+        <p>This is how all dates appear: in the schedule, in records, in the analytics page. The format is: <strong>Month Name Day, Year</strong>.</p>
+      </div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3 style="margin-bottom: 10px;">🕐 Time Format</h3>
+        <div style="background: #f8fafc; border-radius: 10px; padding: 20px; text-align: center; margin-bottom: 10px;">
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">3:40 ቀትር</div>
+          <div style="font-size: 0.78rem; color: var(--muted); margin-top: 4px;">ቀትር = Morning/Afternoon &nbsp;|&nbsp; ማታ = Evening/Night</div>
+        </div>
+        <p>The system uses the 12-hour clock. <strong>ቀትር</strong> means daytime. <strong>ማታ</strong> means nighttime.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3 style="margin-bottom: 10px;">📆 The 13 Ethiopian Months</h3>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Amharic</th><th>English</th><th>#</th><th>Amharic</th><th>English</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Yekatit</td><td>Feb/Mar</td><td>8</td><td>Pagume</td><td>Sep</td></tr>
+            <tr><td>2</td><td>Megabit</td><td>Mar/Apr</td><td>9</td><td>Meskerem</td><td>Sep/Oct</td></tr>
+            <tr><td>3</td><td>Miyazia</td><td>Apr/May</td><td>10</td><td>Tikimt</td><td>Oct/Nov</td></tr>
+            <tr><td>4</td><td>Ginbot</td><td>May/Jun</td><td>11</td><td>Hidar</td><td>Nov/Dec</td></tr>
+            <tr><td>5</td><td>Sene</td><td>Jun/Jul</td><td>12</td><td>Tahsas</td><td>Dec/Jan</td></tr>
+            <tr><td>6</td><td>Hamle</td><td>Jul/Aug</td><td>13</td><td>Yekatit</td><td>Jan/Feb</td></tr>
+            <tr><td>7</td><td>Nehase</td><td>Aug/Sep</td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hl">
+        <h3>💡 Where You See Ethiopian Dates</h3>
+        <ul>
+          <li>Schedule column headers (weekday + day + month)</li>
+          <li>Check-in/out timestamps</li>
+          <li>ISBAR report submission dates</li>
+          <li>Custom tab entry timestamps</li>
+          <li>Analytics date range labels</li>
+          <li>The current date/time in the header bar</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 20 — DAILY SCENARIOS
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="19">
+  <div class="slide-header">
+    <div class="tag">Real-World Scenarios</div>
+    <h2>Common Daily Scenarios — Step by Step</h2>
+    <p>Here are real situations you will face and exactly what to do in each one.</p>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="scenario" style="margin-bottom: 14px;">
+        <h4>🌅 Scenario 1: Starting Your Morning Shift</h4>
+        <ul class="ck" style="margin-top: 6px;">
+          <li><span class="c">1</span>Log in with your username and password</li>
+          <li><span class="c">2</span>Go to Department Activity → Click your name → Enter PIN → Clock In</li>
+          <li><span class="c">3</span>Check the Dashboard → See who else is on duty today</li>
+          <li><span class="c">4</span>Check the Staff Schedule → See what your shifts are this week</li>
+          <li><span class="c">5</span>Read any ISBAR reports submitted overnight for your patients</li>
+        </ul>
+      </div>
+      <div class="scenario" style="margin-bottom: 14px;">
+        <h4>🏥 Scenario 2: A Patient Is Being Transferred</h4>
+        <ul class="ck" style="margin-top: 6px;">
+          <li><span class="c">1</span>Click "Report" in the sidebar</li>
+          <li><span class="c">2</span>Select the patient being transferred</li>
+          <li><span class="c">3</span>Write an ISBAR report with transfer details</li>
+          <li><span class="c">4</span>In Recommendation, state: "Transferring to [department]"</li>
+          <li><span class="c">5</span>Submit the report — the receiving team can now see it</li>
+        </ul>
+      </div>
+      <div class="scenario">
+        <h4>🔍 Scenario 3: You Need to Find a Patient's History</h4>
+        <ul class="ck" style="margin-top: 6px;">
+          <li><span class="c">1</span>Click "All Records" in the sidebar</li>
+          <li><span class="c">2</span>Type the patient's MRN or name in the search bar</li>
+          <li><span class="c">3</span>Filter by department if needed</li>
+          <li><span class="c">4</span>Click any record to see the full ISBAR details</li>
+          <li><span class="c">5</span>You can see when it was written, by whom, and all the clinical data</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="scenario" style="margin-bottom: 14px;">
+        <h4>🌙 Scenario 4: Night Shift Handover</h4>
+        <ul class="ck" style="margin-top: 6px;">
+          <li><span class="c">1</span>The outgoing day-shift nurse writes ISBAR reports for each patient</li>
+          <li><span class="c">2</span>You (night shift) log in and read those reports on the Dashboard</li>
+          <li><span class="c">3</span>You clock in with your PIN</li>
+          <li><span class="c">4</span>You review each patient's current status</li>
+          <li><span class="c">5</span>If anything changes during your shift, write a new ISBAR update</li>
+          <li><span class="c">6</span>At the end of your shift, clock out with your PIN</li>
+        </ul>
+      </div>
+      <div class="scenario" style="margin-bottom: 14px;">
+        <h4>📋 Scenario 5: Department Head Planning Next Week</h4>
+        <ul class="ck" style="margin-top: 6px;">
+          <li><span class="c">1</span>Click "Staff Schedule" → Navigate to next week</li>
+          <li><span class="c">2</span>Click each staff member's cell → Assign shifts (DAY, EVE, NGT, OFF)</li>
+          <li><span class="c">3</span>Check that no one is double-booked</li>
+          <li><span class="c">4</span>Export as PNG to share with staff, or as Excel for records</li>
+          <li><span class="c">5</span>Lock the schedule when finalized (prevents accidental changes)</li>
+        </ul>
+      </div>
+      <div class="warn">
+        <h4>⚠️ Important Rules for All Staff</h4>
+        <ul style="list-style: none; margin-top: 6px;">
+          <li style="padding: 3px 0; font-size: 0.78rem;">• <strong>Never share your PIN</strong> with anyone — not even colleagues</li>
+          <li style="padding: 3px 0; font-size: 0.78rem;">• <strong>Never clock in for someone else</strong> — this is fraud</li>
+          <li style="padding: 3px 0; font-size: 0.78rem;">• <strong>Always write ISBAR reports</strong> during handovers</li>
+          <li style="padding: 3px 0; font-size: 0.78rem;">• <strong>Always check in and out</strong> — even if you're the only one</li>
+          <li style="padding: 3px 0; font-size: 0.78rem;">• <strong>Report system issues</strong> to admin immediately</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 21 — TROUBLESHOOTING
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="20">
+  <div class="slide-header">
+    <div class="tag">Support</div>
+    <h2>Troubleshooting — Common Problems & Solutions</h2>
+  </div>
+  <div class="two">
+    <div>
+      <table class="tbl" style="margin-bottom: 14px;">
+        <thead><tr><th>Problem</th><th>What To Do</th></tr></thead>
+        <tbody>
+          <tr><td><strong>"Invalid credentials"</strong> on login</td><td>Check caps lock. Retype username and password carefully. If still fails, ask admin to reset your password.</td></tr>
+          <tr><td><strong>"Invalid PIN"</strong> when clocking in</td><td>Ask your department head to reset your PIN (see Section 8). You need your department head's password to reset.</td></tr>
+          <tr><td><strong>Can't see the sidebar</strong></td><td>You may be on a small screen. Click the ☰ menu icon at the top left to open the sidebar.</td></tr>
+          <tr><td><strong>Schedule shows "No staff"</strong></td><td>Your department head hasn't added you to the schedule yet. Ask them to assign you shifts.</td></tr>
+          <tr><td><strong>Can't submit ISBAR report</strong></td><td>Check all required fields are filled. If a field is marked required, you must fill it in.</td></tr>
+          <tr><td><strong>Dashboard is blank</strong></td><td>Refresh the page (press F5 or Ctrl+R). If still blank, check your internet connection.</td></tr>
+          <tr><td><strong>Export doesn't download</strong></td><td>Check your browser's download folder. Some browsers block popups — allow downloads for this site.</td></tr>
+          <tr><td><strong>Page is very slow</strong></td><td>Close other browser tabs. Check WiFi connection. Try refreshing (F5).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom: 14px;">
+        <h3 style="margin-bottom: 10px;">⌨️ Keyboard Shortcuts</h3>
+        <table class="tbl">
+          <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge-sm bgr">Ctrl + P</span></td><td>Print the current page</td></tr>
+            <tr><td><span class="badge-sm bgr">Escape</span></td><td>Close any open popup or modal</td></tr>
+            <tr><td><span class="badge-sm bgr">F5</span></td><td>Refresh the page</td></tr>
+            <tr><td><span class="badge-sm bgr">← →</span></td><td>Navigate between schedule weeks</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="hl">
+        <h3>📞 Who To Contact For Help</h3>
+        <ul>
+          <li><strong>Login problems / forgot password:</strong> Your department head or admin</li>
+          <li><strong>Forgot PIN:</strong> Your department head (they reset it in User Management)</li>
+          <li><strong>System not loading:</strong> IT support / hospital IT department</li>
+          <li><strong>Want a new feature:</strong> Send request to admin via the system</li>
+          <li><strong>Data looks wrong:</strong> Contact admin to verify your account settings</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 22 — QUICK REFERENCE
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-content" data-slide="21">
+  <div class="slide-header">
+    <div class="tag">Reference</div>
+    <h2>Quick Reference Card — Keep This Handy</h2>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">🕐 Daily Checklist</h3>
+      <ul class="ck">
+        <li><span class="c">☐</span>Log in with username + password</li>
+        <li><span class="c">☐</span>Clock IN with 4-digit PIN</li>
+        <li><span class="c">☐</span>Check Dashboard for patient updates</li>
+        <li><span class="c">☐</span>Write ISBAR reports as needed</li>
+        <li><span class="c">☐</span>Check patient records when needed</li>
+        <li><span class="c">☐</span>Clock OUT with 4-digit PIN</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">🔑 Your Credentials</h3>
+      <div style="background: #f8fafc; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+        <div style="font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">Username</div>
+        <div style="font-size: 0.88rem; font-weight: 600; color: var(--muted);">_________________</div>
+      </div>
+      <div style="background: #f8fafc; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+        <div style="font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">Password</div>
+        <div style="font-size: 0.88rem; font-weight: 600; color: var(--muted);">_________________</div>
+      </div>
+      <div style="background: #f8fafc; border-radius: 8px; padding: 14px;">
+        <div style="font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">My 4-Digit PIN</div>
+        <div style="font-size: 0.88rem; font-weight: 600; color: var(--muted);">____ ____ ____ ____</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">📞 Emergency Contacts</h3>
+      <div style="background: #f8fafc; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+        <div style="font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">Your Department Head</div>
+        <div style="font-size: 0.88rem; font-weight: 600; color: var(--muted);">_________________</div>
+      </div>
+      <div style="background: #f8fafc; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+        <div style="font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">Hospital Admin</div>
+        <div style="font-size: 0.88rem; font-weight: 600; color: var(--muted);">_________________</div>
+      </div>
+      <div style="background: #f8fafc; border-radius: 8px; padding: 14px;">
+        <div style="font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase;">IT Support</div>
+        <div style="font-size: 0.88rem; font-weight: 600; color: var(--muted);">_________________</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SLIDE 23 — THANK YOU
+     ════════════════════════════════════════════════════ -->
+<div class="slide slide-title" data-slide="22">
+  <div class="logo">
+    <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+  </div>
+  <h1>Training Complete</h1>
+  <div class="subtitle">Adare General Hospital — You are now ready to use AGH-CSMS</div>
+  <div class="badge">Remember: Clock in every shift. Write ISBAR reports. Ask your department head if you need help.</div>
+</div>
+
+</div>
+
+<!-- ── Navigation ── -->
+<div class="nav-bar">
+  <div class="progress" id="progress"></div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <span class="key-hint"><span class="kbd">←</span> <span class="kbd">→</span> to navigate</span>
+    <div class="controls">
+      <button class="nav-btn" id="prevBtn" onclick="nav(-1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="page-info" id="pageInfo">1 / 23</span>
+      <button class="nav-btn" id="nextBtn" onclick="nav(1)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let cur = 0;
+const slides = document.querySelectorAll('.slide');
+const tot = slides.length;
+const prog = document.getElementById('progress');
+const info = document.getElementById('pageInfo');
+const prev = document.getElementById('prevBtn');
+const nxt = document.getElementById('nextBtn');
+
+for (let i = 0; i < tot; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot-ind' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  prog.appendChild(d);
+}
+
+function goTo(idx) {
+  if (idx < 0 || idx >= tot || idx === cur) return;
+  slides[cur].classList.remove('active');
+  cur = idx;
+  setTimeout(() => slides[cur].classList.add('active'), 30);
+  upd();
+}
+
+function nav(dir) { goTo(cur + dir); }
+
+function upd() {
+  info.textContent = `${cur + 1} / ${tot}`;
+  prev.disabled = cur === 0;
+  nxt.disabled = cur === tot - 1;
+  document.querySelectorAll('.dot-ind').forEach((d, i) => d.classList.toggle('active', i === cur));
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') { e.preventDefault(); nav(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); nav(-1); }
+  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+  if (e.key === 'End') { e.preventDefault(); goTo(tot - 1); }
+});
+
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+document.addEventListener('touchend', e => {
+  const d = tx - e.changedTouches[0].clientX;
+  if (Math.abs(d) > 60) nav(d > 0 ? 1 : -1);
+});
+
+upd();
+</script>
+
+</body>
+</html>
