@@ -3,18 +3,16 @@
 import React, { useState } from 'react';
 import { Plus, Shield, Search, CheckCircle, KeyRound, X, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { useDepartments } from '../../hooks/useDepartments';
 import { User } from '../../types/auth';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
+import { apiPut, apiDelete } from '../../api';
 import { UserForm } from './UserForm';
 import { UserList } from './UserList';
 
 export const UserManagement = () => {
   const { user: currentUser, hasPermission } = useAuth();
-  const { departments } = useDepartments();
   const [users, setUsers] = useState<User[]>([]);
 
-  const canManageAllDepartments = currentUser?.role === 'admin';
+  const canManageAllDepartments = currentUser?.role === 'superadmin' || currentUser?.role === 'admin';
 
   const getUserDepartmentFilter = () => {
     if (canManageAllDepartments) {
@@ -46,6 +44,12 @@ export const UserManagement = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Password verification for PIN reset
+  const [pinVerifyStep, setPinVerifyStep] = useState<'verify' | 'reset'>('verify');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [verifyError, setVerifyError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   if (!hasPermission('user-management', 'view')) {
     return (
@@ -125,6 +129,22 @@ export const UserManagement = () => {
     setShowForm(true);
   };
 
+  const handleAddStaff = (parentUserId: string) => {
+    setEditingUser(null);
+    setShowForm(true);
+    // Pre-fill with parent user info
+    const parentUser = users.find(u => u.id === parentUserId);
+    if (parentUser) {
+      setEditingUser({
+        role: 'staff',
+        department: parentUser.department,
+        parentUserId: parentUserId,
+        isActive: true,
+        permissions: [],
+      } as any);
+    }
+  };
+
   const getUserForForm = () => {
     if (editingUser) return editingUser;
 
@@ -177,6 +197,29 @@ export const UserManagement = () => {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
+  const handleVerifyForPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pinSettingUser || !adminPassword) return;
+    setIsVerifying(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/users/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser?.id, password: adminPassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Invalid password');
+      }
+      setPinVerifyStep('reset');
+    } catch (err: any) {
+      setVerifyError(err.message || 'Invalid password');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handleSubmitPin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pinSettingUser || newPin.length !== 4) return;
@@ -186,6 +229,8 @@ export const UserManagement = () => {
       showSuccessMessage('PIN set successfully!');
       setPinSettingUser(null);
       setNewPin('');
+      setAdminPassword('');
+      setPinVerifyStep('verify');
       
       // Update user has_pin status locally
       setUsers(prev => prev.map(u => u.id === pinSettingUser.id ? { ...u, has_pin: true } : u));
@@ -287,11 +332,15 @@ export const UserManagement = () => {
         onSetPin={(user) => {
           setPinSettingUser(user);
           setNewPin('');
+          setAdminPassword('');
+          setPinVerifyStep('verify');
+          setVerifyError('');
         }}
         onRotateUnit={(user) => {
           setRotatingUser(user);
           setNewDepartment(user.department || '');
         }}
+        onAddStaff={handleAddStaff}
         hasEditPermission={hasPermission('user-management', 'edit')}
       />
 
@@ -301,51 +350,93 @@ export const UserManagement = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-200">
             <div className="flex justify-between items-center p-4 border-b border-gray-200">
               <h3 className="text-sm font-bold flex items-center text-gray-900">
-                <KeyRound className="w-4 h-4 mr-2 text-[#003153]" /> Set Access PIN
+                <KeyRound className="w-4 h-4 mr-2 text-[#003153]" /> {pinSettingUser.has_pin ? 'Reset' : 'Set'} Access PIN
               </h3>
               <button 
-                onClick={() => setPinSettingUser(null)} 
+                onClick={() => { setPinSettingUser(null); setPinVerifyStep('verify'); setAdminPassword(''); }} 
                 className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <form onSubmit={handleSubmitPin} className="p-6">
-              <p className="text-xs text-gray-500 mb-4">
-                Set a 4-digit PIN for <strong className="text-gray-900">{pinSettingUser.name}</strong>. Staff will use this PIN to access their unit dashboard.
-              </p>
-              <div className="mb-6">
-                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">New PIN</label>
-                <input
-                  type="password"
-                  autoComplete="one-time-code"
-                  maxLength={4}
-                  pattern="\d{4}"
-                  required
-                  autoFocus
-                  value={newPin}
-                  onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full border-gray-200 rounded-lg text-center text-2xl tracking-[0.5em] py-3 border bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="••••"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setPinSettingUser(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={newPin.length !== 4}
-                  className="bg-[#003153] px-4 py-2 rounded-lg text-xs font-semibold text-white hover:bg-[#002640] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Save PIN
-                </button>
-              </div>
-            </form>
+
+            {pinVerifyStep === 'verify' ? (
+              <form onSubmit={handleVerifyForPin} className="p-6">
+                <p className="text-xs text-gray-500 mb-4">
+                  Enter your password to confirm setting a PIN for <strong className="text-gray-900">{pinSettingUser.name}</strong>.
+                </p>
+                {verifyError && (
+                  <div className="mb-3 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 text-center">
+                    {verifyError}
+                  </div>
+                )}
+                <div className="mb-6">
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Your Password</label>
+                  <input
+                    type="password"
+                    required
+                    autoFocus
+                    value={adminPassword}
+                    onChange={e => setAdminPassword(e.target.value)}
+                    className="w-full border-gray-200 rounded-lg text-sm px-4 py-3 border bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter your password"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setPinSettingUser(null); setPinVerifyStep('verify'); setAdminPassword(''); }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!adminPassword || isVerifying}
+                    className="bg-[#003153] px-4 py-2 rounded-lg text-xs font-semibold text-white hover:bg-[#002640] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isVerifying ? 'Verifying...' : 'Verify'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmitPin} className="p-6">
+                <p className="text-xs text-gray-500 mb-4">
+                  Set a 4-digit PIN for <strong className="text-gray-900">{pinSettingUser.name}</strong>. Staff will use this PIN to clock in/out.
+                </p>
+                <div className="mb-6">
+                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">New PIN</label>
+                  <input
+                    type="password"
+                    autoComplete="one-time-code"
+                    maxLength={4}
+                    pattern="\d{4}"
+                    required
+                    autoFocus
+                    value={newPin}
+                    onChange={e => setNewPin(e.target.value.replace(/\D/g, ''))}
+                    className="w-full border-gray-200 rounded-lg text-center text-2xl tracking-[0.5em] py-3 border bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="••••"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setPinVerifyStep('verify'); setNewPin(''); setAdminPassword(''); }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={newPin.length !== 4}
+                    className="bg-[#003153] px-4 py-2 rounded-lg text-xs font-semibold text-white hover:bg-[#002640] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Save PIN
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

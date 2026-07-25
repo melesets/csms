@@ -18,6 +18,10 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
       .filter(u => u.role === 'user' && u.department)
       .map(u => u.department)
   )).sort();
+
+  // Available parent users (role='user' accounts that can have staff under them)
+  const availableParentUsers = allUsers.filter(u => u.role === 'user' && u.isActive);
+
   const [formData, setFormData] = useState({
     username: user?.username || '',
     password: '',
@@ -30,7 +34,8 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
     permissions: user?.permissions || [],
     shiftType: (user as any)?.shiftType || 'TID',
     pin: '',
-    removePin: false
+    removePin: false,
+    parentUserId: user?.parentUserId || null,
   });
 
   const AVAILABLE_MODULES = [
@@ -91,7 +96,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
     if (validateForm()) {
       // Ensure all selected modules have a 'view' action at minimum
       const formattedPermissions = formData.permissions;
-      onSave({ ...formData, permissions: formattedPermissions } as any);
+      onSave({ ...formData, permissions: formattedPermissions, parentUserId: formData.parentUserId } as any);
     }
   };
 
@@ -238,12 +243,39 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
               className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
+              <option value="user">User (Service Unit)</option>
               <option value="staff">Staff</option>
+              <option value="admin">Administrator</option>
+              <option value="superadmin">Super Administrator</option>
               <option value="viewer">Viewer</option>
             </select>
           </div>
+
+          {/* Parent User - only shown when role is 'staff' */}
+          {formData.role === 'staff' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Parent User (Service Unit) *
+              </label>
+              <select
+                name="parentUserId"
+                value={formData.parentUserId || ''}
+                onChange={(e) => setFormData((prev: any) => ({ ...prev, parentUserId: e.target.value || null }))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select Parent User...</option>
+                {availableParentUsers.map(parent => (
+                  <option key={parent.id} value={parent.id}>
+                    {parent.name} ({parent.department})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-gray-500 mt-1 italic">
+                This staff member will be nested under the selected service unit.
+              </p>
+            </div>
+          )}
 
           {formData.role === 'user' && (
             <div>

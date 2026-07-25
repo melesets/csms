@@ -12,6 +12,7 @@ interface CustomSelectProps {
   options: CustomSelectOption[];
   placeholder?: string;
   className?: string;
+  minWidth?: string;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -20,6 +21,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   options,
   placeholder = 'Select...',
   className = '',
+  minWidth = '160px',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -37,7 +39,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   const selected = options.find(o => o.value === value);
 
   return (
-    <div className={`relative ${className}`} ref={ref}>
+    <div className={`relative ${className}`} ref={ref} style={{ minWidth }}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -53,8 +55,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-          <div className="max-h-48 overflow-y-auto">
+        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg" style={{ width: '100%', minWidth }}>
+          <div className="max-h-60 overflow-y-auto">
             {options.map(opt => (
               <button
                 key={opt.value}

@@ -4,7 +4,7 @@ export interface User {
   username: string;
   name: string;
   email: string;
-  role: 'admin' | 'user' | 'staff' | 'viewer';
+  role: 'superadmin' | 'admin' | 'user' | 'staff' | 'viewer';
   department: string;
   profession?: 'Nurse' | 'Midwifery' | 'General Practitioner' | 'Senior Physician' | 'Admin' | 'Laboratory' | 'Pharmacy' | 'Radiology' | 'Other Coordinators';
   isActive: boolean;
@@ -13,6 +13,7 @@ export interface User {
   createdBy?: string;
   createdAt?: string;
   lastLogin?: string;
+  parentUserId?: string | null;
 }
 
 export interface Permission {
@@ -48,9 +49,18 @@ export const PROFESSIONS = [
   'Other Coordinators'
 ] as const;
 
+// Role hierarchy: staff(1) < user(2) < admin(3) < superadmin(4)
+export const ROLE_HIERARCHY: Record<string, number> = {
+  staff: 1,
+  user: 2,
+  admin: 3,
+  superadmin: 4,
+};
+
 export const USER_ROLES = [
-  { value: 'admin', label: 'Administrator', description: 'Full system access' },
-  { value: 'user', label: 'User', description: 'Can create and view own reports' },
-  { value: 'staff', label: 'Staff', description: 'Department-level access' },
+  { value: 'superadmin', label: 'Super Administrator', description: 'Full system access, can grant admin role' },
+  { value: 'admin', label: 'Administrator', description: 'Manages users and staff' },
+  { value: 'user', label: 'User', description: 'Service unit account, manages own staff' },
+  { value: 'staff', label: 'Staff', description: 'PIN-based access, nested under a user' },
   { value: 'viewer', label: 'Viewer', description: 'Read-only access' }
 ];

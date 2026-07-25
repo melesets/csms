@@ -12,12 +12,16 @@ import {
   TrendsAnalytics, 
   FormBuilder, 
   DashboardFormMapping, 
+  CustomTabManager,
+  CheckInLogs,
+  AttendanceReports,
   UserManagement, 
   ShiftManager,
   IntegrationPage,
   AdminSettings,
-  LoginForm 
+  LoginForm
 } from './features';
+import StaffScheduling from './features/scheduling/StaffScheduling';
 import { Layout, IsbarLoader, ErrorBoundary } from './components/shared';
 
 const AppContent = () => {
@@ -44,7 +48,7 @@ const AppContent = () => {
     const page = (() => {
       switch (currentPage) {
         case 'dashboard':
-          return canView('dashboard') ? <Dashboard /> : deny;
+          return canView('dashboard') ? <Dashboard onNavigate={setCurrentPage} /> : deny;
         case 'isbar':
           return canView('isbar') ? <DynamicISBARForm /> : deny;
         case 'staff':
@@ -59,12 +63,20 @@ const AppContent = () => {
           return canView('form-builder') ? <FormBuilder /> : deny;
         case 'dashboard-mapping':
           return canView('dashboard-mappings') ? <DashboardFormMapping /> : deny;
+        case 'custom-tabs':
+          return canView('dashboard') ? <CustomTabManager onNavigate={setCurrentPage} /> : deny;
+        case 'check-in-logs':
+          return canView('staff') ? <CheckInLogs /> : deny;
+        case 'attendance-reports':
+          return canView('staff') ? <AttendanceReports /> : deny;
         case 'integrations':
           return canView('form-builder') ? <IntegrationPage /> : deny;
         case 'user-management':
           return canView('user-management') ? <UserManagement /> : deny;
         case 'admin-settings':
           return canView('user-management') ? <AdminSettings /> : deny;
+        case 'scheduling':
+          return canView('scheduling') ? <StaffScheduling /> : deny;
         default:
           return canView('dashboard') ? <Dashboard /> : deny;
       }

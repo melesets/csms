@@ -10,6 +10,9 @@ router.post('/check-out', shiftsController.checkOut);
 router.post('/handover', shiftsController.submitHandover);
 router.get('/handover/:ward/:profession', shiftsController.getLatestHandover);
 router.get('/active-staff/:department?', shiftsController.getActiveStaff);
+router.get('/check-in-logs', shiftsController.getCheckInLogs);
+router.get('/attendance-report', shiftsController.getAttendanceReport);
 router.post('/staff-action', shiftsController.staffAction);
+router.post('/auto-checkout', shiftsController.triggerAutoCheckout);
 
 export default router;

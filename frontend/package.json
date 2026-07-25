@@ -16,6 +16,8 @@
     "antd": "^5.27.1",
     "ethiopian-date": "^0.0.6",
     "exceljs": "^4.4.0",
+    "html2canvas": "^1.4.1",
+    "kenat": "^4.0.0",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -110,7 +110,7 @@ export function ethiopianToGregorian(ethDate: EthiopianDate): Date {
   const { year, month, day } = ethDate;
 
   const jdn = (365 * year) + Math.floor(year / 4) + 
-              (30 * (month - 1)) + day + 1723856;
+              (30 * (month - 1)) + day + 1723855;
 
   const a = jdn + 32044;
   const b = Math.floor((4 * a + 3) / 146097);

@@ -68,10 +68,14 @@ export async function apiPost(path: string, data: any) {
   });
   if (res.status === 401) { handle401(); throw Object.assign(new Error('Session expired'), { status: 401 }); }
   if (!res.ok) {
-    const text = await res.text();
-    const err = new Error(text || `POST ${path} failed`);
+    let body: any;
+    try { body = await res.json(); } catch { body = await res.text(); }
+    const err = new Error(typeof body === 'string' ? body : body?.error || `POST ${path} failed`);
     (err as any).status = res.status;
     (err as any).statusText = res.statusText;
+    if (typeof body === 'object' && body !== null) {
+      Object.assign(err, body);
+    }
     throw err;
   }
   return res.json();

@@ -4,7 +4,7 @@ import * as staffService from './staff.service.js';
 import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const getStaff = asyncHandler(async (req, res) => {
-  const staff = await staffService.findAllStaff();
+  const staff = await staffService.findAllStaff(req.query.parentUserId, req.query.department);
   res.json(staff);
 });
 

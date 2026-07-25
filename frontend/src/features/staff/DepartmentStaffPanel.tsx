@@ -112,6 +112,7 @@ export const DepartmentStaffPanel = () => {
       setSelectedStaff(null);
       await fetchStaff();
       refreshShiftContext();
+      window.dispatchEvent(new Event('staff-updated'));
     } catch (err: any) {
       setError(err?.message || 'Invalid PIN or server error');
     } finally {

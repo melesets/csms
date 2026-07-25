@@ -21,6 +21,7 @@ import terminologyRoutes from '../modules/terminology/terminology.routes.js';
 import aiInsightsRoutes from '../modules/ai-insights/aiInsights.routes.js';
 import integrationRoutes from '../modules/integrations/integration.routes.js';
 import adminRoutes from '../modules/admin/admin.routes.js';
+import schedulingRoutes from '../modules/scheduling/scheduling.routes.js';
 
 
 const router = Router();
@@ -43,6 +44,7 @@ router.use('/api/terminology', terminologyRoutes);
 router.use('/api/ai', aiInsightsRoutes);
 router.use('/api/integrations', integrationRoutes);
 router.use('/api/admin', adminRoutes);
+router.use('/api/scheduling', schedulingRoutes);
 
 
 export default router;

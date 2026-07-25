@@ -43,3 +43,20 @@ export const staffAction = asyncHandler(async (req, res) => {
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json(result);
 });
+
+export const getCheckInLogs = asyncHandler(async (req, res) => {
+  const { startDate, endDate, department, staffId, page, limit } = req.query;
+  const result = await shiftsService.getCheckInLogs({ startDate, endDate, department, staffId, page: parseInt(page) || 1, limit: parseInt(limit) || 50 });
+  res.json(result);
+});
+
+export const getAttendanceReport = asyncHandler(async (req, res) => {
+  const { startDate, endDate, department } = req.query;
+  const result = await shiftsService.getAttendanceReport({ startDate, endDate, department });
+  res.json(result);
+});
+
+export const triggerAutoCheckout = asyncHandler(async (req, res) => {
+  const result = await shiftsService.autoCheckoutExpiredSessions();
+  res.json({ message: `Auto-checkout complete: ${result.checkedOut} session(s) ended`, ...result });
+});

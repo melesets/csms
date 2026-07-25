@@ -26,50 +26,76 @@ export async function processAndSave(buffer, originalName) {
   return `/uploads/profiles/${filename}`;
 }
 
-export async function findAllStaff() {
+export async function findAllStaff(parentUserId, department) {
+  let query = `
+    SELECT u.id, u.name, u.username, u.profession AS role, u.department, u.profile_picture,
+           u.created_by AS "createdBy", u.parent_user_id AS "parentUserId",
+           ss.shift_name AS "currentShift", ss.start_time AS "shiftStartTime", ss.is_active AS "isOnDuty"
+    FROM users u
+    LEFT JOIN shift_sessions ss ON u.id = ss.user_id AND ss.is_active = true
+    WHERE u.role = 'staff'
+  `;
+  const params = [];
+  let idx = 1;
+  
+  if (parentUserId) {
+    query += ` AND u.parent_user_id = $${idx++}`;
+    params.push(parentUserId);
+  }
+  if (department) {
+    query += ` AND LOWER(u.department) = LOWER($${idx++})`;
+    params.push(department);
+  }
+  
+  query += ' ORDER BY u.created_at DESC NULLS LAST';
+  
   let result;
   try {
-    result = await pool.query(`
-      SELECT u.id, u.name, u.username, u.profession AS role, u.department, u.profile_picture,
-             u.created_by AS "createdBy",
-             ss.shift_name AS "currentShift", ss.start_time AS "shiftStartTime", ss.is_active AS "isOnDuty"
-      FROM users u
-      LEFT JOIN shift_sessions ss ON u.id = ss.user_id AND ss.is_active = true
-      WHERE u.role = 'staff'
-      ORDER BY u.created_at DESC NULLS LAST
-    `);
+    result = await pool.query(query, params);
   } catch (joinErr) {
-    result = await pool.query(`
+    let fallbackQuery = `
       SELECT u.id, u.name, u.username, u.profession AS role, u.department, u.profile_picture,
-             u.created_by AS "createdBy"
-      FROM users u WHERE u.role = 'staff' ORDER BY u.created_at DESC NULLS LAST
-    `);
+             u.created_by AS "createdBy", u.parent_user_id AS "parentUserId"
+      FROM users u WHERE u.role = 'staff'
+    `;
+    const fallbackParams = [];
+    let fIdx = 1;
+    if (parentUserId) {
+      fallbackQuery += ` AND u.parent_user_id = $${fIdx++}`;
+      fallbackParams.push(parentUserId);
+    }
+    if (department) {
+      fallbackQuery += ` AND LOWER(u.department) = LOWER($${fIdx++})`;
+      fallbackParams.push(department);
+    }
+    fallbackQuery += ' ORDER BY u.created_at DESC NULLS LAST';
+    result = await pool.query(fallbackQuery, fallbackParams);
   }
   return result.rows;
 }
 
 export async function createStaff(data) {
-  const { name, role, department, createdBy } = data;
+  const { name, role, department, createdBy, parentUserId } = data;
   const tempUsername = name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 10000);
   const tempEmail = tempUsername + '@isbar.local';
   const profilePicture = data.profilePicture || null;
 
   const result = await pool.query(
-    'INSERT INTO users (name, profession, department, role, username, email, password, isactive, created_by, created_at, profile_picture) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, NOW(), $9) RETURNING id, name, profession AS role, department, created_by AS "createdBy", profile_picture',
-    [name, role, department, 'staff', tempUsername, tempEmail, 'staffpass', createdBy ?? null, profilePicture]
+    'INSERT INTO users (name, profession, department, role, username, email, password, isactive, created_by, parent_user_id, created_at, profile_picture) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, NOW(), $10) RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture',
+    [name, role, department, 'staff', tempUsername, tempEmail, 'staffpass', createdBy ?? null, parentUserId ?? null, profilePicture]
   );
   return result.rows[0];
 }
 
 export async function updateStaff(id, data) {
-  const { name, role, department, profilePicture } = data;
+  const { name, role, department, profilePicture, parentUserId } = data;
   let query, params;
   if (profilePicture) {
-    query = 'UPDATE users SET name = $1, profession = $2, department = $3, profile_picture = $4 WHERE id = $5 AND role = $6 RETURNING id, name, profession AS role, department, created_by AS "createdBy", profile_picture';
-    params = [name, role, department, profilePicture, id, 'staff'];
+    query = 'UPDATE users SET name = $1, profession = $2, department = $3, profile_picture = $4, parent_user_id = COALESCE($6, parent_user_id) WHERE id = $5 AND role = $7 RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture';
+    params = [name, role, department, profilePicture, id, parentUserId ?? null, 'staff'];
   } else {
-    query = 'UPDATE users SET name = $1, profession = $2, department = $3 WHERE id = $4 AND role = $5 RETURNING id, name, profession AS role, department, created_by AS "createdBy", profile_picture';
-    params = [name, role, department, id, 'staff'];
+    query = 'UPDATE users SET name = $1, profession = $2, department = $3, parent_user_id = COALESCE($5, parent_user_id) WHERE id = $4 AND role = $6 RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture';
+    params = [name, role, department, id, parentUserId ?? null, 'staff'];
   }
   const result = await pool.query(query, params);
   return result.rows[0] || null;

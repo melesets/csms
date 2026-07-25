@@ -20,7 +20,7 @@ export async function findUserById(id) {
 }
 
 export function getDefaultPermissions(role) {
-  if (role === 'admin') {
+  if (role === 'admin' || role === 'superadmin') {
     return [
       { module: 'dashboard', actions: ['view'] },
       { module: 'isbar', actions: ['view', 'create', 'edit', 'delete'] },
@@ -28,8 +28,28 @@ export function getDefaultPermissions(role) {
       { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
       { module: 'database', actions: ['view', 'export'] },
       { module: 'trends', actions: ['view'] },
+      { module: 'scheduling', actions: ['view', 'create', 'edit', 'delete'] },
       { module: 'form-builder', actions: ['view', 'create', 'edit', 'delete'] },
       { module: 'user-management', actions: ['view', 'create', 'edit', 'delete'] },
+    ];
+  }
+  if (role === 'user') {
+    return [
+      { module: 'dashboard', actions: ['view'] },
+      { module: 'isbar', actions: ['view', 'create'] },
+      { module: 'staff', actions: ['view'] },
+      { module: 'resources', actions: ['view'] },
+      { module: 'database', actions: ['view'] },
+      { module: 'trends', actions: ['view'] },
+      { module: 'scheduling', actions: ['view', 'create', 'edit'] },
+      { module: 'forms', actions: ['edit'] },
+    ];
+  }
+  if (role === 'staff') {
+    return [
+      { module: 'dashboard', actions: ['view'] },
+      { module: 'scheduling', actions: ['view'] },
+      { module: 'forms', actions: ['edit'] },
     ];
   }
   return [

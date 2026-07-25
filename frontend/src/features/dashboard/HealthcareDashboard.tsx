@@ -10,6 +10,12 @@ import { DepartmentStaffPanel } from '../staff';
 import { EthiopianDateDisplay } from '../../components/shared/date/EthiopianDateDisplay';
 import { EthiopianDateTimeDisplay } from '../../components/shared/date/EthiopianDateTimeDisplay';
 import {
+  gregorianToEthiopian,
+  gregorianToEthiopianTime,
+  formatEthiopianDate,
+  formatEthiopianTime,
+} from '../../utils/ethiopianCalendar';
+import {
   Bed,
   Clock,
   Package,
@@ -26,6 +32,9 @@ import {
   Tag,
   ClipboardCheck,
   LayoutGrid,
+  List,
+  TableProperties,
+  Rows3,
   Stethoscope,
   Users,
   Brain
@@ -170,7 +179,7 @@ interface HandoverBriefing {
   handover_data?: Record<string, unknown>;
 }
 
-export const HealthcareDashboard: React.FC = () => {
+export const HealthcareDashboard: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
   const normalizeShift = (s: unknown): 'Morning' | 'Evening' | 'Night' | null => {
     const v = String(s || '').trim().toLowerCase();
     if (!v) return null;
@@ -237,6 +246,8 @@ export const HealthcareDashboard: React.FC = () => {
     profession: string;
     dashboardType: 'patient' | 'resource';
     groupByField: string;
+    viewStyle: 'card' | 'table' | 'list' | 'compact';
+    retention: 'forever' | '24h' | '12h' | '8h';
     cardFields: {
       primary: string;
       secondary: string;
@@ -249,10 +260,6 @@ export const HealthcareDashboard: React.FC = () => {
   const [customTabs, setCustomTabs] = useState<CustomTab[]>(() => {
     try { return JSON.parse(localStorage.getItem('isbar_custom_tabs') || '[]'); } catch { return []; }
   });
-  const [showAddTabModal, setShowAddTabModal] = useState(false);
-  const [newTab, setNewTab] = useState<Partial<CustomTab>>({});
-  const [availableTemplates, setAvailableTemplates] = useState<{ id: string; name: string; department: string; fields: any[]; sections: any[] }[]>([]);
-  const [tabModalStep, setTabModalStep] = useState<'basic' | 'fields'>('basic');
 
   const getByKeySmart = (data: Record<string, unknown>, key?: string, labelMap?: Record<string, string>) => {
     if (!data || !key) return undefined;
@@ -927,83 +934,6 @@ export const HealthcareDashboard: React.FC = () => {
     localStorage.setItem('isbar_custom_tabs', JSON.stringify(customTabs));
   }, [customTabs]);
 
-  const openAddTabModal = async () => {
-    setNewTab({
-      name: '',
-      displayName: '',
-      templateId: '',
-      templateName: '',
-      department: user?.department || '',
-      departments: user?.department ? [user.department] : [],
-      profession: '',
-      dashboardType: 'patient',
-      groupByField: '',
-      cardFields: { primary: '', secondary: '', status: '', identifier: '', nurse: '', extraFields: [] },
-    });
-    setTabModalStep('basic');
-    setShowAddTabModal(true);
-    try {
-      const res = await fetch('/api/form-templates');
-      if (res.ok) {
-        const templates = await res.json();
-        setAvailableTemplates((templates || []).map((t: any) => ({
-          id: String(t.id),
-          name: t.name || t.title || `Template ${t.id}`,
-          department: t.department || '',
-          fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
-          sections: t.sections === null ? [] : (typeof t.sections === 'string' ? JSON.parse(t.sections) : (t.sections || [])),
-        })));
-      }
-    } catch { /* silent */ }
-  };
-
-  const getTabFieldOptions = () => {
-    const tpl = availableTemplates.find(t => t.id === newTab.templateId);
-    if (!tpl) return [];
-    const options: { value: string; label: string }[] = [];
-    const seen = new Set<string>();
-    (tpl.fields || []).forEach((field: any) => {
-      const value = field?.name || field?.id || '';
-      const label = field?.label || field?.name || field?.id || 'Unnamed Field';
-      if (value && !seen.has(value)) { options.push({ value, label }); seen.add(value); }
-      if (field?.fields && Array.isArray(field.fields)) {
-        field.fields.forEach((subField: any) => {
-          const sv = subField?.name || subField?.id || '';
-          const sl = `${label} > ${subField?.label || subField?.name || subField?.id || 'Subfield'}`;
-          if (sv && !seen.has(sv)) { options.push({ value: sv, label: sl }); seen.add(sv); }
-        });
-      }
-    });
-    return options;
-  };
-
-  const getAllDepartments = () => {
-    const set = new Set<string>();
-    availableTemplates.forEach(t => t.department && set.add(t.department));
-    return Array.from(set).sort();
-  };
-
-  const handleAddTab = () => {
-    if (!newTab.name?.trim() || !newTab.templateId) return;
-    const tpl = availableTemplates.find(t => t.id === newTab.templateId);
-    const tab: CustomTab = {
-      id: `custom-${Date.now()}`,
-      name: newTab.name.trim(),
-      displayName: newTab.displayName?.trim() || newTab.name.trim(),
-      templateId: newTab.templateId,
-      templateName: tpl?.name || '',
-      department: newTab.department || tpl?.department || '',
-      departments: newTab.departments || [],
-      profession: newTab.profession || '',
-      dashboardType: newTab.dashboardType || 'patient',
-      groupByField: newTab.groupByField || '',
-      cardFields: newTab.cardFields || { primary: '', secondary: '', status: '', identifier: '', nurse: '', extraFields: [] },
-    };
-    setCustomTabs(prev => [...prev, tab]);
-    setShowAddTabModal(false);
-    setActiveTab(tab.id);
-  };
-
   const handleRemoveTab = (tabId: string) => {
     setCustomTabs(prev => prev.filter(t => t.id !== tabId));
     if (activeTab === tabId) setActiveTab('patients');
@@ -1210,6 +1140,12 @@ export const HealthcareDashboard: React.FC = () => {
       {(() => {
         const allReports = Object.values(reportsByShift).flat().filter(Boolean);
         const allRounds = Object.values(roundsByShift).flat().filter(Boolean);
+        const now = Date.now();
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        const inventoryReportsCount = allReports.filter((report: any) => {
+          const reportTime = new Date(new Date(report.date).getTime() + 3 * 3600 * 1000).getTime();
+          return (now - reportTime) < TWENTY_FOUR_HOURS;
+        }).length;
         const tabs = [
           ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin', icon: Shield, count: 0 }] : []),
           { id: 'patients', label: 'Patients', icon: Bed, count: visiblePatients.length },
@@ -1217,7 +1153,7 @@ export const HealthcareDashboard: React.FC = () => {
           { id: 'staff', label: 'Active Staff', icon: Users, count: 0 },
           ...(Object.keys(recentAuditsByMrn).length > 0 ? [{ id: 'audit', label: 'Audit', icon: ClipboardCheck, count: Object.keys(recentAuditsByMrn).length }] : []),
           ...(resourceMappings.length > 0 && (user?.role === 'admin' || user?.profession === 'Nurse' || user?.profession === 'Midwifery') ? [{ id: 'resources', label: 'Resources', icon: Package, count: resourceStatus.length }] : []),
-          ...(isNurseOrMidwife && allReports.length > 0 ? [{ id: 'inventory', label: 'Inventory', icon: Package, count: allReports.length }] : []),
+          ...(isNurseOrMidwife && inventoryReportsCount > 0 ? [{ id: 'inventory', label: 'Inventory', icon: Package, count: inventoryReportsCount }] : []),
           ...(isNurseOrMidwife ? [{ id: 'rounds', label: 'Nursing Round', icon: Stethoscope, count: allRounds.length }] : []),
           ...Object.entries(dynamicSections).map(([ident, group]) => ({
             id: `dynamic-${ident}`,
@@ -1272,7 +1208,7 @@ export const HealthcareDashboard: React.FC = () => {
             })}
             {user?.role === 'admin' && (
               <button
-                onClick={openAddTabModal}
+                onClick={() => onNavigate?.('custom-tabs')}
                 className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-all whitespace-nowrap border border-dashed border-gray-300"
               >
                 <Plus className="w-4 h-4" />
@@ -1558,7 +1494,10 @@ export const HealthcareDashboard: React.FC = () => {
                         <div key={sub.id} className="border border-gray-100 rounded-lg p-3 bg-white">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-gray-900">{sub.template_name as string || 'Audit'}</span>
-                            <span className="text-xs text-gray-500">{bestDate ? new Date(new Date(String(bestDate)).getTime() + 3 * 3600 * 1000).toLocaleString() : ''}</span>
+                            <span className="text-xs text-gray-500">{bestDate ? (() => {
+                              const d = new Date(new Date(String(bestDate)).getTime() + 3 * 3600 * 1000);
+                              return `${formatEthiopianDate(gregorianToEthiopian(d), 'long')} ${formatEthiopianTime(gregorianToEthiopianTime(d), 'short')}`;
+                            })() : ''}</span>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {Object.entries(fd).slice(0, 8).map(([k, v]) => (
@@ -1985,7 +1924,10 @@ export const HealthcareDashboard: React.FC = () => {
                         ))}
                     </div>
                     <div className="mt-3 text-[10px] text-gray-400 text-right">
-                      {sub.submitted_at ? new Date(new Date(String(sub.submitted_at)).getTime() + 3 * 3600 * 1000).toLocaleString() : ''}
+                      {sub.submitted_at ? (() => {
+                        const d = new Date(new Date(String(sub.submitted_at)).getTime() + 3 * 3600 * 1000);
+                        return `${formatEthiopianDate(gregorianToEthiopian(d), 'long')} ${formatEthiopianTime(gregorianToEthiopianTime(d), 'short')}`;
+                      })() : ''}
                     </div>
                   </div>
                 );
@@ -2010,6 +1952,8 @@ export const HealthcareDashboard: React.FC = () => {
               const ctDept = (ct.department || '').toLowerCase();
               const ctDepts = (ct.departments || []).map(d => d.toLowerCase());
               const ctProf = (ct.profession || '').toLowerCase();
+              const retentionMs = ct.retention === '24h' ? 24 * 60 * 60 * 1000 : ct.retention === '12h' ? 12 * 60 * 60 * 1000 : ct.retention === '8h' ? 8 * 60 * 60 * 1000 : 0;
+              const now = Date.now();
               const filtered = (allFormSubmissions || []).filter((s: Record<string, unknown>) => {
                 const sTid = s.template_id != null ? String(s.template_id) : null;
                 const sTname = s.template_name ? String(s.template_name).toLowerCase() : null;
@@ -2024,9 +1968,14 @@ export const HealthcareDashboard: React.FC = () => {
                   const sProf = String(s.profession || s.template_profession || '').toLowerCase();
                   if (sProf && sProf !== ctProf) return false;
                 }
+                if (retentionMs > 0 && s.submitted_at) {
+                  const subTime = new Date(String(s.submitted_at)).getTime();
+                  if (now - subTime > retentionMs) return false;
+                }
                 return true;
               });
               const cardFields = ct.cardFields || {};
+              const viewStyle = ct.viewStyle || 'card';
               if (filtered.length === 0) {
                 return (
                   <div className="text-center py-8 text-gray-500">
@@ -2036,7 +1985,6 @@ export const HealthcareDashboard: React.FC = () => {
                   </div>
                 );
               }
-              // Group by field
               const groups: Record<string, Record<string, unknown>[]> = {};
               if (ct.groupByField) {
                 filtered.forEach(sub => {
@@ -2049,25 +1997,162 @@ export const HealthcareDashboard: React.FC = () => {
                 groups['__all__'] = filtered;
               }
               const groupEntries = Object.entries(groups);
+              const fmtTimestamp = (sub: Record<string, unknown>) => {
+                if (!sub.submitted_at) return '';
+                const d = new Date(new Date(String(sub.submitted_at)).getTime() + 3 * 3600 * 1000);
+                return `${formatEthiopianDate(gregorianToEthiopian(d), 'long')} ${formatEthiopianTime(gregorianToEthiopianTime(d), 'short')}`;
+              };
+              const getFields = (sub: Record<string, unknown>) => {
+                const fd = (sub.form_data as Record<string, unknown>) || {};
+                const primary = (cardFields.primary && fd[cardFields.primary]) || fd.patientName || fd.name || sub.template_name || 'Untitled';
+                const secondary = (cardFields.secondary && fd[cardFields.secondary]) || fd.department || '';
+                const status = (cardFields.status && fd[cardFields.status]) || '';
+                const identifier = (cardFields.identifier && fd[cardFields.identifier]) || '';
+                const extraFields = cardFields.extraFields || [];
+                return { fd, primary, secondary, status, identifier, extraFields };
+              };
+              const renderGroupHeader = (groupName: string, count: number) => (
+                ct.groupByField && groupEntries.length > 1 ? (
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                    {groupName}
+                    <span className="text-xs font-normal text-gray-400">({count})</span>
+                  </h4>
+                ) : null
+              );
+              if (viewStyle === 'table') {
+                const allFieldKeys = (() => {
+                  const keys = new Set<string>();
+                  if (cardFields.primary) keys.add(cardFields.primary);
+                  if (cardFields.secondary) keys.add(cardFields.secondary);
+                  if (cardFields.status) keys.add(cardFields.status);
+                  if (cardFields.identifier) keys.add(cardFields.identifier);
+                  filtered.forEach(sub => {
+                    const fd = (sub.form_data as Record<string, unknown>) || {};
+                    Object.keys(fd).forEach(k => {
+                      if (!['id', 'patientId', 'created_at', 'updated_at'].includes(k.toLowerCase())) keys.add(k);
+                    });
+                  });
+                  return Array.from(keys).slice(0, 8);
+                })();
+                return (
+                  <div className="space-y-6">
+                    {groupEntries.map(([groupName, subs]) => (
+                      <div key={groupName}>
+                        {renderGroupHeader(groupName, subs.length)}
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50 border-b border-gray-200">
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600">#</th>
+                                {allFieldKeys.map(k => (
+                                  <th key={k} className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600">{prettifyLabel(k)}</th>
+                                ))}
+                                <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-600">Submitted</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {subs.map((sub, idx) => {
+                                const { fd } = getFields(sub);
+                                return (
+                                  <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-3 py-2 text-gray-400 text-xs">{idx + 1}</td>
+                                    {allFieldKeys.map(k => (
+                                      <td key={k} className="px-3 py-2 text-gray-900 text-xs max-w-[180px] truncate">{String(fd[k] ?? '')}</td>
+                                    ))}
+                                    <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">{fmtTimestamp(sub)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+              if (viewStyle === 'list') {
+                return (
+                  <div className="space-y-6">
+                    {groupEntries.map(([groupName, subs]) => (
+                      <div key={groupName}>
+                        {renderGroupHeader(groupName, subs.length)}
+                        <div className="space-y-2">
+                          {subs.map((sub) => {
+                            const { primary, secondary, status, identifier } = getFields(sub);
+                            return (
+                              <div key={sub.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-white">
+                                <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                                  <Tag className="w-4 h-4 text-indigo-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-900 text-sm truncate">{String(primary)}</span>
+                                    {status && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 shrink-0">{String(status)}</span>}
+                                    {identifier && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-600 shrink-0">{String(identifier)}</span>}
+                                  </div>
+                                  {secondary && <p className="text-xs text-gray-500 truncate mt-0.5">{String(secondary)}</p>}
+                                </div>
+                                <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">{fmtTimestamp(sub)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+              if (viewStyle === 'compact') {
+                return (
+                  <div className="space-y-6">
+                    {groupEntries.map(([groupName, subs]) => (
+                      <div key={groupName}>
+                        {renderGroupHeader(groupName, subs.length)}
+                        <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+                          {subs.map((sub) => {
+                            const { fd, primary, status, identifier, extraFields } = getFields(sub);
+                            const previewFields = Object.entries(fd)
+                              .filter(([k]) => !['id', 'patientId', 'created_at', 'updated_at'].includes(k.toLowerCase()))
+                              .filter(([k]) => extraFields.length === 0 || extraFields.includes(k))
+                              .slice(0, 3);
+                            return (
+                              <div key={sub.id} className="px-3 py-2 hover:bg-gray-50 transition-colors bg-white">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="font-medium text-gray-900 text-xs truncate">{String(primary)}</span>
+                                    {status && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 shrink-0">{String(status)}</span>}
+                                    {identifier && <span className="text-[10px] px-1 py-0.5 rounded bg-gray-100 text-gray-600 shrink-0">{String(identifier)}</span>}
+                                  </div>
+                                  <span className="text-[10px] text-gray-400 shrink-0 ml-2">{fmtTimestamp(sub)}</span>
+                                </div>
+                                {previewFields.length > 0 && (
+                                  <div className="flex gap-3 mt-1">
+                                    {previewFields.map(([k, v]) => (
+                                      <span key={k} className="text-[10px] text-gray-400 truncate">
+                                        <span className="text-gray-500">{prettifyLabel(k)}:</span> {String(v ?? '')}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
               return (
                 <div className="space-y-6">
                   {groupEntries.map(([groupName, subs]) => (
                     <div key={groupName}>
-                      {ct.groupByField && groupEntries.length > 1 && (
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                          {groupName}
-                          <span className="text-xs font-normal text-gray-400">({subs.length})</span>
-                        </h4>
-                      )}
+                      {renderGroupHeader(groupName, subs.length)}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {subs.map((sub) => {
-                          const fd = (sub.form_data as Record<string, unknown>) || {};
-                          const primary = (cardFields.primary && fd[cardFields.primary]) || fd.patientName || fd.name || sub.template_name || 'Untitled';
-                          const secondary = (cardFields.secondary && fd[cardFields.secondary]) || fd.department || '';
-                          const status = (cardFields.status && fd[cardFields.status]) || '';
-                          const identifier = (cardFields.identifier && fd[cardFields.identifier]) || '';
-                          const extraFields = cardFields.extraFields || [];
+                          const { fd, primary, secondary, status, identifier, extraFields } = getFields(sub);
                           return (
                             <div key={sub.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow bg-white">
                               <div className="flex items-start justify-between mb-2">
@@ -2097,7 +2182,7 @@ export const HealthcareDashboard: React.FC = () => {
                                   ))}
                               </div>
                               <div className="mt-3 text-[10px] text-gray-400 text-right">
-                                {sub.submitted_at ? new Date(new Date(String(sub.submitted_at)).getTime() + 3 * 3600 * 1000).toLocaleString() : ''}
+                                {fmtTimestamp(sub)}
                               </div>
                             </div>
                           );
@@ -2111,309 +2196,6 @@ export const HealthcareDashboard: React.FC = () => {
           </DashboardSection>
         )
       ))}
-
-      {/* Add Custom Tab Modal */}
-      {showAddTabModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="text-base font-bold text-gray-900">Add Custom Tab</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Step {tabModalStep === 'basic' ? '1' : '2'} of 2 — {tabModalStep === 'basic' ? 'Basic Settings' : 'Field Mapping'}</p>
-              </div>
-              <button onClick={() => setShowAddTabModal(false)} className="text-gray-400 hover:text-gray-600 transition p-1.5 rounded-full hover:bg-gray-100">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Progress bar */}
-            <div className="h-1 bg-gray-100 shrink-0">
-              <div className={`h-full bg-[#003153] transition-all duration-300 ${tabModalStep === 'basic' ? 'w-1/2' : 'w-full'}`} />
-            </div>
-
-            {/* Body */}
-            <div className="p-5 space-y-4 overflow-y-auto flex-1">
-              {tabModalStep === 'basic' ? (
-                <>
-                  {/* Tab Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Tab Name *</label>
-                    <input
-                      type="text"
-                      value={newTab.name || ''}
-                      onChange={e => {
-                        const name = e.target.value;
-                        setNewTab(prev => ({
-                          ...prev,
-                          name,
-                          displayName: prev.displayName === prev.name || !prev.displayName ? name : prev.displayName,
-                        }));
-                      }}
-                      placeholder="e.g. Maternity, Lab Results, Pharmacy..."
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent bg-gray-50 text-sm"
-                    />
-                    <p className="text-[11px] text-gray-400 mt-1">This becomes the identifier tag in dashboard mapping.</p>
-                  </div>
-
-                  {/* Display Name */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Display Name</label>
-                    <input
-                      type="text"
-                      value={newTab.displayName || ''}
-                      onChange={e => setNewTab(prev => ({ ...prev, displayName: e.target.value }))}
-                      placeholder="Shown as section title (defaults to tab name)"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent bg-gray-50 text-sm"
-                    />
-                  </div>
-
-                  {/* Form Template */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Form Template *</label>
-                    <select
-                      value={newTab.templateId || ''}
-                      onChange={e => {
-                        const tplId = e.target.value;
-                        const tpl = availableTemplates.find(t => t.id === tplId);
-                        setNewTab(prev => ({
-                          ...prev,
-                          templateId: tplId,
-                          templateName: tpl?.name || '',
-                          department: tpl?.department || prev.department || '',
-                          departments: tpl?.department ? [tpl.department] : prev.departments || [],
-                        }));
-                      }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                    >
-                      <option value="">Select a template...</option>
-                      {availableTemplates.map(t => (
-                        <option key={t.id} value={t.id}>{t.name} ({t.department})</option>
-                      ))}
-                    </select>
-                    {availableTemplates.length === 0 && (
-                      <p className="text-xs text-gray-400 mt-1">Loading templates...</p>
-                    )}
-                  </div>
-
-                  {/* Dashboard Type */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Dashboard Type</label>
-                    <div className="flex gap-2">
-                      {(['patient', 'resource'] as const).map(dt => (
-                        <button
-                          key={dt}
-                          type="button"
-                          onClick={() => setNewTab(prev => ({ ...prev, dashboardType: dt }))}
-                          className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                            newTab.dashboardType === dt
-                              ? 'bg-[#003153] border-[#003153] text-white'
-                              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          {dt === 'patient' ? 'Patient Handover' : 'Resource Handover'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Department */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Department</label>
-                    <select
-                      value={newTab.department || ''}
-                      onChange={e => {
-                        const dep = e.target.value;
-                        const current = newTab.departments || [];
-                        const next = dep ? (current.includes(dep) ? current : [dep, ...current.filter(d => d !== dep)]) : current.filter(d => d !== newTab.department);
-                        setNewTab(prev => ({ ...prev, department: dep, departments: next }));
-                      }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                    >
-                      <option value="">All Departments</option>
-                      {getAllDepartments().map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                    {/* Multi-department checkboxes */}
-                    {getAllDepartments().length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {getAllDepartments().map(d => {
-                          const checked = (newTab.departments || []).includes(d);
-                          return (
-                            <label key={d} className={`inline-flex items-center px-2 py-1 rounded-md border text-[11px] font-medium cursor-pointer transition-colors ${checked ? 'bg-[#003153] border-[#003153] text-white' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
-                              <input type="checkbox" className="sr-only" checked={checked}
-                                onChange={() => {
-                                  const current = newTab.departments || [];
-                                  const next = checked ? current.filter(x => x !== d) : [...current, d];
-                                  setNewTab(prev => ({ ...prev, departments: next }));
-                                }}
-                              />
-                              {d}
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Profession */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Profession</label>
-                    <select
-                      value={newTab.profession || ''}
-                      onChange={e => setNewTab(prev => ({ ...prev, profession: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                    >
-                      <option value="">All Professions</option>
-                      {PROFESSIONS.map(p => (<option key={p} value={p}>{p}</option>))}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Step 2: Field Mapping */}
-                  {/* Group By */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Group Records By</label>
-                    <select
-                      value={newTab.groupByField || ''}
-                      onChange={e => setNewTab(prev => ({ ...prev, groupByField: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                    >
-                      <option value="">No grouping (flat list)</option>
-                      {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                    </select>
-                    <p className="text-[11px] text-gray-400 mt-1">Records will be grouped by this field (e.g. patient MRN, department).</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Primary Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Primary Field (Title) *</label>
-                      <select
-                        value={newTab.cardFields?.primary || ''}
-                        onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, primary: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                      >
-                        <option value="">Select field...</option>
-                        {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                      </select>
-                    </div>
-                    {/* Secondary Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Secondary Field (Subtitle)</label>
-                      <select
-                        value={newTab.cardFields?.secondary || ''}
-                        onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, secondary: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                      >
-                        <option value="">Select field...</option>
-                        {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Status Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Status Field (Badge)</label>
-                      <select
-                        value={newTab.cardFields?.status || ''}
-                        onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, status: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                      >
-                        <option value="">Select field...</option>
-                        {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                      </select>
-                    </div>
-                    {/* Identifier Field */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Identifier Field (Bed/ID)</label>
-                      <select
-                        value={newTab.cardFields?.identifier || ''}
-                        onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, identifier: e.target.value } }))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                      >
-                        <option value="">Select field...</option>
-                        {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Nurse Field */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Nurse Name Field</label>
-                    <select
-                      value={newTab.cardFields?.nurse || ''}
-                      onChange={e => setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, nurse: e.target.value } }))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                    >
-                      <option value="">Select field...</option>
-                      {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                    </select>
-                  </div>
-
-                  {/* Extra Fields */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Extra Fields (expanded card details)</label>
-                    <select multiple
-                      value={newTab.cardFields?.extraFields || []}
-                      onChange={e => {
-                        const values = Array.from((e.target as HTMLSelectElement).selectedOptions).map(o => o.value);
-                        setNewTab(prev => ({ ...prev, cardFields: { ...prev.cardFields!, extraFields: values } }));
-                      }}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm h-28 bg-gray-50"
-                    >
-                      {getTabFieldOptions().map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
-                    </select>
-                    <p className="text-[11px] text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple fields to display on each card.</p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between shrink-0">
-              {tabModalStep === 'fields' ? (
-                <button
-                  onClick={() => setTabModalStep('basic')}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
-                >
-                  Back
-                </button>
-              ) : (
-                <div />
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAddTabModal(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium transition-colors"
-                >
-                  Cancel
-                </button>
-                {tabModalStep === 'basic' ? (
-                  <button
-                    onClick={() => setTabModalStep('fields')}
-                    disabled={!newTab.name?.trim() || !newTab.templateId}
-                    className="px-4 py-2 rounded-lg bg-[#003153] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#002240] text-sm font-medium transition-colors"
-                  >
-                    Next: Field Mapping
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleAddTab}
-                    disabled={!newTab.cardFields?.primary}
-                    className="px-4 py-2 rounded-lg bg-[#003153] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#002240] text-sm font-medium transition-colors"
-                  >
-                    Add Tab
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

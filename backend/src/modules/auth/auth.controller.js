@@ -53,7 +53,7 @@ export const login = asyncHandler(async (req, res) => {
     permissions = authService.getDefaultPermissions(user.role);
   }
 
-  const tokenPayload = { id: user.id, username: user.username, role: user.role, department: user.department };
+  const tokenPayload = { id: user.id, username: user.username, role: user.role, department: user.department, profession: user.profession };
   const token = signToken(tokenPayload);
 
   console.log(`[Auth] Login successful: "${username}"`);

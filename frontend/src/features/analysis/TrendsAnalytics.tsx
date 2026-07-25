@@ -505,6 +505,7 @@ export const TrendsAnalytics = () => {
               value={selectedDepartment}
               onChange={setSelectedDepartment}
               options={departments.map(d => ({ value: d, label: d }))}
+              minWidth="200px"
             />
           )}
           <div className="flex bg-gray-100 rounded-lg p-0.5">

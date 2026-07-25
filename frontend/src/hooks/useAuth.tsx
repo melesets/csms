@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const role = String(target.role || '').toLowerCase();
       let permissions: any[] = [];
       switch (role) {
+        case 'superadmin':
         case 'admin':
           permissions = [
             { module: 'dashboard', actions: ['view'] },
@@ -94,6 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             { module: 'resources', actions: ['view', 'create', 'edit', 'delete'] },
             { module: 'database', actions: ['view', 'export'] },
             { module: 'trends', actions: ['view'] },
+            { module: 'scheduling', actions: ['view', 'create', 'edit', 'delete'] },
             { module: 'form-builder', actions: ['view', 'create', 'edit', 'delete'] },
             { module: 'user-management', actions: ['view', 'create', 'edit', 'delete'] }
           ];
@@ -101,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         case 'staff':
           permissions = [
             { module: 'dashboard', actions: ['view'] },
+            { module: 'scheduling', actions: ['view'] },
             { module: 'forms', actions: ['edit'] }
           ];
           break;
@@ -117,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             { module: 'resources', actions: ['view'] },
             { module: 'database', actions: ['view'] },
             { module: 'trends', actions: ['view'] },
+            { module: 'scheduling', actions: ['view'] },
             { module: 'form-builder', actions: ['view'] },
             { module: 'user-management', actions: [] }
           ];
@@ -135,7 +139,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isActive: target.isActive ?? true,
         permissions,
         createdAt: target.createdAt,
-        token: user?.token
+        token: user?.token,
+        parentUserId: target.parentUserId,
       } as any;
       
       // Save root admin user before replacing
@@ -166,19 +171,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-
-
   const hasPermission = (module: string, action?: string): boolean => {
     if (!user) return false;
 
-    // 1. If explicit permissions exist, they are the source of truth
+    // 1. Superadmin has all permissions
+    if (user.role === 'superadmin') return true;
+
+    // 2. If explicit permissions exist, they are the source of truth
     const modulePermission = (user.permissions || []).find(p => p.module === module);
     if (modulePermission) {
       if (!action) return modulePermission.actions.length > 0;
       return modulePermission.actions.includes(action);
     }
 
-    // 2. Fallback: Role-based defaults if no explicit permissions defined for this module
+    // 3. Fallback: Role-based defaults if no explicit permissions defined for this module
     if (user.role === 'admin') return true;
 
     // Special profession-based rule for resources (existing logic)
@@ -187,7 +193,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     // Default: basic modules for everyone
-    const defaultModules = ['dashboard', 'isbar'];
+    const defaultModules = ['dashboard', 'isbar', 'scheduling'];
     if (defaultModules.includes(module)) return true;
 
     return false;
@@ -197,14 +203,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return false;
 
     const pageAccess: Record<string, string[]> = {
-      'dashboard': ['admin', 'user', 'staff', 'viewer'],
-      'reports': ['admin', 'user', 'staff'],
-      'department-staff': ['admin', 'staff'],
-      'resources': ['admin', 'staff'],
-      'all-records': ['admin', 'user', 'staff'],
-      'analytics': ['admin', 'user', 'staff'],
-      'form-builder': ['admin'],
-      'user-management': ['admin']
+      'dashboard': ['superadmin', 'admin', 'user', 'staff', 'viewer'],
+      'reports': ['superadmin', 'admin', 'user', 'staff'],
+      'department-staff': ['superadmin', 'admin', 'user', 'staff'],
+      'resources': ['superadmin', 'admin', 'staff'],
+      'all-records': ['superadmin', 'admin', 'user', 'staff'],
+      'analytics': ['superadmin', 'admin', 'user', 'staff'],
+      'scheduling': ['superadmin', 'admin', 'user', 'staff', 'viewer'],
+      'form-builder': ['superadmin', 'admin'],
+      'user-management': ['superadmin', 'admin']
     };
 
     const allowedRoles = pageAccess[page] || [];
@@ -213,7 +220,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const getUserDepartmentFilter = (): string | null => {
     if (!user) return null;
-    if (user.role === 'admin') return null; // Admin sees all departments
+    if (user.role === 'superadmin' || user.role === 'admin') return null; // Admins see all departments
     return user.department;
   };
 

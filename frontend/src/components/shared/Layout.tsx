@@ -22,13 +22,18 @@ import {
   FileText,
   LayoutDashboard,
   Plug,
-  ChevronDown
+  ChevronDown,
+  CalendarDays,
+  Tag,
+  Clock,
+  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
 import { Search } from 'lucide-react';
 import { useSearch } from '../../hooks/useSearch';
 import { EthiopianDateTimeDisplay } from './date/EthiopianDateTimeDisplay';
+import { CheckInNotificationBell } from './CheckInNotificationBell';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -40,7 +45,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set([]));
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, logout, hasPermission, revertImpersonation } = useAuth();
   const { shift, setShift, activeSession } = useShift();
@@ -73,15 +78,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   };
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard', group: 'main' as const },
-    { id: 'isbar', label: 'Report', icon: ClipboardList, module: 'isbar', group: 'main' as const },
-    { id: 'staff', label: 'Department Activity', icon: Users, module: 'staff', group: 'main' as const },
-    { id: 'resources', label: 'Resources', icon: Package, module: 'resources', group: 'main' as const },
-    { id: 'database', label: 'All Records', icon: Database, module: 'database', group: 'main' as const },
-    { id: 'trends', label: 'Analytics', icon: TrendingUp, module: 'trends', group: 'main' as const },
+    { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard', group: 'clinical' as const },
+    { id: 'isbar', label: 'Report', icon: ClipboardList, module: 'isbar', group: 'clinical' as const },
+    { id: 'staff', label: 'Department Activity', icon: Users, module: 'staff', group: 'clinical' as const },
+    { id: 'resources', label: 'Resources', icon: Package, module: 'resources', group: 'clinical' as const },
+    { id: 'database', label: 'All Records', icon: Database, module: 'database', group: 'clinical' as const },
+    { id: 'trends', label: 'Analytics', icon: TrendingUp, module: 'trends', group: 'clinical' as const },
+    { id: 'scheduling', label: 'Staff Schedule', icon: CalendarDays, module: 'scheduling', group: 'clinical' as const },
     { id: 'form-builder', label: 'Form Builder', icon: FileText, module: 'form-builder', adminOnly: true, group: 'admin' as const },
+    { id: 'custom-tabs', label: 'Custom Tabs', icon: Tag, module: 'form-builder', adminOnly: true, group: 'admin' as const },
     { id: 'dashboard-mapping', label: 'Dashboard Mapping', icon: LayoutDashboard, module: 'form-builder', adminOnly: true, group: 'admin' as const },
     { id: 'integrations', label: 'Integrations', icon: Plug, module: 'form-builder', adminOnly: true, group: 'admin' as const },
+    { id: 'check-in-logs', label: 'Check-In Logs', icon: Clock, module: 'staff', adminOnly: true, group: 'admin' as const },
+    { id: 'attendance-reports', label: 'Attendance Reports', icon: BarChart3, module: 'staff', adminOnly: true, group: 'admin' as const },
     { id: 'user-management', label: 'User Management', icon: UserPlus, module: 'user-management', adminOnly: true, group: 'admin' as const },
     { id: 'admin-settings', label: 'Settings', icon: Settings, module: 'user-management', adminOnly: true, group: 'admin' as const },
   ];
@@ -120,34 +129,50 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
         </div>
 
         <nav className="mt-6 space-y-1">
-          {/* Main Navigation - always expanded */}
-          {filteredMenuItems.filter(item => item.group === 'main').map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onNavigate(item.id);
-                  setIsSidebarOpen(false);
-                }}
-                className={`group w-full flex items-center ${sidebarExpanded ? 'px-6' : 'justify-center px-0'} py-3 text-left transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-lg mx-2 ${sidebarExpanded ? '' : 'w-[calc(100%-1rem)]'} ${
-                  isActive
-                    ? 'bg-white/15 text-white shadow-sm'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                }`}
-                title={!sidebarExpanded ? item.label : undefined}
-              >
-                <div className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out ${isActive ? 'bg-white/20' : 'group-hover:bg-white/10'}`}>
-                  <Icon className={`w-5 h-5 flex-shrink-0 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`} />
-                  {isActive && (
-                    <span className="absolute -left-5 w-1 h-5 bg-white rounded-r-full transition-all duration-300" />
-                  )}
-                </div>
-                <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto ml-3' : 'opacity-0 w-0'}`}>{item.label}</span>
-              </button>
-            );
-          })}
+          {/* Clinical Section - collapsible */}
+          {filteredMenuItems.some(item => item.group === 'clinical') && (
+            <div>
+              <div>
+                {sidebarExpanded && (
+                  <button
+                    onClick={() => toggleSection('clinical')}
+                    className="w-full flex items-center justify-between px-6 py-1.5 group"
+                  >
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Clinical</span>
+                    <ChevronDown className={`w-3 h-3 text-white/30 transition-transform duration-300 ${collapsedSections.has('clinical') ? '-rotate-90' : ''}`} />
+                  </button>
+                )}
+                {!sidebarExpanded && <div className="border-t border-white/10 mx-4 my-2" />}
+              </div>
+              {filteredMenuItems.filter(item => item.group === 'clinical' && !collapsedSections.has('clinical')).map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      onNavigate(item.id);
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`group w-full flex items-center ${sidebarExpanded ? 'px-6' : 'justify-center px-0'} py-3 text-left transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-lg mx-2 ${sidebarExpanded ? '' : 'w-[calc(100%-1rem)]'} ${
+                      isActive
+                        ? 'bg-white/15 text-white shadow-sm'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                    title={!sidebarExpanded ? item.label : undefined}
+                  >
+                    <div className={`relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out ${isActive ? 'bg-white/20' : 'group-hover:bg-white/10'}`}>
+                      <Icon className={`w-5 h-5 flex-shrink-0 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`} />
+                      {isActive && (
+                        <span className="absolute -left-5 w-1 h-5 bg-white rounded-r-full transition-all duration-300" />
+                      )}
+                    </div>
+                    <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto ml-3' : 'opacity-0 w-0'}`}>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Admin Section - collapsible */}
           {user?.role === 'admin' && filteredMenuItems.some(item => item.group === 'admin') && (
@@ -289,6 +314,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
                       return 'Form Builder';
                     case 'dashboard-mapping':
                       return 'Dashboard Mapping';
+                    case 'custom-tabs':
+                      return 'Custom Tabs';
+                    case 'check-in-logs':
+                      return 'Check-In Logs';
+                    case 'attendance-reports':
+                      return 'Attendance Reports';
                     case 'integrations':
                       return 'Integrations';
                     case 'user-management':
@@ -317,6 +348,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
               <div className="hidden md:flex items-center text-xs font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200">
                 <EthiopianDateTimeDisplay date={new Date()} showTime format="long" />
               </div>
+              <CheckInNotificationBell />
 
               {activeSession && (
                 <div className="hidden lg:flex items-center gap-3">
