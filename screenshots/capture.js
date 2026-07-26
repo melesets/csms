@@ -68,8 +68,28 @@ async function nav(page, text) {
 
 async function shot(page, name) {
   await delay(3500);
-  await page.screenshot({ path: path.join(OUTPUT_DIR, `${name}.png`), fullPage: false });
-  console.log(`  ✓ ${name}.png`);
+  // Get the actual content height by measuring the main scrollable area
+  const contentHeight = await page.evaluate(() => {
+    // Find the main content area
+    const main = document.querySelector('main');
+    if (main) {
+      // Temporarily expand to measure true height
+      const orig = main.style.cssText;
+      main.style.overflow = 'visible';
+      main.style.height = 'auto';
+      const h = main.scrollHeight;
+      main.style.cssText = orig;
+      return h + 100; // add header height
+    }
+    return document.body.scrollHeight;
+  });
+  // Resize viewport to fit all content
+  await page.setViewport({ width: 1440, height: Math.max(900, contentHeight) });
+  await delay(300);
+  await page.screenshot({ path: path.join(OUTPUT_DIR, `${name}.png`), fullPage: true });
+  console.log(`  ✓ ${name}.png (h=${contentHeight})`);
+  // Reset viewport for next navigation
+  await page.setViewport({ width: 1440, height: 900 });
 }
 
 async function capture() {
