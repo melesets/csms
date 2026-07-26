@@ -3,266 +3,247 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ISBAR Clinical System - Training Presentation</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>ISBAR Training Part I - Clinical Workflows & Patient Care</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-/* App mockup styles */
-.app-layout{{display:flex;width:100%;min-height:480px}}
-.app-sidebar{{width:var(--sw);min-width:var(--sw);background:var(--p);color:#fff;display:flex;flex-direction:column;flex-shrink:0}}
-.slogo{{height:64px;display:flex;align-items:center;padding:0 20px;gap:12px;border-bottom:1px solid rgba(255,255,255,.1)}}
-.slogo-i{{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center}}
-.slogo h3{{font-size:15px;font-weight:700}}
-.ssec{{padding:12px 0 4px}}
-.sst{{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.3);padding:0 20px;margin-bottom:4px}}
-.si{{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:rgba(255,255,255,.65);cursor:pointer;margin:1px 8px;border-radius:8px}}
-.si:hover{{background:rgba(255,255,255,.08);color:#fff}}
-.si.active{{background:rgba(255,255,255,.15);color:#fff;font-weight:600;position:relative}}
-.si.active::before{{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:#fff;border-radius:0 3px 3px 0}}
-.si svg{{width:16px;height:16px;flex-shrink:0;opacity:.7}}.si.active svg{{opacity:1}}
-.sbot{{margin-top:auto;padding:12px 16px;border-top:1px solid rgba(255,255,255,.1)}}
-.suser{{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px}}
-.su-av{{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}}
-.su-n{{font-size:12px;font-weight:600}}.su-d{{font-size:10px;color:rgba(255,255,255,.4)}}
-.sver{{text-align:center;font-size:9px;color:rgba(255,255,255,.2);padding:8px 0 4px}}
-.app-main{{flex:1;display:flex;flex-direction:column;background:var(--bb);min-width:0}}
-.ahdr{{height:var(--hh);background:var(--hb);border-bottom:1px solid rgba(0,51,102,.15);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0}}
-.ahdr h2{{font-size:17px;font-weight:700;color:#003366}}
-.ahdr-r{{display:flex;align-items:center;gap:14px}}
-.hsearch{{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--ts)}}
-.hbadge{{display:flex;flex-direction:column;background:#fff;border:1px solid var(--bd);border-radius:8px;padding:5px 10px}}
-.hl{{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;font-weight:700}}
-.hv{{font-size:11px;font-weight:700;color:var(--p)}}
-.app-content{{flex:1;padding:20px;overflow-y:auto}}
-/* Dashboard */
-.dhdr{{display:flex;align-items:center;gap:12px;margin-bottom:16px}}
-.dicon{{width:40px;height:40px;border-radius:12px;background:var(--p);display:flex;align-items:center;justify-content:center}}
-.dicon svg{{width:18px;height:18px;color:#fff}}
-.dhdr h2{{font-size:18px;font-weight:800;color:var(--tp)}}.dhdr p{{font-size:12px;color:var(--ts)}}
-.dtabs{{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}}
-.dtab{{padding:7px 16px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--cb);color:var(--ts)}}
-.dtab.active{{background:var(--p);color:#fff;border-color:var(--p)}}
-/* Patient cards */
-.pgrid{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}}
-.pcard{{background:var(--cb);border-radius:var(--rc);border:1px solid var(--bd);padding:16px;border-left:4px solid transparent}}
-.pcard.stable{{border-left-color:var(--sg)}}.pcard.unstable{{border-left-color:var(--sa)}}.pcard.critical{{border-left-color:var(--sr)}}
-.pc-top{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}}
-.pc-name{{font-size:14px;font-weight:700;color:var(--tp)}}.pc-mrn{{font-size:11px;color:var(--ts);margin-top:2px}}
-.badge{{padding:3px 10px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase}}
-.badge-green{{background:rgba(5,150,105,.1);color:var(--sg)}}.badge-amber{{background:rgba(217,119,6,.1);color:var(--sa)}}.badge-red{{background:rgba(220,38,38,.1);color:var(--sr)}}
-.pc-meta{{display:flex;gap:14px;margin-top:8px}}.pm{{font-size:11px;color:var(--ts)}}.pm strong{{color:var(--tp);font-weight:600}}
-.pc-diag{{margin-top:8px;font-size:11px;color:var(--ts)}}.pc-nurse{{margin-top:6px;font-size:10px;color:#9ca3af}}
-/* Staff */
-.spanel{{background:var(--cb);border-radius:var(--rc);border:1px solid var(--bd);padding:16px}}
-.spanel h3{{font-size:14px;font-weight:700;color:var(--tp);margin-bottom:12px}}
-.srow{{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}}.srow:last-child{{border-bottom:none}}
-.srow-av{{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}}
-.srow-name{{font-size:12px;font-weight:600;color:var(--tp)}}.srow-role{{font-size:10px;color:var(--ts)}}
-.sstat{{margin-left:auto;padding:3px 8px;border-radius:6px;font-size:9px;font-weight:700;text-transform:uppercase}}
-.staff-on{{background:rgba(5,150,105,.1);color:var(--sg)}}.staff-off{{background:rgba(107,114,128,.1);color:var(--ts)}}
-/* Briefing */
-.bbanner{{border-radius:var(--rc);overflow:hidden;border:2px solid;margin-bottom:18px}}
-.bbanner.green{{border-color:var(--sg)}}.bbanner.amber{{border-color:var(--sa)}}.bbanner.red{{border-color:var(--sr)}}
-.bhdr{{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;color:#fff;font-weight:700;font-size:14px}}
-.bhdr.green{{background:var(--sg)}}.bhdr.amber{{background:var(--sa)}}.bhdr.red{{background:var(--sr)}}
-.bbody{{padding:16px 20px;background:rgba(255,255,255,.03)}}
-.bgrid{{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--primary:#003153;--header-bg:#eaf3f7;--body-bg:#f3f4f6;--card-bg:#ffffff;
+--border:#e5e7eb;--text-primary:#111827;--text-secondary:#6b7280;
+--brand-green:#09B8A0;--status-green:#059669;--status-amber:#d97706;--status-red:#dc2626;
+--radius-card:16px;--radius-btn:12px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e7eb;overflow:hidden;height:100vh}
+
+/* Slide system */
+.slide{display:none;width:100vw;height:100vh;background:#0a0a0a;justify-content:center;align-items:center;flex-direction:column;padding:40px;overflow-y:auto;position:relative}
+.slide.active{display:flex}
+.slide-number{position:absolute;top:20px;right:30px;font-size:13px;color:#6b7280;font-weight:500}
+.slide-title{font-size:32px;font-weight:800;color:#fff;text-align:center;margin-bottom:6px}
+.slide-title span{color:var(--brand-green)}
+.slide-sub{font-size:14px;color:#9ca3af;text-align:center;margin-bottom:28px;max-width:600px}
+
+/* Navigation */
+.nav-bar{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(0,49,83,0.95);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;gap:24px;transform:translateY(100%);transition:transform 0.3s ease;z-index:1000;border-top:1px solid rgba(255,255,255,0.1)}
+.nav-bar.visible{transform:translateY(0)}
+.nav-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 20px;border-radius:var(--radius-btn);cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;transition:all 0.2s}
+.nav-btn:hover{background:rgba(255,255,255,0.2)}
+.nav-btn:disabled{opacity:0.3;cursor:not-allowed}
+.nav-dots{display:flex;gap:6px;align-items:center}
+.nav-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);cursor:pointer;transition:all 0.2s}
+.nav-dot.active{background:#09B8A0;width:24px;border-radius:4px}
+.nav-counter{color:rgba(255,255,255,0.7);font-size:13px;font-weight:500;min-width:60px;text-align:center}
+
+/* Browser Chrome */
+.browser-chrome{background:#1a1a2e;border-radius:12px;overflow:hidden;width:100%;max-width:1100px;box-shadow:0 25px 80px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08)}
+.browser-topbar{background:#16162a;padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.browser-dots{display:flex;gap:6px}
+.browser-dot{width:10px;height:10px;border-radius:50%}
+.browser-dot.r{background:#ff5f57}.browser-dot.y{background:#febc2e}.browser-dot.g{background:#28c840}
+.browser-title{flex:1;text-align:center;font-size:12px;color:#6b7280;font-weight:500}
+.browser-body{background:var(--body-bg);min-height:420px;position:relative;overflow:hidden}
+.browser-body img{width:100%;height:auto;display:block}
+
+/* Screenshot with annotation */
+.screenshot-wrap{position:relative;width:100%;max-width:1100px}
+.screenshot-wrap img{width:100%;border-radius:0 0 12px 12px;display:block}
+.annotation{position:absolute;background:rgba(9,184,160,0.95);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.annotation::after{content:'';position:absolute;width:0;height:0;border:6px solid transparent}
+.annotation.arrow-bottom::after{bottom:-12px;left:50%;transform:translateX(-50%);border-top-color:rgba(9,184,160,0.95)}
+.annotation.arrow-right::after{right:-12px;top:50%;transform:translateY(-50%);border-left-color:rgba(9,184,160,0.95)}
+.annotation.arrow-left::after{left:-12px;top:50%;transform:translateY(-50%);border-right-color:rgba(9,184,160,0.95)}
+
+/* Callout box */
+.callout{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;max-width:700px;margin-top:20px}
+.callout h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:6px}
+.callout p{font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6}
+
 /* Timeline */
-.tl{{display:flex;align-items:flex-start;width:100%;max-width:1100px;position:relative;padding:20px 0}}
-.tl::before{{content:'';position:absolute;top:44px;left:60px;right:60px;height:3px;background:linear-gradient(90deg,#dc2626,#d97706,#003153,#09B8A0,#059669);border-radius:2px}}
-.tl-item{{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1}}
-.tl-node{{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;margin-bottom:14px;border:3px solid var(--sb)}}
-.tl-card{{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;width:180px;text-align:center}}
-.tl-card h4{{font-size:13px;font-weight:700;margin-bottom:6px;color:#fff}}.tl-card .era{{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px}}
-.tl-card p{{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5}}
-.tl-card .drawback{{margin-top:8px;font-size:10px;color:var(--sr);background:rgba(220,38,38,.1);padding:4px 8px;border-radius:6px}}
-.tl-card .advantage{{margin-top:8px;font-size:10px;color:var(--sg);background:rgba(5,150,105,.1);padding:4px 8px;border-radius:6px}}
-.tl-arrow{{position:absolute;right:-12px;top:40px;color:rgba(255,255,255,.3);font-size:18px;z-index:2}}
-/* Login */
-.login-mock{{display:flex;min-height:420px;width:100%}}
-.login-left{{flex:1;background:#f9fafb;padding:32px;display:flex;flex-direction:column;justify-content:center}}
-.login-right{{flex:1;background:#001220;padding:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden}}
-.login-right::before{{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,49,83,.6),rgba(0,18,32,.8))}}
-.login-right>*{{position:relative;z-index:1}}
-.lw{{margin-bottom:24px}}.lw .ptag{{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--ts);margin-bottom:8px}}
-.lw .ptag .pdot{{width:8px;height:8px;border-radius:50%;background:var(--sg)}}.lw h2{{font-size:26px;font-weight:900;color:var(--tp);letter-spacing:-.5px}}.lw>p{{font-size:12px;color:var(--ts);margin-top:6px}}
-.lig{{margin-bottom:14px}}.lig label{{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ts);margin-bottom:6px}}
-.li{{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(249,250,251,.5);border:1px solid rgba(229,231,235,.8);border-radius:16px}}
-.li svg{{width:18px;height:18px;color:#9ca3af;flex-shrink:0}}.li input,.li select{{flex:1;border:none;background:none;outline:none;font-size:13px;color:var(--tp);font-family:'Inter',sans-serif}}.li select{{appearance:none;cursor:pointer}}
-.lbtn{{width:100%;padding:14px;background:var(--p);color:#fff;border:none;border-radius:16px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Inter',sans-serif;margin-top:8px}}
-.llogo{{width:96px;height:96px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 0 40px rgba(0,0,0,.3)}}
-.login-right h1{{font-size:24px;font-weight:900;color:#fff}}.login-right .csms{{font-size:12px;color:#09B8A0;font-weight:600;letter-spacing:2px;margin-top:6px;text-transform:uppercase}}
-.login-right .desc{{font-size:12px;color:rgba(255,255,255,.6);margin-top:14px;line-height:1.6;max-width:280px}}
-.sec-badge{{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.2);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px 16px;margin-top:20px;font-size:11px;color:rgba(255,255,255,.8);font-weight:600}}
-.login-footer{{position:absolute;bottom:16px;left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,.3);z-index:1}}
-/* ISBAR */
-.isbar-l{{display:flex;gap:12px;margin-bottom:28px;justify-content:center}}
-.ibox{{width:80px;height:80px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.3)}}
-.ibox .l{{font-size:28px;line-height:1}}.ibox .lb{{font-size:8px;text-transform:uppercase;letter-spacing:1px;margin-top:4px;opacity:.8}}
-.ibox-i{{background:linear-gradient(135deg,#dc2626,#b91c1c)}}.ibox-s{{background:linear-gradient(135deg,#d97706,#b45309)}}.ibox-b{{background:linear-gradient(135deg,#2563eb,#1d4ed8)}}.ibox-a{{background:linear-gradient(135deg,#7c3aed,#6d28d9)}}.ibox-r{{background:linear-gradient(135deg,#059669,#047857)}}
-/* Form */
-.fsec{{background:var(--cb);border-radius:var(--rc);border:1px solid var(--bd);margin-bottom:14px;overflow:hidden}}
-.fsec-h{{display:flex;align-items:center;gap:10px;padding:12px 16px;border-left:3px solid var(--p)}}.fsec-h h4{{font-size:14px;font-weight:700;color:var(--tp)}}
-.fsec-b{{padding:14px 16px}}
-.frow{{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}}
-.fgrp{{display:flex;flex-direction:column;gap:4px}}.fgrp label{{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ts)}}
-.finp{{padding:9px 12px;border:1px solid var(--bd);border-radius:10px;font-size:13px;color:var(--tp);background:#f9fafb}}.finp.filled{{background:#fff}}
-.vgrid{{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}}
-.vbox{{background:#f9fafb;border:1px solid var(--bd);border-radius:10px;padding:10px;text-align:center}}
-.vbox .vl{{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--ts);letter-spacing:.5px}}.vbox .vv{{font-size:18px;font-weight:800;color:var(--tp);margin-top:2px}}.vbox .vu{{font-size:9px;color:var(--ts)}}
-.sstab{{display:flex;gap:10px;margin-top:8px}}
-.sopt{{flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:2px solid var(--bd);cursor:pointer}}
-.sopt.sel{{border-color:var(--sg);background:rgba(5,150,105,.05)}}
-.sdot{{width:12px;height:12px;border-radius:50%;flex-shrink:0}}.slbl{{font-size:12px;font-weight:700}}
-/* Table */
-.trow{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}}
-.tcard{{background:var(--cb);border:1px solid var(--bd);border-radius:14px;padding:14px;text-align:center}}
-.tcard .tv{{font-size:24px;font-weight:800;color:var(--tp)}}.tcard .tl2{{font-size:11px;color:var(--ts);margin-top:2px}}
-.tcard.ok .tv{{color:var(--sg)}}.tcard.low .tv{{color:var(--sa)}}.tcard.exp .tv{{color:var(--sr)}}
-.dtable{{width:100%;border-collapse:separate;border-spacing:0}}
-.dtable th{{padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ts);background:#f9fafb;border-bottom:1px solid var(--bd);text-align:left}}
-.dtable td{{padding:10px 14px;font-size:12px;color:var(--tp);border-bottom:1px solid var(--bd)}}.dtable tr:last-child td{{border-bottom:none}}
-.tbadge{{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700}}
-.tdrug{{background:rgba(37,99,235,.1);color:#2563eb}}.tequip{{background:rgba(124,58,237,.1);color:#7c3aed}}
-.stok{{background:rgba(5,150,105,.1);color:var(--sg)}}.slow{{background:rgba(217,119,6,.1);color:var(--sa)}}.sexp{{background:rgba(220,38,38,.1);color:var(--sr)}}
-.abtn{{padding:4px 8px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:#fff;color:var(--ts)}}
-.fbar{{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}}
-.finp2{{padding:7px 12px;border:1px solid var(--bd);border-radius:8px;font-size:12px;background:var(--cb);color:var(--tp);font-family:'Inter',sans-serif}}
-.qr{{display:flex;gap:4px}}.rbtn{{padding:5px 10px;border-radius:6px;font-size:10px;font-weight:600;border:1px solid var(--bd);background:var(--cb);color:var(--ts);cursor:pointer}}.rbtn.active{{background:var(--p);color:#fff;border-color:var(--p)}}
-/* Checkin */
-.ckp{{background:var(--cb);border:1px solid var(--bd);border-radius:var(--rc);padding:24px;max-width:480px;margin:0 auto}}
-.ckp h3{{font-size:16px;font-weight:800;color:var(--tp);margin-bottom:16px;text-align:center}}
-.pins{{display:flex;gap:10px;justify-content:center;margin:16px 0}}
-.pinb{{width:52px;height:56px;border:2px solid var(--bd);border-radius:12px;text-align:center;font-size:22px;font-weight:800;color:var(--tp);background:#f9fafb;display:flex;align-items:center;justify-content:center}}
-.pinb.filled{{border-color:var(--p);background:rgba(0,49,83,.03)}}
-/* Role cards */
-.rgrid{{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}}
-.rcard{{background:var(--cb);border:1px solid var(--bd);border-radius:var(--rc);padding:20px;text-align:center}}
-.rcard .ri{{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px}}
-.rcard h4{{font-size:15px;font-weight:800;color:var(--tp);margin-bottom:4px}}.rcard .rd{{font-size:11px;color:var(--ts);margin-bottom:12px}}
-.rcard ul{{text-align:left;list-style:none}}.rcard li{{font-size:11px;color:var(--ts);padding:4px 0;display:flex;align-items:center;gap:6px}}.rcard li::before{{content:'\\2713';color:var(--sg);font-weight:800;font-size:10px}}
-/* Security */
-.secgrid{{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}}
-.seccard{{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;text-align:center}}
-.seccard .sci{{font-size:28px;margin-bottom:8px}}.seccard h4{{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}}.seccard p{{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5}}
-/* API table */
-.atbl{{width:100%;border-collapse:separate;border-spacing:0}}
-.atbl th{{padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.5);background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.1);text-align:left}}
-.atbl td{{padding:8px 12px;font-size:11px;color:rgba(255,255,255,.7);border-bottom:1px solid rgba(255,255,255,.05)}}
-.mbadge{{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:800;text-transform:uppercase}}
-.mget{{background:rgba(5,150,105,.2);color:#34d399}}.mpost{{background:rgba(37,99,235,.2);color:#60a5fa}}.mput{{background:rgba(217,119,6,.2);color:#fbbf24}}
-/* Pagination */
-.pag{{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px}}
-.pgbtn{{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--bd);background:var(--cb);color:var(--ts)}}.pgbtn.active{{background:var(--p);color:#fff;border-color:var(--p)}}
-/* Two col */
-.two-col{{display:grid;grid-template-columns:1fr 300px;gap:16px}}
-/* Handover */
-.hbanner{{background:linear-gradient(135deg,var(--p),#00223b);border-radius:var(--rc);padding:20px 24px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden}}
-.hbanner::after{{content:'';position:absolute;right:-20px;top:-20px;width:120px;height:120px;border-radius:50%;background:rgba(9,184,160,.15)}}
-.hbanner h3{{font-size:16px;font-weight:800;margin-bottom:4px}}.hbanner p{{font-size:12px;opacity:.7}}
-.hcountdown{{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);padding:6px 14px;border-radius:8px;font-size:14px;font-weight:800;margin-top:10px}}
-/* Thank you */
-.ty{{text-align:center}}.ty h1{{font-size:44px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--bg),#003153);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}}
-.ty p{{font-size:16px;color:rgba(255,255,255,.5);max-width:600px;margin:0 auto;line-height:1.7}}
-.cgrid{{display:flex;gap:20px;justify-content:center;margin-top:30px}}
-.ccard{{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;text-align:center;width:180px}}
-.ccard .cci{{font-size:24px;margin-bottom:8px}}.ccard h4{{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}}.ccard p{{font-size:11px;color:rgba(255,255,255,.4)}}
+.tl{display:flex;align-items:flex-start;width:100%;max-width:1100px;position:relative;padding:20px 0}
+.tl::before{content:'';position:absolute;top:44px;left:60px;right:60px;height:3px;background:linear-gradient(90deg,#dc2626,#d97706,#003153,#09B8A0,#059669);border-radius:2px}
+.tl-item{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:1}
+.tl-node{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;margin-bottom:14px;border:3px solid #0a0a0a}
+.tl-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;width:180px;text-align:center}
+.tl-card h4{font-size:13px;font-weight:700;margin-bottom:6px;color:#fff}
+.tl-card .era{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:8px}
+.tl-card p{font-size:11px;color:rgba(255,255,255,0.5);line-height:1.5}
+.tl-card .drawback{margin-top:8px;font-size:10px;color:var(--status-red);background:rgba(220,38,38,0.1);padding:4px 8px;border-radius:6px}
+.tl-card .advantage{margin-top:8px;font-size:10px;color:var(--status-green);background:rgba(5,150,105,0.1);padding:4px 8px;border-radius:6px}
+
+/* ISBAR boxes */
+.isbar-l{display:flex;gap:12px;margin-bottom:28px;justify-content:center}
+.ibox{width:80px;height:80px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.ibox .l{font-size:28px;line-height:1}.ibox .lb{font-size:8px;text-transform:uppercase;letter-spacing:1px;margin-top:4px;opacity:0.8}
+.ibox-i{background:linear-gradient(135deg,#dc2626,#b91c1c)}.ibox-s{background:linear-gradient(135deg,#d97706,#b45309)}
+.ibox-b{background:linear-gradient(135deg,#2563eb,#1d4ed8)}.ibox-a{background:linear-gradient(135deg,#7c3aed,#6d28d9)}
+.ibox-r{background:linear-gradient(135deg,#059669,#047857)}
+
+/* Key points list */
+.key-points{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin-top:20px}
+.key-point{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center}
+.key-point .kp-icon{font-size:24px;margin-bottom:8px}
+.key-point h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.key-point p{font-size:11px;color:rgba(255,255,255,0.5);line-height:1.5}
+
+/* Two-column layout */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:20px;max-width:1100px;width:100%}
+.info-panel{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px}
+.info-panel h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:12px}
+.info-panel ul{list-style:none}
+.info-panel li{font-size:12px;color:rgba(255,255,255,0.6);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:8px}
+.info-panel li:last-child{border-bottom:none}
+.info-panel li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:11px}
+
+/* Section divider */
+.section-divider{display:flex;align-items:center;gap:16px;max-width:600px;margin:0 auto}
+.section-divider .line{flex:1;height:1px;background:rgba(255,255,255,0.1)}
+.section-divider .label{font-size:11px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:2px;font-weight:600}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
 </style>
 </head>
 <body>
-<div id="app">
-<div class="slide active" data-slide="1"><div class="sc st">
-<div style="margin-bottom:32px;"><div style="width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#003153,#09B8A0);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 32px rgba(0,49,83,.4);">
-<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><line x1="2" y1="12" x2="22" y2="12" stroke="#09B8A0" stroke-width="2"/></svg>
-</div></div>
-<h1>ISBAR Clinical System</h1>
-<p class="su">Adare General Hospital</p>
-<div class="vr" style="display:inline-block;margin-top:24px;background:rgba(9,184,160,.15);border:1px solid rgba(9,184,160,.3);padding:8px 24px;border-radius:999px;font-size:13px;color:#09B8A0;font-weight:600;letter-spacing:.5px">Version II &mdash; AI-Enhanced &mdash; 2026</div>
-<p style="font-size:16px;color:rgba(255,255,255,.4);margin-top:20px">Clinical Service Management System &bull; Enterprise Healthcare Platform</p>
-<div style="margin-top:40px;display:flex;gap:24px;justify-content:center;">
-<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);padding:10px 20px;border-radius:12px;border:1px solid rgba(255,255,255,.08);"><div style="width:8px;height:8px;border-radius:50%;background:#09B8A0"></div><span style="font-size:13px;color:rgba(255,255,255,.6);">Real-time Patient Tracking</span></div>
-<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);padding:10px 20px;border-radius:12px;border:1px solid rgba(255,255,255,.08);"><div style="width:8px;height:8px;border-radius:50%;background:#059669"></div><span style="font-size:13px;color:rgba(255,255,255,.6);">AI-Powered Analytics</span></div>
-<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);padding:10px 20px;border-radius:12px;border:1px solid rgba(255,255,255,.08);"><div style="width:8px;height:8px;border-radius:50%;background:#003153"></div><span style="font-size:13px;color:rgba(255,255,255,.6);">Role-Based Access Control</span></div>
-</div></div></div>
-<div class="slide" data-slide="2"><div class="sc">
+
+<!-- SLIDE 1: Title -->
+<div class="slide active" id="slide-1">
+<div style="text-align:center">
+<div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,#003153,#09B8A0);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 8px 32px rgba(0,49,83,0.4)">
+<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><line x1="2" y1="12" x2="22" y2="12" stroke="#09B8A0" stroke-width="2"/></svg>
+</div>
+<h1 style="font-size:44px;font-weight:900;color:#fff;margin-bottom:8px;letter-spacing:-1px">ISBAR Clinical System</h1>
+<p style="font-size:16px;color:#09B8A0;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Adare General Hospital</p>
+<div style="display:inline-block;background:rgba(9,184,160,0.15);border:1px solid rgba(9,184,160,0.3);padding:8px 24px;border-radius:999px;font-size:13px;color:#09B8A0;font-weight:600;margin-bottom:20px">Part I — Clinical Workflows & Patient Care</div>
+<p style="font-size:14px;color:rgba(255,255,255,0.4);max-width:500px;margin:0 auto">End-user training for nurses, physicians, and clinical staff</p>
+<div style="margin-top:32px;display:flex;gap:20px;justify-content:center">
+<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);padding:10px 20px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)"><div style="width:8px;height:8px;border-radius:50%;background:#09B8A0"></div><span style="font-size:13px;color:rgba(255,255,255,0.6)">Login & Navigation</span></div>
+<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);padding:10px 20px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)"><div style="width:8px;height:8px;border-radius:50%;background:#059669"></div><span style="font-size:13px;color:rgba(255,255,255,0.6)">ISBAR Reporting</span></div>
+<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);padding:10px 20px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)"><div style="width:8px;height:8px;border-radius:50%;background:#003153"></div><span style="font-size:13px;color:rgba(255,255,255,0.6)">Dashboard & Analytics</span></div>
+</div>
+</div>
+<span class="slide-number">1 / 12</span>
+</div>
+
+<!-- SLIDE 2: System Evolution -->
+<div class="slide" id="slide-2">
 <div class="slide-title">System <span>Evolution</span></div>
 <p class="slide-sub">From paper charts to an AI-powered clinical platform</p>
 <div class="tl">
-<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">1</div><div class="tl-card"><h4>Paper Records</h4><div class="era">2000 &ndash; 2010</div><p>Manual paper-based charting with physical file storage</p><div class="drawback">No search &bull; Lost data &bull; Illegible</div></div><div class="tl-arrow">&rarr;</div></div>
-<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#d97706,#b45309)">2</div><div class="tl-card"><h4>Excel Spreadsheets</h4><div class="era">2010 &ndash; 2018</div><p>Digital tracking via shared Excel workbooks</p><div class="drawback">Version conflicts &bull; No concurrency</div></div><div class="tl-arrow">&rarr;</div></div>
-<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">3</div><div class="tl-card"><h4>Python Desktop</h4><div class="era">2018 &ndash; 2023</div><p>Local desktop application with database backend</p><div class="drawback">Single machine &bull; No remote access</div></div><div class="tl-arrow">&rarr;</div></div>
-<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)">4</div><div class="tl-card"><h4>Web v1</h4><div class="era">2023 &ndash; 2025</div><p>Browser-based clinical reporting system</p><div class="drawback">Limited analytics &bull; Manual workflows</div></div><div class="tl-arrow">&rarr;</div></div>
-<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#09B8A0,#059669)">5</div><div class="tl-card"><h4>Web v2 + AI</h4><div class="era">2025 &ndash; Now</div><p>Full-stack platform with AI analytics &amp; automation</p><div class="advantage">Real-time &bull; AI Insights &bull; Secure</div></div></div>
-</div></div></div>
-<div class="slide" data-slide="3"><div class="sc">
+<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">1</div><div class="tl-card"><h4>Paper Records</h4><div class="era">2000 – 2010</div><p>Manual paper-based charting with physical file storage</p><div class="drawback">No search • Lost data • Illegible</div></div></div>
+<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#d97706,#b45309)">2</div><div class="tl-card"><h4>Excel Spreadsheets</h4><div class="era">2010 – 2018</div><p>Digital tracking via shared Excel workbooks</p><div class="drawback">Version conflicts • No concurrency</div></div></div>
+<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">3</div><div class="tl-card"><h4>Python Desktop</h4><div class="era">2018 – 2023</div><p>Local desktop application with database backend</p><div class="drawback">Single machine • No remote access</div></div></div>
+<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)">4</div><div class="tl-card"><h4>Web v1</h4><div class="era">2023 – 2025</div><p>Browser-based clinical reporting system</p><div class="drawback">Limited analytics • Manual workflows</div></div></div>
+<div class="tl-item"><div class="tl-node" style="background:linear-gradient(135deg,#09B8A0,#059669)">5</div><div class="tl-card"><h4>Web v2 + AI</h4><div class="era">2025 – Now</div><p>Full-stack platform with AI analytics & automation</p><div class="advantage">Real-time • AI Insights • Secure</div></div></div>
+</div>
+<span class="slide-number">2 / 12</span>
+</div>
+
+<!-- SLIDE 3: Login Page (Real Screenshot) -->
+<div class="slide" id="slide-3">
 <div class="slide-title">Login <span>Page</span></div>
 <p class="slide-sub">Secure access to the Clinical Service Management System</p>
-''' + chrome("https://csms.adaregeneralhospital.com", '''
-<div class="login-mock">
-<div class="login-left">
-<div class="lw"><div class="ptag"><span class="pdot"></span> Portal Access</div><h2>Welcome Back</h2><p>Enter your credentials to securely access the Clinical Portal</p></div>
-<div class="lig"><label>Username</label><div class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input type="text" placeholder="Enter your username" readonly></div></div>
-<div class="lig"><label>Password</label><div class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input type="password" placeholder="Enter your password" readonly><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div></div>
-<div class="lig"><label>Role / Profession</label><div class="li"><select readonly><option>Nurse</option></select><svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="width:14px;height:14px"><path d="M6 9l6 6 6-6"/></svg></div></div>
-<button class="lbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Sign In to Portal</button>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">csms.adaregeneralhospital.com/isbar/login</div>
 </div>
-<div class="login-right">
-<div class="llogo"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><line x1="2" y1="12" x2="22" y2="12" stroke="#09B8A0" stroke-width="1.5"/></svg></div>
-<h1>Adare General Hospital</h1>
-<div class="csms">Clinical Service Management System - CSMS</div>
-<p class="desc">Empowering healthcare professionals with secure, reliable, and advanced management tools for better patient care.</p>
-<div class="sec-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#09B8A0" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>Enterprise Grade Security</div>
-<div class="login-footer">&copy; 2026 Adare General Hospital. All Rights Reserved.</div>
-</div></div>
-<div class="slide" data-slide="4"><div class="sc">
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/01-login.png" alt="Login Page">
+<div class="annotation arrow-bottom" style="top:38%;left:22%">Username & Password fields</div>
+<div class="annotation arrow-bottom" style="top:52%;left:22%">Role selector & Sign In</div>
+<div class="annotation arrow-left" style="top:30%;right:5%">Hospital branding</div>
+</div>
+</div>
+<div class="callout">
+<h4>How to Log In</h4>
+<p>Enter your assigned username and password. The system enforces role-based access — your credentials determine what you can see and do.</p>
+</div>
+<span class="slide-number">3 / 12</span>
+</div>
+
+<!-- SLIDE 4: App Layout (Real Screenshot) -->
+<div class="slide" id="slide-4">
 <div class="slide-title">Full App <span>Layout</span></div>
 <p class="slide-sub">Sidebar navigation, header bar, and main content area</p>
-''' + chrome("https://csms.adaregeneralhospital.com/dashboard", '''
-<div class="app-layout" style="height:480px">
-''' + app_sidebar("Dashboard") + '''
-<div class="app-main">
-''' + app_header("Dashboard") + '''
-<div class="app-content" style="background:#f3f4f6">
-<div class="dhdr"><div class="dicon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><h2>Admin Dashboard</h2><p style="font-size:11px;color:#6b7280">Hospital overview, patients, staff &amp; activity</p></div></div>
-<div class="dtabs"><div class="dtab active">Patients</div><div class="dtab">Staff</div><div class="dtab">Activity</div><div class="dtab">AI</div><div class="dtab">Admin</div></div>
-<div style="display:grid;grid-template-columns:1fr 260px;gap:14px">
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-''' + patient_card("Abebe Kebede","10234","ICU-02","Stable","Post-operative monitoring","Aster Kebede","2h ago") + '''
-''' + patient_card("Fatuma Ahmed","10189","Ward-05","Unstable","Respiratory distress","Hanna Tesfaye","45m ago","32","F") + '''
-''' + patient_card("Dawit Tadesse","10456","ER-01","Critical","Cardiac emergency","Dr. Mulugeta","10m ago","58","M") + '''
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Dashboard</div>
 </div>
-<div class="spanel" style="padding:12px"><h3 style="font-size:12px;margin-bottom:8px">Active Staff</h3>
-''' + staff_row("Aster K.","Nurse","ICU","#3b82f6",True).replace('srow-av" style="width:26px;height:26px;font-size:9px','srow-av" style="width:26px;height:26px;font-size:9px') + '''
-''' + staff_row("Dr. Mulugeta","Physician","ICU","#8b5cf6",True).replace('srow-av" style="width:26px;height:26px;font-size:9px','srow-av" style="width:26px;height:26px;font-size:9px') + '''
-''' + staff_row("Fatuma A.","Midwife","Maternity","#f59e0b",False).replace('srow-av" style="width:26px;height:26px;font-size:9px','srow-av" style="width:26px;height:26px;font-size:9px') + '''
-</div></div></div></div></div>''', "560px") + '</div></div>
-<div class="slide" data-slide="5"><div class="sc">
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/02-dashboard.png" alt="Dashboard">
+<div class="annotation arrow-right" style="top:20%;left:2%">Sidebar Navigation</div>
+<div class="annotation arrow-bottom" style="top:8%;left:45%">Header with Search & Date</div>
+<div class="annotation arrow-left" style="top:50%;right:3%">Main Content Area</div>
+</div>
+</div>
+<div class="key-points">
+<div class="key-point"><div class="kp-icon">☰</div><h4>Sidebar</h4><p>Clinical and Admin sections with collapsible groups</p></div>
+<div class="key-point"><div class="kp-icon">🔍</div><h4>Header</h4><p>Search, notifications, date display, and shift info</p></div>
+<div class="key-point"><div class="kp-icon">📋</div><h4>Content</h4><p>Main workspace — forms, tables, charts, and reports</p></div>
+</div>
+<span class="slide-number">4 / 12</span>
+</div>
+
+<!-- SLIDE 5: Dashboard Overview (Real Screenshot) -->
+<div class="slide" id="slide-5">
 <div class="slide-title">Dashboard <span>Overview</span></div>
 <p class="slide-sub">Real-time patient cards, staff activity, and shift safety briefing</p>
-''' + chrome("https://csms.adaregeneralhospital.com/dashboard", '''
-<div style="background:#f3f4f6;padding:20px;min-height:460px">
-<div class="bbanner green"><div class="bhdr green"><div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Shift Safety Briefing: ICU</div><span style="font-size:11px;opacity:.8">Briefing from: 07:30 AM</span></div>
-<div class="bbody"><div class="bgrid">
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Ward Stability</div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><div style="width:10px;height:10px;border-radius:50%;background:#059669"></div><span style="font-size:16px;font-weight:900;color:#059669">STABLE</span></div></div>
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Pending Action</div><div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px;margin-top:4px"><div style="font-size:12px;font-weight:700">Medication review for Bed ICU-02</div><div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">Due by: 10:00 AM</div></div></div>
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Clinical Risk</div><div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px;margin-top:4px"><div style="font-size:12px;font-weight:600">Fall risk for Bed ICU-03</div></div></div>
-</div></div>
-<div class="dhdr"><div class="dicon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><h2>Admin Dashboard</h2><p style="font-size:11px;color:#6b7280">Hospital overview, patients, staff &amp; activity</p></div></div>
-<div class="dtabs"><div class="dtab active">Patients</div><div class="dtab">Staff</div><div class="dtab">Activity</div><div class="dtab">AI</div><div class="dtab">Admin</div><div class="dtab">Audit</div><div class="dtab">Resources</div></div>
 <div class="two-col">
-<div class="pgrid">
-''' + patient_card("Abebe Kebede","10234","ICU-02","Stable","Post-operative monitoring","Aster Kebede","2h ago") + '''
-''' + patient_card("Fatuma Ahmed","10189","Ward-05","Unstable","Respiratory distress","Hanna Tesfaye","45m ago","32","F") + '''
-''' + patient_card("Dawit Tadesse","10456","ER-01","Critical","Cardiac emergency","Dr. Mulugeta","10m ago","58","M") + '''
+<div class="browser-chrome" style="flex:1">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Dashboard (Patients Tab)</div>
 </div>
-<div class="spanel"><h3>Staff On Duty</h3>
-''' + staff_row("Aster Kebede","Nurse","ICU","#3b82f6",True) + '''
-''' + staff_row("Dr. Mulugeta","Physician","ER","#8b5cf6",True) + '''
-''' + staff_row("Hanna Tesfaye","Nurse","Ward-05","#06b6d4",True) + '''
-''' + staff_row("Fatuma Ahmed","Midwife","Maternity","#f59e0b",False) + '''
-''' + staff_row("Solomon Berhanu","Nurse","ICU","#10b981",False) + '''
-</div></div></div></div>
-<div class="slide" data-slide="6"><div class="sc">
+<div class="browser-body">
+<img src="screenshots/images/02-dashboard.png" alt="Dashboard Patients">
+</div>
+</div>
+<div class="info-panel">
+<h3>Dashboard Tabs</h3>
+<ul>
+<li><strong>Patients</strong> — Active patient cards with status indicators</li>
+<li><strong>AI Dashboard</strong> — AI-powered clinical insights and alerts</li>
+<li><strong>Active Staff</strong> — Staff check-in status by department</li>
+</ul>
+<h3 style="margin-top:16px">Patient Card Info</h3>
+<ul>
+<li>Patient name, MRN, bed number</li>
+<li>Status: Stable / Unstable / Critical</li>
+<li>Assigned nurse and last update</li>
+<li>Color-coded left border for quick triage</li>
+</ul>
+</div>
+</div>
+<span class="slide-number">5 / 12</span>
+</div>
+
+<!-- SLIDE 6: AI Dashboard (Real Screenshot) -->
+<div class="slide" id="slide-6">
+<div class="slide-title">AI <span>Dashboard</span></div>
+<p class="slide-sub">AI-powered clinical insights, patient alerts, and department metrics</p>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - AI Dashboard</div>
+</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/03-ai-dashboard.png" alt="AI Dashboard">
+<div class="annotation arrow-bottom" style="top:5%;left:15%">Department Health Metrics</div>
+<div class="annotation arrow-bottom" style="top:5%;left:55%">Clinical Summary Panel</div>
+<div class="annotation arrow-left" style="top:60%;right:3%">Patient Risk Alerts</div>
+</div>
+</div>
+<div class="callout">
+<h4>AI-Powered Features</h4>
+<p>The AI Dashboard analyzes patient data in real-time, providing clinical summaries, risk alerts, and department health metrics to support decision-making.</p>
+</div>
+<span class="slide-number">6 / 12</span>
+</div>
+
+<!-- SLIDE 7: The ISBAR Framework -->
+<div class="slide" id="slide-7">
 <div class="slide-title">The ISBAR <span>Framework</span></div>
 <p class="slide-sub">Structured clinical communication for patient safety</p>
 <div class="isbar-l">
@@ -273,272 +254,177 @@
 <div class="ibox ibox-r"><span class="l">R</span><span class="lb">Recommend</span></div>
 </div>
 <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;width:100%;max-width:1100px;margin-bottom:24px">
-<div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#dc2626;margin-bottom:6px">I &mdash; Identification</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6">Patient name, MRN, bed number, age, gender, your name and role</div></div>
-<div style="background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#d97706;margin-bottom:6px">S &mdash; Situation</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6">What is happening now? Current complaints, symptoms, vital signs</div></div>
-<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#2563eb;margin-bottom:6px">B &mdash; Background</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6">Medical history, current medications, allergies, recent procedures</div></div>
-<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:6px">A &mdash; Assessment</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6">Clinical impression, stability status (Stable/Unstable/Critical)</div></div>
-<div style="background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#059669;margin-bottom:6px">R &mdash; Recommendation</div><div style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.6">Action plan, requested tasks, follow-up, escalation needs</div></div>
+<div style="background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#dc2626;margin-bottom:6px">I — Identification</div><div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6">Patient name, MRN, bed number, age, gender, your name and role</div></div>
+<div style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#d97706;margin-bottom:6px">S — Situation</div><div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6">What is happening now? Current complaints, symptoms, vital signs</div></div>
+<div style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#2563eb;margin-bottom:6px">B — Background</div><div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6">Medical history, current medications, allergies, recent procedures</div></div>
+<div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#7c3aed;margin-bottom:6px">A — Assessment</div><div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6">Clinical impression, stability status (Stable/Unstable/Critical)</div></div>
+<div style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.2);border-radius:12px;padding:14px"><div style="font-size:12px;font-weight:800;color:#059669;margin-bottom:6px">R — Recommendation</div><div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6">Action plan, requested tasks, follow-up, escalation needs</div></div>
 </div>
-<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;max-width:700px;width:100%"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px">Why ISBAR Matters</div><div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.7">Standardized communication reduces clinical errors by up to 30%. ISBAR ensures every handover contains critical information in a consistent, scannable format.</div></div>
-</div></div>
-<div class="slide" data-slide="7"><div class="sc">
-<div class="slide-title">ISBAR <span>Form</span></div>
+<div class="callout">
+<h4>Why ISBAR Matters</h4>
+<p>Standardized communication reduces clinical errors by up to 30%. ISBAR ensures every handover contains critical information in a consistent, scannable format.</p>
+</div>
+<span class="slide-number">7 / 12</span>
+</div>
+
+<!-- SLIDE 8: ISBAR Form (Real Screenshot) -->
+<div class="slide" id="slide-8">
+<div class="slide-title">ISBAR <span>Report Form</span></div>
 <p class="slide-sub">Dynamic clinical assessment form with auto-fill and validation</p>
-''' + chrome("https://csms.adaregeneralhospital.com/isbar", '''
-<div style="background:#f3f4f6;padding:20px;min-height:460px">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-<div style="display:flex;align-items:center;gap:10px">
-<button style="width:32px;height:32px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
-<div><h2 style="font-size:17px;font-weight:800;color:#111827">Admission Assessment</h2><p style="font-size:11px;color:#6b7280">Complete the ISBAR form for patient handover</p></div></div>
-<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#6b7280">Reporting As:</span><select style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-family:'Inter',sans-serif;background:#fff"><option>Aster Kebede (Nurse)</option></select></div></div>
-<div class="fsec"><div class="fsec-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#003153" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><h4>Patient Identification</h4><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="margin-left:auto"><polyline points="6 9 12 15 18 9"/></svg></div>
-<div class="fsec-b">
-<div class="frow" style="grid-template-columns:1fr 1fr 1fr"><div class="fgrp"><label>MRN</label><div class="finp filled">10234</div></div><div class="fgrp"><label>Patient Name</label><div class="finp filled">Abebe Kebede</div></div><div class="fgrp"><label>Age</label><div class="finp filled">45</div></div></div>
-<div class="frow"><div class="fgrp"><label>Gender</label><div class="finp filled">Male</div></div><div class="fgrp"><label>Bed Number</label><div class="finp filled">ICU-02</div></div></div>
-</div></div>
-<div class="fsec"><div class="fsec-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#003153" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><h4>Clinical Assessment</h4><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="margin-left:auto"><polyline points="6 9 12 15 18 9"/></svg></div>
-<div class="fsec-b">
-<div class="fgrp" style="margin-bottom:12px"><label>Situation</label><div class="finp" style="min-height:50px;background:#fff">Patient presents with elevated heart rate and decreased oxygen saturation following surgery...</div></div>
-<div class="fgrp" style="margin-bottom:12px"><label>Background</label><div class="finp" style="min-height:50px;background:#fff">Post-operative day 2. History of hypertension. Current medications: Amlodipine 5mg, Paracetamol 1g...</div></div>
-<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-bottom:8px;display:block">Vital Signs</label>
-<div class="vgrid" style="margin-bottom:14px">
-<div class="vbox"><div class="vl">HR</div><div class="vv">98</div><div class="vu">bpm</div></div>
-<div class="vbox"><div class="vl">BP</div><div class="vv">142/88</div><div class="vu">mmHg</div></div>
-<div class="vbox"><div class="vl">Temp</div><div class="vv">37.8</div><div class="vu">&deg;C</div></div>
-<div class="vbox"><div class="vl">SpO2</div><div class="vv">94</div><div class="vu">%</div></div>
-<div class="vbox"><div class="vl">RR</div><div class="vv">22</div><div class="vu">/min</div></div>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Report Form</div>
 </div>
-<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-bottom:8px;display:block">Patient Stability</label>
-<div class="sstab">
-<div class="sopt sel"><div class="sdot" style="background:#059669"></div><div class="slbl" style="color:#059669">Stable</div></div>
-<div class="sopt"><div class="sdot" style="background:#d97706"></div><div class="slbl" style="color:#d97706">Unstable</div></div>
-<div class="sopt"><div class="sdot" style="background:#dc2626"></div><div class="slbl" style="color:#dc2626">Critical</div></div>
-</div></div></div>
-<div class="fsec"><div class="fsec-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#003153" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><h4>Recommendation</h4><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="margin-left:auto"><polyline points="6 9 12 15 18 9"/></svg></div>
-<div class="fsec-b">
-<div class="fgrp" style="margin-bottom:12px"><label>Recommended Actions</label><div class="finp" style="min-height:50px;background:#fff">Continue monitoring vitals hourly. Consider supplemental O2 if SpO2 drops below 93%. Repeat blood work in 4 hours...</div></div>
-<div class="fgrp"><label>Tasks to Complete</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(0,49,83,.08);color:#003153;border:1px solid rgba(0,49,83,.15)">Hourly vitals</span><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(0,49,83,.08);color:#003153;border:1px solid rgba(0,49,83,.15)">Blood work 4h</span><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(0,49,83,.08);color:#003153;border:1px solid rgba(0,49,83,.15)">O2 monitoring</span><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(0,49,83,.08);color:#003153;border:1px solid rgba(0,49,83,.15)">Doctor review</span></div></div>
-</div></div>
-<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px"><button class="btn-o">Save Draft</button><button class="btn-p"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Submit ISBAR Report</button></div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/05-report.png" alt="ISBAR Report Form">
+<div class="annotation arrow-right" style="top:15%;left:2%">Form Sections (I-S-B-A-R)</div>
+<div class="annotation arrow-bottom" style="top:5%;left:50%">Reporter Selection</div>
 </div>
-<div class="slide" data-slide="8"><div class="sc">
-<div class="slide-title">Staff <span>Management</span></div>
-<p class="slide-sub">Department staff directory with roles, shifts, and activity tracking</p>
-''' + chrome("https://csms.adaregeneralhospital.com/staff", '''
-<div style="background:#f3f4f6;padding:20px;min-height:440px">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-<div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:12px;background:#003153;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div><h2 style="font-size:17px;font-weight:800;color:#111827">Staff Management</h2><p style="font-size:11px;color:#6b7280">Manage department staff and user accounts</p></div></div>
-<button class="btn-p"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Staff</button></div>
-<div class="dtabs" style="margin-bottom:14px"><div class="dtab active">All Staff</div><div class="dtab">Nurses</div><div class="dtab">Doctors</div><div class="dtab">Midwives</div><div class="dtab">Lab</div><div class="dtab">Pharmacy</div></div>
-<div style="display:flex;gap:10px;margin-bottom:14px"><div style="flex:1;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input style="border:none;outline:none;font-size:12px;color:#111827;width:100%;font-family:'Inter',sans-serif" placeholder="Search staff by name or role..." readonly></div></div>
-<div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
-<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 100px;gap:10px;padding:10px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280"><div>Staff Member</div><div>Role</div><div>Department</div><div>Shift</div><div style="text-align:right">Actions</div></div>
-''' + staff_rows + '''
-</div></div>
-<div class="slide" data-slide="9"><div class="sc">
-<div class="slide-title">Resource <span>Management</span></div>
-<p class="slide-sub">Inventory tracking with expiry monitoring and shift-based access</p>
-''' + chrome("https://csms.adaregeneralhospital.com/resources", '''
-<div style="background:#f3f4f6;padding:20px;min-height:440px">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-<div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:12px;background:#003153;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div><div><h2 style="font-size:17px;font-weight:800;color:#111827">Inventory</h2><p style="font-size:11px;color:#6b7280">Track medications and equipment across departments</p></div></div>
-<div style="display:flex;gap:8px"><button class="btn-o"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button><button class="btn-p"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Resource</button></div></div>
-<div class="trow">
-<div class="tcard"><div class="tv">12</div><div class="tl2">Total Items</div></div>
-<div class="tcard ok"><div class="tv">8</div><div class="tl2">OK</div></div>
-<div class="tcard low"><div class="tv">2</div><div class="tl2">Low Stock</div></div>
-<div class="tcard"><div class="tv" style="color:var(--sa)">1</div><div class="tl2">Near Expiry</div></div>
-<div class="tcard exp"><div class="tv">1</div><div class="tl2">Expired</div></div>
 </div>
-<div class="fbar">
-<div style="flex:1;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:7px 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span style="font-size:12px;color:#9ca3af">Search resources...</span></div>
-<select class="finp2" style="padding:7px 28px 7px 12px"><option>All Types</option><option>Drug</option><option>Equipment</option></select>
-<select class="finp2" style="padding:7px 28px 7px 12px"><option>All Status</option><option>OK</option><option>Low Stock</option><option>Near Expiry</option></select></div>
-<div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
-<table class="dtable"><thead><tr><th>Name</th><th>Type</th><th>Qty</th><th>Standard</th><th>Unit</th><th>Status</th><th>Expiry</th><th>Actions</th></tr></thead><tbody>
-<tr><td style="font-weight:600">Amoxicillin 500mg</td><td><span class="tbadge tdrug">Drug</span></td><td>120</td><td>100</td><td>Tablets</td><td><span class="tbadge stok">OK</span></td><td style="font-size:11px">2027-03-15</td><td><button class="abtn">Edit</button></td></tr>
-<tr><td style="font-weight:600">Paracetamol 1g</td><td><span class="tbadge tdrug">Drug</span></td><td>45</td><td>200</td><td>Ampoules</td><td><span class="tbadge slow">Low Stock</span></td><td style="font-size:11px">2026-12-01</td><td><button class="abtn">Edit</button></td></tr>
-<tr><td style="font-weight:600">Oxygen Mask (Adult)</td><td><span class="tbadge tequip">Equipment</span></td><td>15</td><td>10</td><td>Pieces</td><td><span class="tbadge stok">OK</span></td><td style="font-size:11px;color:#9ca3af">&mdash;</td><td><button class="abtn">Edit</button></td></tr>
-<tr><td style="font-weight:600">Insulin Regular</td><td><span class="tbadge tdrug">Drug</span></td><td>3</td><td>20</td><td>Vials</td><td><span class="tbadge slow">Low Stock</span></td><td style="font-size:11px;color:#dc2626">2026-08-20</td><td><button class="abtn">Edit</button></td></tr>
-<tr><td style="font-weight:600">Surgical Gloves (M)</td><td><span class="tbadge tequip">Equipment</span></td><td>500</td><td>300</td><td>Pairs</td><td><span class="tbadge stok">OK</span></td><td style="font-size:11px">2028-01-10</td><td><button class="abtn">Edit</button></td></tr>
-</tbody></table></div></div>
-<!-- SLIDE 10: PATIENT DATABASE -->
-<div class="slide" data-slide="10"><div class="sc">
-<div class="slide-title">Patient <span>Database</span></div>
-<p class="slide-sub">Searchable records table with advanced filtering and export</p>
-<div class="mw" style="max-height:520px"><div class="mbr"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="murl">https://csms.adaregeneralhospital.com/database</div></div>
-<div style="background:#f3f4f6;padding:20px;min-height:440px">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-<div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:12px;background:#003153;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div><div><h2 style="font-size:17px;font-weight:800;color:#111827">ISBAR Records Database</h2><p style="font-size:11px;color:#6b7280">Browse and search all submitted clinical records</p></div></div>
-<div style="display:flex;gap:8px"><button class="btn-o"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button><button class="btn-o" style="color:#dc2626;border-color:rgba(220,38,38,.3)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Delete Selected</button></div></div>
-<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:14px">
-<div class="fbar" style="margin-bottom:0">
-<div style="flex:1;display:flex;align-items:center;gap:6px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px 12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input style="border:none;outline:none;font-size:12px;background:transparent;width:100%;font-family:'Inter',sans-serif" placeholder="Search by MRN, name, template..." readonly></div>
-<input class="finp2" type="date" style="width:140px" readonly><input class="finp2" type="date" style="width:140px" readonly></div>
-<div class="qr" style="margin-top:8px"><div class="rbtn">Today</div><div class="rbtn active">Last week</div><div class="rbtn">Last month</div><div class="rbtn">Last 3 months</div><div class="rbtn">All time</div></div></div>
-<div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
-<table class="dtable"><thead><tr><th style="width:30px"><input type="checkbox" readonly></th><th>Template</th><th>Submitted By</th><th>Department</th><th>Date</th><th>MRN</th><th>Actions</th></tr></thead><tbody>
-<tr><td><input type="checkbox" readonly></td><td style="font-weight:600">Admission Assessment</td><td>Aster Kebede</td><td>ICU</td><td style="font-size:11px">2026-07-25 09:30</td><td><span style="font-weight:600">10234</span></td><td><div style="display:flex;gap:4px"><button class="abtn">View</button><button class="abtn">Raw</button><button class="abtn" style="color:#dc2626">Del</button></div></td></tr>
-<tr><td><input type="checkbox" readonly></td><td style="font-weight:600">Shift Handover</td><td>Hanna Tesfaye</td><td>Ward-05</td><td style="font-size:11px">2026-07-25 08:15</td><td><span style="font-weight:600">10189</span></td><td><div style="display:flex;gap:4px"><button class="abtn">View</button><button class="abtn">Raw</button><button class="abtn" style="color:#dc2626">Del</button></div></td></tr>
-<tr><td><input type="checkbox" readonly></td><td style="font-weight:600">Emergency Report</td><td>Dr. Mulugeta</td><td>ER</td><td style="font-size:11px">2026-07-25 07:45</td><td><span style="font-weight:600">10456</span></td><td><div style="display:flex;gap:4px"><button class="abtn">View</button><button class="abtn">Raw</button><button class="abtn" style="color:#dc2626">Del</button></div></td></tr>
-<tr><td><input type="checkbox" readonly></td><td style="font-weight:600">Admission Assessment</td><td>Solomon B.</td><td>ER</td><td style="font-size:11px">2026-07-24 22:10</td><td><span style="font-weight:600">10312</span></td><td><div style="display:flex;gap:4px"><button class="abtn">View</button><button class="abtn">Raw</button><button class="abtn" style="color:#dc2626">Del</button></div></td></tr>
-<tr><td><input type="checkbox" readonly></td><td style="font-weight:600">Nursing Round</td><td>Aster Kebede</td><td>ICU</td><td style="font-size:11px">2026-07-24 14:20</td><td><span style="font-weight:600">10087</span></td><td><div style="display:flex;gap:4px"><button class="abtn">View</button><button class="abtn">Raw</button><button class="abtn" style="color:#dc2626">Del</button></div></td></tr>
-</tbody></table></div>
-<div class="pag"><div class="pgbtn">&laquo;</div><div class="pgbtn">&lsaquo;</div><div class="pgbtn active">1</div><div class="pgbtn">2</div><div class="pgbtn">3</div><div class="pgbtn">&rsaquo;</div><div class="pgbtn">&raquo;</div><span style="font-size:11px;color:#6b7280;margin-left:10px">Showing 1-5 of 128 records</span></div>
-</div></div></div></div>
-
-<!-- SLIDE 11: STAFF CHECK-IN FLOW -->
-<div class="slide" data-slide="11"><div class="sc">
-<div class="slide-title">Staff <span>Check-In</span> Flow</div>
-<p class="slide-sub">Secure PIN-based check-in/check-out with ward assignment</p>
-<div class="mw" style="max-height:520px"><div class="mbr"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="murl">https://csms.adaregeneralhospital.com/dashboard (Staff Panel)</div></div>
-<div style="background:#f3f4f6;padding:24px;min-height:440px;display:flex;gap:20px">
-<div class="ckp" style="flex:1">
-<h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#003153" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Staff Check-In</h3>
-<div class="fgrp" style="margin-bottom:14px"><label>Select Staff Member</label><select class="finp" style="width:100%;padding:10px 12px"><option>Aster Kebede (Nurse - ICU)</option><option>Dr. Mulugeta (Physician - ICU)</option><option>Hanna Tesfaye (Nurse - Ward-05)</option></select></div>
-<div style="text-align:center;margin-bottom:12px"><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;display:block;margin-bottom:8px">Enter 4-Digit PIN</label>
-<div class="pins"><div class="pinb filled">&bull;</div><div class="pinb filled">&bull;</div><div class="pinb">&nbsp;</div><div class="pinb">&nbsp;</div></div></div>
-<div class="fgrp" style="margin-bottom:16px"><label>Ward / Department</label><select class="finp" style="width:100%;padding:10px 12px"><option>ICU</option><option>Ward-05</option><option>ER</option><option>Maternity</option><option>Lab</option></select></div>
-<div style="display:flex;gap:10px">
-<button class="btn-p" style="flex:1;justify-content:center;padding:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Check In</button>
-<button class="btn-o" style="flex:1;justify-content:center;padding:12px;color:#dc2626;border-color:rgba(220,38,38,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Check Out</button></div></div>
-<div style="width:320px">
-<div class="spanel" style="margin-bottom:14px"><h3>Currently On Duty</h3>
-<div class="srow"><div class="srow-av" style="background:#3b82f6">AK</div><div class="srow-info"><div class="srow-name">Aster Kebede</div><div class="srow-role">Nurse &bull; ICU &bull; Morning</div></div><span class="sstat staff-on">Active</span></div>
-<div class="srow"><div class="srow-av" style="background:#8b5cf6">DM</div><div class="srow-info"><div class="srow-name">Dr. Mulugeta</div><div class="srow-role">Physician &bull; ICU &bull; Morning</div></div><span class="sstat staff-on">Active</span></div>
-<div class="srow"><div class="srow-av" style="background:#06b6d4">HT</div><div class="srow-info"><div class="srow-name">Hanna Tesfaye</div><div class="srow-role">Nurse &bull; Ward-05 &bull; Morning</div></div><span class="sstat staff-on">Active</span></div>
-<div class="srow"><div class="srow-av" style="background:#10b981">SB</div><div class="srow-info"><div class="srow-name">Solomon Berhanu</div><div class="srow-role">GP &bull; ER &bull; Morning</div></div><span class="sstat staff-on">Active</span></div></div>
-<div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px">
-<h3 style="font-size:14px;font-weight:700;color:#111827;margin-bottom:10px">Shift Summary</h3>
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:12px"><span style="color:#6b7280">Current Shift</span><span style="font-weight:700;color:#003153">Morning (07:00 - 14:00)</span></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:12px"><span style="color:#6b7280">Checked In</span><span style="font-weight:700;color:#059669">4 staff</span></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px"><span style="color:#6b7280">Time Remaining</span><span style="font-weight:700;color:#d97706">4h 23m</span></div></div></div></div></div></div></div></div>
-
-<!-- SLIDE 12: SHIFT SAFETY BRIEFING -->
-<div class="slide" data-slide="12"><div class="sc">
-<div class="slide-title">Shift Safety <span>Briefing</span></div>
-<p class="slide-sub">Automated safety handover between shifts with risk assessment</p>
-<div class="mw" style="max-height:500px"><div class="mbr"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="murl">https://csms.adaregeneralhospital.com/dashboard</div></div>
-<div style="background:#f3f4f6;padding:20px;min-height:420px">
-<div class="bbanner green"><div class="bhdr green"><div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Shift Safety Briefing: ICU Ward</div><span style="font-size:11px;opacity:.8">From: Dr. Mulugeta &rarr; To: Aster Kebede</span></div>
-<div class="bbody"><div class="bgrid">
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Ward Stability</div><div style="display:flex;align-items:center;gap:8px;margin-top:6px"><div style="width:12px;height:12px;border-radius:50%;background:#059669"></div><span style="font-size:18px;font-weight:900;color:#059669">STABLE</span></div><div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">6 patients &bull; 2 critical &bull; 4 stable</div></div>
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Active Tasks</div><div style="margin-top:6px"><div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px 10px;margin-bottom:6px"><div style="font-size:11px;font-weight:700">Medication review - Bed ICU-02</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Due: 10:00 AM &bull; Assigned: Aster K.</div></div><div style="background:rgba(255,255,255,.1);border-radius:8px;padding:8px 10px"><div style="font-size:11px;font-weight:700">Blood draw - Bed ICU-04</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Due: 11:00 AM &bull; Assigned: Lab</div></div></div></div>
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Risk Alerts</div><div style="margin-top:6px"><div style="background:rgba(220,38,38,.15);border-radius:8px;padding:8px 10px;margin-bottom:6px;border:1px solid rgba(220,38,38,.3)"><div style="font-size:11px;font-weight:700;color:#fca5a5">Fall Risk: ICU-03</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Post-op, limited mobility</div></div><div style="background:rgba(217,119,6,.15);border-radius:8px;padding:8px 10px;border:1px solid rgba(217,119,6,.3)"><div style="font-size:11px;font-weight:700;color:#fcd34d">Allergy Alert: ICU-01</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Penicillin allergy documented</div></div></div></div></div></div></div>
-<div class="bbanner amber"><div class="bhdr amber"><div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Shift Safety Briefing: Ward-05</div><span style="font-size:11px;opacity:.8">Requires Attention</span></div>
-<div class="bbody"><div class="bgrid">
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Ward Stability</div><div style="display:flex;align-items:center;gap:8px;margin-top:6px"><div style="width:12px;height:12px;border-radius:50%;background:#d97706"></div><span style="font-size:18px;font-weight:900;color:#d97706">WATCH</span></div></div>
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Changes During Shift</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:6px;line-height:1.6">Patient in Bed-05 developed new-onset fever (38.4&deg;C). Blood cultures ordered. IV antibiotics started per physician order.</div></div>
-<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);font-weight:700">Night Safety Protocol</div><div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:6px;line-height:1.6">Hourly rounding required for Bed-05. Fall precautions in place. Call bell within reach.</div></div></div></div></div>
-</div></div></div></div></div>
-
-<!-- SLIDE 13: HANDOVER WORKFLOW -->
-<div class="slide" data-slide="13"><div class="sc">
-<div class="slide-title">Handover <span>Workflow</span></div>
-<p class="slide-sub">Structured shift-to-shift handover with countdown timer</p>
-<div class="mw" style="max-height:500px"><div class="mbr"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="murl">https://csms.adaregeneralhospital.com/dashboard (Handover)</div></div>
-<div style="background:#f3f4f6;padding:20px;min-height:420px">
-<div class="hbanner">
-<h3>Shift Handover</h3>
-<p>Morning &rarr; Afternoon &bull; ICU Ward &bull; Dr. Mulugeta &rarr; Aster Kebede</p>
-<div class="hcountdown"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Time Remaining: 02:34:18</div></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-<div class="fsec"><div class="fsec-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#003153" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><h4>Handover Summary</h4></div>
-<div class="fsec-b">
-<div class="fgrp" style="margin-bottom:12px"><label>Ward Status</label><div class="finp filled" style="border-left:3px solid #059669">Stable - 6 patients, 2 critical</div></div>
-<div class="fgrp" style="margin-bottom:12px"><label>Changes During Shift</label><div class="finp" style="min-height:60px;background:#fff">Patient Bed-05 developed fever. New IV antibiotics started. Blood cultures pending.</div></div>
-<div class="fgrp"><label>Pending Tasks</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(217,119,6,.1);color:#d97706;border:1px solid rgba(217,119,6,.2)">Review labs 2pm</span><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(37,99,235,.1);color:#2563eb;border:1px solid rgba(37,99,235,.2)">PT call 3pm</span></div></div>
-</div></div>
-<div class="fsec"><div class="fsec-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#003153" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><h4>Risk Assessment</h4></div>
-<div class="fsec-b">
-<div class="fgrp" style="margin-bottom:12px"><label>Clinical Risks</label><div class="finp" style="min-height:60px;background:#fff">Fall risk Bed-03. Allergy alert Bed-01 (PCN). Pressure sore risk Bed-06.</div></div>
-<div class="fgrp" style="margin-bottom:12px"><label>Escalation Notes</label><div class="finp" style="min-height:40px;background:#fff">Bed-05: If temp >38.5 again, contact senior physician immediately.</div></div>
-<div class="fgrp"><label>Safety Alerts</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(220,38,38,.1);color:#dc2626;border:1px solid rgba(220,38,38,.2)">Fall Risk</span><span style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;background:rgba(217,119,6,.1);color:#d97706;border:1px solid rgba(217,119,6,.2)">Allergy Alert</span></div></div>
-</div></div></div>
-<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px"><button class="btn-o">Save Draft</button><button class="btn-p"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Complete Handover</button></div>
-</div></div></div></div></div>
-
-<!-- SLIDE 14: ACTIVITY MONITORING -->
-<div class="slide" data-slide="14"><div class="sc">
-<div class="slide-title">Activity <span>Monitoring</span></div>
-<p class="slide-sub">Real-time feed of submissions, resource changes, and staff activity</p>
-<div class="mw" style="max-height:500px"><div class="mbr"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="murl">https://csms.adaregeneralhospital.com/dashboard (Activity Tab)</div></div>
-<div style="background:#f3f4f6;padding:20px;min-height:420px">
-<div class="dhdr"><div class="dicon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><h2>Admin Dashboard</h2><p style="font-size:11px;color:#6b7280">Hospital overview, patients, staff &amp; activity</p></div></div>
-<div class="dtabs"><div class="dtab">Patients</div><div class="dtab">Staff</div><div class="dtab active">Activity</div><div class="dtab">AI</div><div class="dtab">Admin</div><div class="dtab">Audit</div></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-<div class="spanel"><h3>Recent Submissions</h3>
-<div style="padding:12px 0;border-bottom:1px solid #e5e7eb;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#059669;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">ISBAR Report Submitted</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Aster Kebede submitted admission assessment for MRN 10234 (ICU)</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">15 minutes ago</div></div></div>
-<div style="padding:12px 0;border-bottom:1px solid #e5e7eb;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#2563eb;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">Shift Handover Completed</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Dr. Mulugeta handed over to Aster Kebede for ICU Ward</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">1 hour ago</div></div></div>
-<div style="padding:12px 0;border-bottom:1px solid #e5e7eb;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">Emergency Report Filed</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Solomon Berhanu filed emergency report for MRN 10456</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">2 hours ago</div></div></div>
-<div style="padding:12px 0;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">Nursing Round Completed</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Aster Kebede completed round for 6 ICU patients</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">3 hours ago</div></div></div></div>
-<div class="spanel"><h3>Resource Changes</h3>
-<div style="padding:12px 0;border-bottom:1px solid #e5e7eb;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#dc2626;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">Low Stock Alert</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Paracetamol 1g: 45/200 remaining (22%)</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">30 minutes ago</div></div></div>
-<div style="padding:12px 0;border-bottom:1px solid #e5e7eb;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#d97706;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">Near Expiry Warning</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Insulin Regular: 3 vials expiring 2026-08-20</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">1 hour ago</div></div></div>
-<div style="padding:12px 0;border-bottom:1px solid #e5e7eb;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#059669;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">Inventory Restocked</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Surgical Gloves (M): Updated from 450 to 500 pairs</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">4 hours ago</div></div></div>
-<div style="padding:12px 0;display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#111827">New Resource Added</div><div style="font-size:11px;color:#6b7280;margin-top:2px">Amoxicillin 500mg: 120 tablets added to ICU inventory</div><div style="font-size:10px;color:#9ca3af;margin-top:4px">5 hours ago</div></div></div></div></div></div></div></div></div></div>
-
-<!-- SLIDE 15: ROLE-BASED ACCESS -->
-<div class="slide" data-slide="15"><div class="sc">
-<div class="slide-title">Role-Based <span>Access Control</span></div>
-<p class="slide-sub">Four-tier permission system ensuring data security and appropriate access</p>
-<div class="rgrid">
-<div class="rcard"><div class="ri" style="background:rgba(107,114,128,.1)">U</div><h4>Staff</h4><div class="rd">Basic clinical access</div><ul><li>View assigned patients</li><li>Submit ISBAR reports</li><li>Check in/out of shifts</li><li>View own activity</li></ul></div>
-<div class="rcard"><div class="ri" style="background:rgba(37,99,235,.1)">U</div><h4>User</h4><div class="rd">Department-level access</div><ul><li>All Staff permissions</li><li>View department patients</li><li>Manage department resources</li><li>View department activity</li><li>Access department records</li></ul></div>
-<div class="rcard"><div class="ri" style="background:rgba(124,58,237,.1)">A</div><h4>Admin</h4><div class="rd">Full system management</div><ul><li>All User permissions</li><li>User management</li><li>Form builder access</li><li>Check-in logs</li><li>Attendance reports</li><li>System settings</li><li>Impersonate users</li></ul></div>
-<div class="rcard"><div class="ri" style="background:rgba(9,184,160,.1)">SA</div><h4>SuperAdmin</h4><div class="rd">Complete system control</div><ul><li>All Admin permissions</li><li>Create/manage admins</li><li>System-wide settings</li><li>Database management</li><li>API configuration</li><li>Security audit logs</li></ul></div>
-</div></div></div>
-
-<!-- SLIDE 16: API & SECURITY -->
-<div class="slide" data-slide="16"><div class="sc">
-<div class="slide-title">API & <span>Security</span></div>
-<p class="slide-sub">Enterprise-grade security with comprehensive API endpoints</p>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%">
-<div class="mw" style="max-height:400px"><div class="mbr"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="murl">API Endpoints</div></div>
-<div style="padding:16px;background:#1a1a1a">
-<table class="atbl"><thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead><tbody>
-<tr><td><span class="mbadge mget">GET</span></td><td>/api/form-submissions</td><td>List all submissions</td></tr>
-<tr><td><span class="mbadge mpost">POST</span></td><td>/api/form-submissions</td><td>Submit new report</td></tr>
-<tr><td><span class="mbadge mget">GET</span></td><td>/api/resources</td><td>List inventory items</td></tr>
-<tr><td><span class="mbadge mput">PUT</span></td><td>/api/resources/:id</td><td>Update resource</td></tr>
-<tr><td><span class="mbadge mget">GET</span></td><td>/api/department-staff</td><td>List department staff</td></tr>
-<tr><td><span class="mbadge mpost">POST</span></td><td>/api/shifts/staff-action</td><td>Check-in/out action</td></tr>
-<tr><td><span class="mbadge mget">GET</span></td><td>/api/users</td><td>List system users</td></tr>
-<tr><td><span class="mbadge mget">GET</span></td><td>/api/form-templates</td><td>List form templates</td></tr>
-<tr><td><span class="mbadge mpost">POST</span></td><td>/api/form-templates</td><td>Create template</td></tr>
-<tr><td><span class="mbadge mget">GET</span></td><td>/api/health</td><td>System health check</td></tr>
-</tbody></table></div></div>
-<div><div class="secgrid">
-<div class="seccard"><div class="sci">M</div><h4>PIN Authentication</h4><p>4-digit PIN verification for staff check-in/check-out operations</p></div>
-<div class="seccard"><div class="sci">J</div><h4>JWT Tokens</h4><p>Secure JSON Web Tokens for session management and API authentication</p></div>
-<div class="seccard"><div class="sci">S</div><h4>Role-Based Access</h4><p>Four-tier permission system (Staff, User, Admin, SuperAdmin)</p></div>
-<div class="seccard"><div class="sci">E</div><h4>Input Validation</h4><p>Server-side validation on all endpoints to prevent injection attacks</p></div>
-<div class="seccard"><div class="sci">R</div><h4>CORS Protection</h4><p>Cross-Origin Resource Sharing policies restrict API access</p></div>
-<div class="seccard"><div class="sci">T</div><h4>Audit Logging</h4><p>Complete activity trail for compliance and security monitoring</p></div>
-</div></div></div></div></div>
-
-<!-- SLIDE 17: THANK YOU -->
-<div class="slide" data-slide="17"><div class="sc ty">
-<div style="margin-bottom:32px"><div style="width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#003153,#09B8A0);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 32px rgba(0,49,83,.4)">
-<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-</div></div>
-<h1>Thank You</h1>
-<p>You are now ready to use the ISBAR Clinical System. For support, please contact the IT department or refer to the user documentation.</p>
-<div class="cgrid">
-<div class="ccard"><div class="cci">IT</div><h4>IT Support</h4><p>helpdesk@agh.gov.et</p></div>
-<div class="ccard"><div class="cci">TR</div><h4>Training</h4><p>training@agh.gov.et</p></div>
-<div class="ccard"><div class="cci">AD</div><h4>Admin</h4><p>admin@agh.gov.et</p></div>
+<div class="callout">
+<h4>Filling the ISBAR Form</h4>
+<p>Select your name as reporter, then complete each section. The form validates required fields and auto-calculates stability status based on your inputs.</p>
 </div>
-<div style="margin-top:40px;font-size:12px;color:rgba(255,255,255,.3)">Adare General Hospital &bull; ISBAR Clinical System v2.0.0 &bull; 2026</div>
-</div></div>
-<div class="nb" id="navbar">
-<button onclick="goSlide(-1)" id="prevBtn" disabled>&larr; Previous</button>
-<span class="nc" id="counter">1 / 17</span>
-<button onclick="goSlide(1)" id="nextBtn">Next &rarr;</button>
+<span class="slide-number">8 / 12</span>
 </div>
+
+<!-- SLIDE 9: Department Activity (Real Screenshot) -->
+<div class="slide" id="slide-9">
+<div class="slide-title">Department <span>Activity</span></div>
+<p class="slide-sub">Staff check-in/out tracking and department-level activity monitoring</p>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Department Activity</div>
+</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/06-dept-activity.png" alt="Department Activity">
+<div class="annotation arrow-bottom" style="top:8%;left:20%">Department Staff Panel</div>
+<div class="annotation arrow-left" style="top:45%;right:3%">Activity Feed</div>
+</div>
+</div>
+<div class="callout">
+<h4>Staff Check-In</h4>
+<p>Staff select their name, enter their 4-digit PIN, and check in to their ward/station. The system tracks shift sessions and logs all activity for attendance reports.</p>
+</div>
+<span class="slide-number">9 / 12</span>
+</div>
+
+<!-- SLIDE 10: Resources (Real Screenshot) -->
+<div class="slide" id="slide-10">
+<div class="slide-title">Resources <span>& Inventory</span></div>
+<p class="slide-sub">Track supplies, equipment, and inventory levels across departments</p>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Resources</div>
+</div>
+<div class="browser-body">
+<img src="screenshots/images/07-resources.png" alt="Resources Inventory">
+</div>
+</div>
+<div class="callout">
+<h4>Inventory Management</h4>
+<p>Monitor stock levels, track usage, and get alerts for low inventory. Filter by category, search items, and export reports for procurement.</p>
+</div>
+<span class="slide-number">10 / 12</span>
+</div>
+
+<!-- SLIDE 11: All Records (Real Screenshot) -->
+<div class="slide" id="slide-11">
+<div class="slide-title">All <span>Records</span></div>
+<p class="slide-sub">Complete database of all ISBAR submissions with search, filter, and export</p>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - All Records</div>
+</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/08-all-records.png" alt="All Records Database">
+<div class="annotation arrow-bottom" style="top:5%;left:15%">Search & Filter Bar</div>
+<div class="annotation arrow-bottom" style="top:5%;right:15%">Export Options</div>
+<div class="annotation arrow-left" style="top:50%;right:3%">Record Details</div>
+</div>
+</div>
+<div class="callout">
+<h4>Searching & Exporting</h4>
+<p>Use the search bar to find records by patient name, MRN, or reporter. Filter by date range, department, or status. Export to PDF or Excel for sharing.</p>
+</div>
+<span class="slide-number">11 / 12</span>
+</div>
+
+<!-- SLIDE 12: Analytics (Real Screenshot) -->
+<div class="slide" id="slide-12">
+<div class="slide-title">Trends <span>& Analytics</span></div>
+<p class="slide-sub">Visual charts and metrics for clinical performance tracking</p>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Trends & Analytics</div>
+</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/09-analytics.png" alt="Analytics Dashboard">
+<div class="annotation arrow-bottom" style="top:3%;left:10%">Stat Cards</div>
+<div class="annotation arrow-bottom" style="top:3%;right:10%">Time Range Filters</div>
+<div class="annotation arrow-left" style="top:40%;right:3%">Area & Bar Charts</div>
+</div>
+</div>
+<div class="callout">
+<h4>Understanding Analytics</h4>
+<p>View submission trends over time, identify peak reporting periods, and track department performance. Use 30D/90D filters to compare periods.</p>
+</div>
+<span class="slide-number">12 / 12</span>
+</div>
+
+<!-- Navigation Bar -->
+<div class="nav-bar visible" id="navbar">
+<button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+<div class="nav-dots" id="navDots"></div>
+<span class="nav-counter" id="counter">1 / 12</span>
+<button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+</div>
+
 <script>
-let cur=1;const total=17;
-function goSlide(d){cur=Math.max(1,Math.min(total,cur+d));document.querySelectorAll('.slide').forEach(s=>s.classList.toggle('active',+s.dataset.slide===cur));document.getElementById('counter').textContent=cur+' / '+total;document.getElementById('prevBtn').disabled=cur===1;document.getElementById('nextBtn').disabled=cur===total}
-document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')goSlide(1);if(e.key==='ArrowLeft')goSlide(-1)});
+let current = 1;
+const total = 12;
+const slides = document.querySelectorAll('.slide');
+const dots = document.getElementById('navDots');
+const counter = document.getElementById('counter');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+// Create dots
+for (let i = 1; i <= total; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'nav-dot' + (i === 1 ? ' active' : '');
+  dot.onclick = () => goToSlide(i);
+  dots.appendChild(dot);
+}
+
+function goToSlide(n) {
+  slides[current - 1].classList.remove('active');
+  dots.children[current - 1].classList.remove('active');
+  current = n;
+  slides[current - 1].classList.add('active');
+  dots.children[current - 1].classList.add('active');
+  counter.textContent = current + ' / ' + total;
+  prevBtn.disabled = current === 1;
+  nextBtn.disabled = current === total;
+}
+
+function changeSlide(dir) {
+  const next = current + dir;
+  if (next >= 1 && next <= total) goToSlide(next);
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+});
+
+goToSlide(1);
 </script>
-</div></body></html>
+</body>
+</html>

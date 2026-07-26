@@ -4,20 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ISBAR Training Part II - Administration, Analytics, AI & Advanced Features</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
 --primary:#003153;--header-bg:#eaf3f7;--body-bg:#f3f4f6;--card-bg:#ffffff;
 --border:#e5e7eb;--text-primary:#111827;--text-secondary:#6b7280;
 --brand-green:#09B8A0;--status-green:#059669;--status-amber:#d97706;--status-red:#dc2626;
---radius-card:16px;--radius-btn:12px;--sidebar-w:256px;--header-h:64px;
+--radius-card:16px;--radius-btn:12px;
 }
 html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e7eb;overflow:hidden;height:100vh}
+
+/* Slide system */
 .slide{display:none;width:100vw;height:100vh;background:#0a0a0a;justify-content:center;align-items:center;flex-direction:column;padding:40px;overflow-y:auto;position:relative}
 .slide.active{display:flex}
 .slide-number{position:absolute;top:20px;right:30px;font-size:13px;color:#6b7280;font-weight:500}
+.slide-title{font-size:32px;font-weight:800;color:#fff;text-align:center;margin-bottom:6px}
+.slide-title span{color:var(--brand-green)}
+.slide-sub{font-size:14px;color:#9ca3af;text-align:center;margin-bottom:28px;max-width:600px}
 
 /* Navigation */
 .nav-bar{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(0,49,83,0.95);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;gap:24px;transform:translateY(100%);transition:transform 0.3s ease;z-index:1000;border-top:1px solid rgba(255,255,255,0.1)}
@@ -38,1463 +43,510 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0a;c
 .browser-dot.r{background:#ff5f57}.browser-dot.y{background:#febc2e}.browser-dot.g{background:#28c840}
 .browser-title{flex:1;text-align:center;font-size:12px;color:#6b7280;font-weight:500}
 .browser-body{background:var(--body-bg);min-height:420px;position:relative;overflow:hidden}
+.browser-body img{width:100%;height:auto;display:block}
 
-/* App Layout */
-.app-layout{display:flex;height:100%;font-family:'Inter',sans-serif}
-.sidebar{width:var(--sidebar-w);background:var(--primary);color:#fff;display:flex;flex-direction:column;flex-shrink:0}
-.sidebar-logo{padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.1)}
-.sidebar-logo svg{width:28px;height:28px}
-.sidebar-logo span{font-weight:700;font-size:15px;letter-spacing:-0.3px}
-.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
-.sidebar-section{padding:4px 20px;margin-top:8px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.4);font-weight:600}
-.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;color:rgba(255,255,255,0.65);font-size:13px;cursor:pointer;transition:all 0.15s;font-weight:400}
-.sidebar-item:hover{background:rgba(255,255,255,0.08);color:#fff}
-.sidebar-item.active{background:rgba(9,184,160,0.2);color:var(--brand-green);font-weight:500}
-.sidebar-item svg{width:16px;height:16px;flex-shrink:0}
+/* Screenshot with annotation */
+.annotation{position:absolute;background:rgba(9,184,160,0.95);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.annotation::after{content:'';position:absolute;width:0;height:0;border:6px solid transparent}
+.annotation.arrow-bottom::after{bottom:-12px;left:50%;transform:translateX(-50%);border-top-color:rgba(9,184,160,0.95)}
+.annotation.arrow-right::after{right:-12px;top:50%;transform:translateY(-50%);border-left-color:rgba(9,184,160,0.95)}
+.annotation.arrow-left::after{left:-12px;top:50%;transform:translateY(-50%);border-right-color:rgba(9,184,160,0.95)}
 
-.app-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.app-header{height:var(--header-h);background:var(--header-bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;justify-content:space-between;flex-shrink:0}
-.app-header h2{font-size:17px;font-weight:600;color:var(--text-primary)}
-.app-content{flex:1;padding:20px 24px;overflow-y:auto;background:var(--body-bg)}
+/* Callout box */
+.callout{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;max-width:700px;margin-top:20px}
+.callout h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:6px}
+.callout p{font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6}
 
-/* Cards */
-.card{background:var(--card-bg);border-radius:var(--radius-card);border:1px solid var(--border);padding:20px}
-.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.card-title{font-size:14px;font-weight:600;color:var(--text-primary)}
+/* Two-column layout */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:20px;max-width:1100px;width:100%}
+.info-panel{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px}
+.info-panel h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:12px}
+.info-panel ul{list-style:none}
+.info-panel li{font-size:12px;color:rgba(255,255,255,0.6);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:8px}
+.info-panel li:last-child{border-bottom:none}
+.info-panel li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:11px}
 
-/* Stat Cards */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-.stat-card{background:var(--card-bg);border-radius:var(--radius-card);border:1px solid var(--border);padding:16px 18px}
-.stat-label{font-size:11px;color:var(--text-secondary);font-weight:500;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-.stat-value{font-size:24px;font-weight:700;color:var(--text-primary)}
-.stat-change{font-size:11px;margin-top:4px;font-weight:500}
-.stat-change.up{color:var(--status-green)}.stat-change.down{color:var(--status-red)}
+/* Key points grid */
+.key-points{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin-top:20px}
+.key-point{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center}
+.key-point .kp-icon{font-size:24px;margin-bottom:8px}
+.key-point h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.key-point p{font-size:11px;color:rgba(255,255,255,0.5);line-height:1.5}
 
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-btn);font-size:12px;font-weight:500;border:none;cursor:pointer;font-family:inherit;transition:all 0.15s}
-.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:#004070}
-.btn-green{background:var(--brand-green);color:#fff}
-.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-primary)}
-.btn-sm{padding:5px 10px;font-size:11px}
-.btn-danger{background:var(--status-red);color:#fff}
+/* Role cards */
+.role-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1000px}
+.role-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;text-align:center}
+.role-card .ri{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px}
+.role-card h4{font-size:14px;font-weight:800;color:#fff;margin-bottom:4px}
+.role-card .rd{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:12px}
+.role-card ul{text-align:left;list-style:none}
+.role-card li{font-size:11px;color:rgba(255,255,255,0.6);padding:4px 0;display:flex;align-items:center;gap:6px}
+.role-card li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:10px}
 
-/* Tables */
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:10px 12px;background:var(--body-bg);color:var(--text-secondary);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border)}
-td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-primary);vertical-align:middle}
-tr:hover td{background:rgba(0,49,83,0.02)}
+/* Security grid */
+.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px}
+.sec-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;text-align:center}
+.sec-card .sci{font-size:28px;margin-bottom:8px}
+.sec-card h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.sec-card p{font-size:11px;color:rgba(255,255,255,0.5);line-height:1.5}
 
-/* Badges */
-.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
-.badge-green{background:#d1fae5;color:var(--status-green)}.badge-amber{background:#fef3c7;color:var(--status-amber)}
-.badge-red{background:#fee2e2;color:var(--status-red)}.badge-blue{background:#dbeafe;color:#2563eb}
-.badge-gray{background:#f3f4f6;color:var(--text-secondary)}.badge-purple{background:#ede9fe;color:#7c3aed}
-
-/* Form Elements */
-.input{padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;color:var(--text-primary);background:var(--card-bg);width:100%}
-.input:focus{outline:none;border-color:var(--brand-green);box-shadow:0 0 0 3px rgba(9,184,160,0.1)}
-.select{padding:7px 28px 7px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;color:var(--text-primary);background:var(--card-bg);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
-
-/* Toggle */
-.toggle{width:36px;height:20px;border-radius:10px;background:#d1d5db;position:relative;cursor:pointer;transition:background 0.2s}
-.toggle.on{background:var(--brand-green)}
-.toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.15)}
-.toggle.on::after{transform:translateX(16px)}
-
-/* Charts (CSS-only) */
-.chart-area{position:relative;height:140px;display:flex;align-items:flex-end;gap:2px;padding-top:10px}
-.chart-bar{flex:1;border-radius:4px 4px 0 0;transition:height 0.6s ease;position:relative;min-width:0}
-.chart-bar::after{content:attr(data-val);position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text-secondary);font-weight:600;white-space:nowrap}
-.area-chart{position:relative;height:140px;overflow:hidden}
-.area-chart svg{width:100%;height:100%}
-
-/* Shift blocks */
-.shift-block{display:inline-block;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:600;color:#fff;min-width:48px;text-align:center}
-.shift-day{background:#3b82f6}.shift-night{background:#7c3aed}.shift-evening{background:#d97706}
-.shift-off{background:#6b7280}.shift-oncall{background:#0891b2}.shift-leave{background:#ef4444}
-
-/* Grid */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-
-/* Title Slide */
-.title-slide{text-align:center}
-.title-slide h1{font-size:52px;font-weight:800;color:#fff;margin-bottom:12px;letter-spacing:-1.5px}
-.title-slide h2{font-size:22px;font-weight:400;color:var(--brand-green);margin-bottom:8px}
-.title-slide p{font-size:15px;color:#6b7280;max-width:500px;margin:0 auto}
-.title-divider{width:80px;height:4px;background:linear-gradient(90deg,var(--brand-green),var(--primary));border-radius:2px;margin:24px auto}
-
-/* Form Builder specifics */
-.field-library{width:220px;background:#fff;border-right:1px solid var(--border);padding:12px;overflow-y:auto;flex-shrink:0}
-.field-category{margin-bottom:14px}
-.field-category-title{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-secondary);font-weight:600;margin-bottom:6px;padding:0 4px}
-.field-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;font-size:12px;color:var(--text-primary);cursor:grab;border:1px solid transparent;transition:all 0.15s;margin-bottom:2px}
-.field-item:hover{background:var(--body-bg);border-color:var(--border)}
-.field-item svg{width:14px;height:14px;color:var(--text-secondary)}
-.form-canvas{flex:1;background:#f8fafc;padding:16px;overflow-y:auto}
-.canvas-section{background:#fff;border:2px dashed var(--border);border-radius:12px;padding:16px;margin-bottom:12px;position:relative}
-.canvas-section-header{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.canvas-section-header .drag{color:#d1d5db;cursor:grab}
-.canvas-field{background:var(--body-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.canvas-field .field-label{font-size:12px;color:var(--text-primary);font-weight:500}
-.canvas-field .field-type{font-size:10px;color:var(--text-secondary);background:#fff;padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
-.props-panel{width:240px;background:#fff;border-left:1px solid var(--border);padding:12px;overflow-y:auto;flex-shrink:0}
-.props-title{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.prop-group{margin-bottom:12px}
-.prop-label{font-size:11px;color:var(--text-secondary);font-weight:500;margin-bottom:4px}
-
-/* Scheduling grid */
-.schedule-grid{display:grid;font-size:11px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
-.schedule-header{background:var(--primary);color:#fff;font-weight:600;padding:8px;text-align:center}
-.schedule-sticky{position:sticky;left:0;background:#fff;z-index:2;border-right:1px solid var(--border);font-weight:500;padding:8px 10px}
-.schedule-cell{padding:6px 4px;text-align:center;border-right:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0}
-.schedule-cell.today{background:rgba(9,184,160,0.08)}
-.schedule-cell.weekend{background:#fafafa}
-.schedule-group-row{background:var(--header-bg);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--primary);padding:6px 10px}
-
-/* Wizard steps */
-.wizard-steps{display:flex;align-items:center;gap:0;margin-bottom:20px}
-.wizard-step{display:flex;align-items:center;gap:8px;padding:10px 20px;font-size:13px;font-weight:500;color:var(--text-secondary)}
-.wizard-step.active{color:var(--brand-green)}
-.wizard-step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;border:2px solid var(--border);color:var(--text-secondary)}
-.wizard-step.active .wizard-step-num{background:var(--brand-green);color:#fff;border-color:var(--brand-green)}
-.wizard-step.done .wizard-step-num{background:var(--status-green);color:#fff;border-color:var(--status-green)}
-.wizard-line{flex:0 0 60px;height:2px;background:var(--border)}
-.wizard-line.done{background:var(--status-green)}
-
-/* Alert cards */
-.alert-card{border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:4px solid;display:flex;gap:10px;align-items:flex-start}
-.alert-critical{background:#fef2f2;border-color:var(--status-red)}
-.alert-warning{background:#fffbeb;border-color:var(--status-amber)}
-.alert-info{background:#eff6ff;border-color:#2563eb}
-.alert-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px}
-.alert-critical .alert-icon{background:var(--status-red);color:#fff}
-.alert-warning .alert-icon{background:var(--status-amber);color:#fff}
-.alert-info .alert-icon{background:#2563eb;color:#fff}
-.alert-text{font-size:12px;color:var(--text-primary);font-weight:500}
-.alert-sub{font-size:11px;color:var(--text-secondary);margin-top:2px}
-
-/* Vitals grid */
-.vitals-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.vital-card{text-align:center;padding:8px;border-radius:8px;border:1px solid var(--border);background:#fff}
-.vital-value{font-size:16px;font-weight:700}
-.vital-label{font-size:9px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
-.vital-normal{color:var(--status-green)}.vital-warn{color:var(--status-amber)}.vital-danger{color:var(--status-red)}
-
-/* Integration card */
-.integration-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius-card);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:10px}
-.integration-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
-.integration-info{flex:1}
-.integration-name{font-size:14px;font-weight:600;color:var(--text-primary)}
-.integration-desc{font-size:11px;color:var(--text-secondary);margin-top:2px}
-
-/* Calendar */
-.eth-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.eth-cal-header{font-size:10px;font-weight:600;color:var(--text-secondary);text-align:center;padding:6px}
-.eth-cal-cell{text-align:center;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid transparent}
-.eth-cal-cell:hover{border-color:var(--brand-green);background:rgba(9,184,160,0.05)}
-.eth-cal-cell.holiday{background:#fef2f2;color:var(--status-red)}
-.eth-cal-cell.today{background:var(--brand-green);color:#fff;font-weight:600}
-
-/* Roadmap */
-.roadmap-col{flex:1;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-card);padding:16px}
-.roadmap-title{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.roadmap-item{display:flex;gap:8px;margin-bottom:10px;font-size:12px;color:var(--text-primary);align-items:flex-start}
-.roadmap-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
-
-/* Modal overlay */
-.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10}
-.modal-box{background:#fff;border-radius:var(--radius-card);padding:24px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-.modal-title{font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:4px}
-.modal-sub{font-size:12px;color:var(--text-secondary);margin-bottom:16px}
-.modal-step{display:flex;gap:8px;margin-bottom:16px}
-.modal-step-dot{width:32px;height:4px;border-radius:2px;background:var(--border)}
-.modal-step-dot.active{background:var(--brand-green)}
-
-/* Emoji icons for mockups */
-.icon-box{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+/* Thank you */
+.ty{text-align:center}
+.ty h1{font-size:44px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff,#09B8A0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+.ty p{font-size:16px;color:rgba(255,255,255,0.5);max-width:600px;margin:0 auto;line-height:1.7}
+.cgrid{display:flex;gap:20px;justify-content:center;margin-top:30px}
+.ccard{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;text-align:center;width:180px}
+.ccard .cci{font-size:24px;margin-bottom:8px}
+.ccard h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.ccard p{font-size:11px;color:rgba(255,255,255,0.4)}
 
 /* Scrollbar */
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
-
-/* Responsive */
-@media(max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}.vitals-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 
 <!-- SLIDE 1: Title -->
 <div class="slide active" id="slide-1">
-<div class="title-slide">
+<div class="ty">
 <div style="font-size:60px;margin-bottom:16px">&#x1F3E5;</div>
-<h2 style="color:var(--brand-green);font-size:16px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">ISBAR Clinical Documentation System</h2>
+<p style="color:var(--brand-green);font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">ISBAR Clinical Documentation System</p>
 <h1>Part II</h1>
-<div class="title-divider"></div>
-<h2>Administration, Analytics, AI & Advanced Features</h2>
-<p style="margin-top:16px;color:#9ca3af">Training Module for System Administrators, Department Heads, and Power Users</p>
+<div style="width:80px;height:4px;background:linear-gradient(90deg,var(--brand-green),var(--primary));border-radius:2px;margin:24px auto"></div>
+<h2 style="font-size:22px;font-weight:400;color:var(--brand-green);margin-bottom:8px">Administration, Analytics, AI & Advanced Features</h2>
+<p>Training Module for System Administrators, Department Heads, and Power Users</p>
 <p style="margin-top:24px;font-size:13px;color:#4b5563">v2.0 &bull; Built for Ethiopian Healthcare</p>
 </div>
-<span class="slide-number">1 / 17</span>
+<span class="slide-number">1 / 14</span>
 </div>
 
-<!-- SLIDE 2: Form Builder -->
+<!-- SLIDE 2: Staff Schedule (Real Screenshot) -->
 <div class="slide" id="slide-2">
+<div class="slide-title">Staff <span>Schedule</span></div>
+<p class="slide-sub">Visual shift scheduling with drag-and-drop and export capabilities</p>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Staff Schedule</div>
+</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/10-staff-schedule.png" alt="Staff Schedule">
+<div class="annotation arrow-bottom" style="top:3%;left:15%">Staff Names & Departments</div>
+<div class="annotation arrow-bottom" style="top:3%;right:15%">Shift Type Selector</div>
+<div class="annotation arrow-right" style="top:45%;left:2%">Week/Date Navigation</div>
+</div>
+</div>
+<div class="two-col" style="margin-top:20px">
+<div class="callout" style="margin-top:0">
+<h4>Schedule Features</h4>
+<p>View and manage staff assignments across Morning, Afternoon, and Night shifts. Click any cell to assign or update a shift. Use PNG/Excel export for distribution.</p>
+</div>
+<div class="info-panel" style="margin-top:0">
+<h3>Shift Types</h3>
+<ul>
+<li><span style="color:#3b82f6;font-weight:700">Morning</span> — Day shift coverage</li>
+<li><span style="color:#d97706;font-weight:700">Afternoon</span> — Evening shift coverage</li>
+<li><span style="color:#7c3aed;font-weight:700">Night</span> — Overnight shift coverage</li>
+<li><span style="color:#6b7280;font-weight:700">Off</span> — Rest day</li>
+</ul>
+</div>
+</div>
+<span class="slide-number">2 / 14</span>
+</div>
+
+<!-- SLIDE 3: Form Builder (Real Screenshot) -->
+<div class="slide" id="slide-3">
+<div class="slide-title">Form <span>Builder</span></div>
+<p class="slide-sub">Visual drag-and-drop form designer for custom clinical templates</p>
 <div class="browser-chrome">
 <div class="browser-topbar">
 <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
 <div class="browser-title">ISBAR - Form Builder</div>
 </div>
-<div class="browser-body">
-<div class="app-layout" style="height:420px">
-<div class="field-library">
-<div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px">Field Library</div>
-<div class="field-category">
-<div class="field-category-title">Basic Fields</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Text Input</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Number</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Textarea</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Select</div>
-</div>
-<div class="field-category">
-<div class="field-category-title">Medical</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Vital Signs</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Patient Info</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Coded Text</div>
-</div>
-<div class="field-category">
-<div class="field-category-title">ISBAR Sections</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Identification</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Situation</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Background</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Assessment</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Recommendation</div>
-</div>
-<div class="field-category">
-<div class="field-category-title">Advanced</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Divider</div>
-<div class="field-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h6"/></svg> Rating</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/11-form-builder.png" alt="Form Builder">
+<div class="annotation arrow-right" style="top:15%;left:2%">Template Library</div>
+<div class="annotation arrow-bottom" style="top:5%;left:50%">Visual Form Designer</div>
+<div class="annotation arrow-left" style="top:50%;right:3%">Field Properties</div>
 </div>
 </div>
-<div class="form-canvas">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-<div>
-<input class="input" value="Admission Assessment" style="font-size:15px;font-weight:600;border:none;background:transparent;padding:4px;width:260px">
+<div class="callout">
+<h4>Building Custom Forms</h4>
+<p>Select a template to edit or create new. Drag fields from the library into the canvas. Configure validation, options, and layout in the properties panel. Save and publish to make available for clinical staff.</p>
 </div>
-<div style="display:flex;gap:8px">
-<button class="btn btn-outline btn-sm">Preview</button>
-<button class="btn btn-primary btn-sm">Save Template</button>
-</div>
-</div>
-<div class="canvas-section">
-<div class="canvas-section-header"><span class="drag">&#9776;</span> Patient Identification</div>
-<div class="canvas-field"><span class="field-type">Text</span><span class="field-label">Full Name</span><span style="margin-left:auto;font-size:10px;color:var(--status-red)">Required</span></div>
-<div class="canvas-field"><span class="field-type">Number</span><span class="field-label">MRN</span><span style="margin-left:auto;font-size:10px;color:var(--status-red)">Required</span></div>
-<div class="canvas-field"><span class="field-type">Select</span><span class="field-label">Department</span><span style="margin-left:auto;font-size:10px;color:var(--status-red)">Required</span></div>
-<div class="canvas-field"><span class="field-type">Date</span><span class="field-label">Date of Birth</span><span style="margin-left:auto;font-size:10px;color:var(--text-secondary)">Optional</span></div>
-</div>
-<div class="canvas-section">
-<div class="canvas-section-header"><span class="drag">&#9776;</span> Clinical Assessment</div>
-<div class="canvas-field"><span class="field-type">Vital Signs</span><span class="field-label">Vital Signs Panel</span><span style="margin-left:auto;font-size:10px;color:var(--status-red)">Required</span></div>
-<div class="canvas-field"><span class="field-type">Textarea</span><span class="field-label">Chief Complaint</span><span style="margin-left:auto;font-size:10px;color:var(--status-red)">Required</span></div>
-<div class="canvas-field"><span class="field-type">Coded Text</span><span class="field-label">Pain Level (0-10)</span><span style="margin-left:auto;font-size:10px;color:var(--text-secondary)">Optional</span></div>
-<div class="canvas-field"><span class="field-type">Textarea</span><span class="field-label">Clinical Notes</span><span style="margin-left:auto;font-size:10px;color:var(--text-secondary)">Optional</span></div>
-</div>
-</div>
-<div class="props-panel">
-<div class="props-title">Field Properties</div>
-<div class="prop-group">
-<div class="prop-label">Label</div>
-<input class="input" value="Full Name" style="font-size:11px">
-</div>
-<div class="prop-group">
-<div class="prop-label">Placeholder</div>
-<input class="input" value="Enter patient full name" style="font-size:11px">
-</div>
-<div class="prop-group">
-<div class="prop-label">Field Type</div>
-<select class="select" style="font-size:11px;width:100%"><option>Text Input</option><option>Number</option><option>Select</option></select>
-</div>
-<div class="prop-group" style="display:flex;align-items:center;justify-content:space-between">
-<div class="prop-label" style="margin:0">Required</div>
-<div class="toggle on"></div>
-</div>
-<div class="prop-group" style="display:flex;align-items:center;justify-content:space-between">
-<div class="prop-label" style="margin:0">Read Only</div>
-<div class="toggle"></div>
-</div>
-<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
-<div class="prop-label">Validation</div>
-<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span>Min Length</span><input class="input" value="2" style="width:50px;font-size:11px;padding:4px 6px"></div>
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span>Max Length</span><input class="input" value="100" style="width:50px;font-size:11px;padding:4px 6px"></div>
-<div style="display:flex;align-items:center;justify-content:space-between"><span>Pattern</span><input class="input" value="[A-Za-z ]" style="width:80px;font-size:11px;padding:4px 6px"></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">2 / 17</span>
+<span class="slide-number">3 / 14</span>
 </div>
 
-<!-- SLIDE 3: Staff Scheduling -->
-<div class="slide" id="slide-3">
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Staff Scheduling</div>
-</div>
-<div class="browser-body">
-<div class="app-layout" style="height:420px">
-<div class="sidebar" style="width:200px">
-<div class="sidebar-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#09B8A0" stroke-width="2" style="width:22px;height:22px"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>ISBAR</span></div>
-<div class="sidebar-nav">
-<div class="sidebar-section">Scheduling</div>
-<div class="sidebar-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Schedule</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Staff</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Templates</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Export</div>
-</div>
-</div>
-<div class="app-main">
-<div class="app-header">
-<h2>Staff Schedule</h2>
-<div style="display:flex;gap:8px;align-items:center">
-<button class="btn btn-outline btn-sm">Export PNG</button>
-<button class="btn btn-outline btn-sm">Export Excel</button>
-</div>
-</div>
-<div class="app-content" style="padding:16px">
-<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-<span class="shift-block shift-day">Day</span>
-<span class="shift-block shift-night">Night</span>
-<span class="shift-block shift-evening">Evening</span>
-<span class="shift-block shift-off">Off</span>
-<span class="shift-block shift-oncall">On-Call</span>
-<span class="shift-block shift-leave">Leave</span>
-</div>
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-<div style="display:flex;align-items:center;gap:8px">
-<button class="btn btn-outline btn-sm" style="padding:4px 8px">&#9664;</button>
-<span style="font-size:13px;font-weight:600;color:var(--text-primary)">Jul 21 - Jul 27, 2026</span>
-<button class="btn btn-outline btn-sm" style="padding:4px 8px">&#9654;</button>
-<button class="btn btn-outline btn-sm">Today</button>
-</div>
-</div>
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
-<table style="font-size:11px;min-width:700px">
-<thead>
-<tr>
-<th style="position:sticky;left:0;z-index:2;background:var(--primary);color:#fff;min-width:120px">Staff Name</th>
-<th style="text-align:center;min-width:64px">Mon 21</th>
-<th style="text-align:center;min-width:64px">Tue 22</th>
-<th style="text-align:center;min-width:64px;background:rgba(9,184,160,0.15)">Wed 23</th>
-<th style="text-align:center;min-width:64px">Thu 24</th>
-<th style="text-align:center;min-width:64px">Fri 25</th>
-<th style="text-align:center;min-width:64px;background:#f9fafb">Sat 26</th>
-<th style="text-align:center;min-width:64px;background:#f9fafb">Sun 27</th>
-</tr>
-</thead>
-<tbody>
-<tr><td colspan="8" style="background:var(--header-bg);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--primary);padding:6px 10px">NURSES (4)</td></tr>
-<tr>
-<td style="font-weight:500">Abebech Wolde</td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:rgba(9,184,160,0.06)"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-off">Off</span></td>
-</tr>
-<tr>
-<td style="font-weight:500">Fatuma Hassan</td>
-<td style="text-align:center"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center"><span class="shift-block shift-oncall">On-Call</span></td>
-<td style="text-align:center;background:rgba(9,184,160,0.06)"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-evening">Evening</span></td>
-</tr>
-<tr>
-<td style="font-weight:500">Kidist Tesfaye</td>
-<td style="text-align:center"><span class="shift-block shift-evening">Evening</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:rgba(9,184,160,0.06)"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center"><span class="shift-block shift-oncall">On-Call</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-day">Day</span></td>
-</tr>
-<tr>
-<td style="font-weight:500">Meron Addisu</td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:rgba(9,184,160,0.06)"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center"><span class="shift-block shift-evening">Evening</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-night">Night</span></td>
-</tr>
-<tr><td colspan="8" style="background:var(--header-bg);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--primary);padding:6px 10px">DOCTORS (3)</td></tr>
-<tr>
-<td style="font-weight:500">Dr. Dawit Mekonnen</td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:rgba(9,184,160,0.06)"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-oncall">On-Call</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-off">Off</span></td>
-</tr>
-<tr>
-<td style="font-weight:500">Dr. Hanna Gebre</td>
-<td style="text-align:center"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center;background:rgba(9,184,160,0.06)"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-oncall">On-Call</span></td>
-</tr>
-<tr>
-<td style="font-weight:500">Dr. Yonas Tadesse</td>
-<td style="text-align:center"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center;background:rgba(9,184,160,0.06)"><span class="shift-block shift-day">Day</span></td>
-<td style="text-align:center"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center"><span class="shift-block shift-night">Night</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-off">Off</span></td>
-<td style="text-align:center;background:#f9fafb"><span class="shift-block shift-off">Off</span></td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">3 / 17</span>
-</div>
-
-<!-- SLIDE 4: Analytics Dashboard -->
+<!-- SLIDE 4: Custom Tabs (Real Screenshot) -->
 <div class="slide" id="slide-4">
+<div class="slide-title">Custom <span>Tabs</span></div>
+<p class="slide-sub">Create and manage custom navigation tabs for department-specific workflows</p>
 <div class="browser-chrome">
 <div class="browser-topbar">
 <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Trends & Analytics</div>
+<div class="browser-title">ISBAR - Custom Tabs</div>
 </div>
-<div class="browser-body">
-<div class="app-layout" style="height:420px">
-<div class="sidebar" style="width:200px">
-<div class="sidebar-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#09B8A0" stroke-width="2" style="width:22px;height:22px"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg><span>ISBAR</span></div>
-<div class="sidebar-nav">
-<div class="sidebar-section">Analytics</div>
-<div class="sidebar-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Dashboard</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> Reports</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Export</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/12-custom-tabs.png" alt="Custom Tabs">
+<div class="annotation arrow-bottom" style="top:8%;left:20%">Tab Configuration</div>
+<div class="annotation arrow-left" style="top:45%;right:3%">Tab List & Settings</div>
 </div>
 </div>
-<div class="app-main">
-<div class="app-header">
-<h2>&#x1F4CA; Trends & Analytics</h2>
-<div style="display:flex;gap:8px">
-<select class="select" style="font-size:11px"><option>Last 7 Days</option><option>Last 30 Days</option><option>This Month</option></select>
+<div class="callout">
+<h4>Custom Tab Management</h4>
+<p>Create additional navigation tabs for department-specific workflows. Each tab can link to a custom form, external URL, or embedded content. Tabs are stored locally and persist across sessions.</p>
 </div>
-</div>
-<div class="app-content" style="padding:16px">
-<div class="stat-grid">
-<div class="stat-card">
-<div class="stat-label">Total Submissions</div>
-<div class="stat-value">342</div>
-<div class="stat-change up">&#9650; 12% vs last week</div>
-</div>
-<div class="stat-card">
-<div class="stat-label">Active Patients</div>
-<div class="stat-value">28</div>
-<div class="stat-change up">&#9650; 3 new today</div>
-</div>
-<div class="stat-card">
-<div class="stat-label">Departments</div>
-<div class="stat-value">6</div>
-<div class="stat-change" style="color:var(--text-secondary)">Active units</div>
-</div>
-<div class="stat-card">
-<div class="stat-label">Templates</div>
-<div class="stat-value">12</div>
-<div class="stat-change up">&#9650; 2 new</div>
-</div>
-</div>
-<div class="grid-2" style="margin-bottom:16px">
-<div class="card">
-<div class="card-header"><div class="card-title">Submission Trends</div><span style="font-size:11px;color:var(--text-secondary)">Last 7 days</span></div>
-<div class="area-chart">
-<svg viewBox="0 0 500 140" preserveAspectRatio="none">
-<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#09B8A0" stop-opacity="0.3"/><stop offset="100%" stop-color="#09B8A0" stop-opacity="0.02"/></linearGradient></defs>
-<rect fill="none" stroke="#e5e7eb" stroke-width="0.5" x="0" y="35" width="500" height="0.5"/>
-<rect fill="none" stroke="#e5e7eb" stroke-width="0.5" x="0" y="70" width="500" height="0.5"/>
-<rect fill="none" stroke="#e5e7eb" stroke-width="0.5" x="0" y="105" width="500" height="0.5"/>
-<path d="M0,105 L71,85 L142,95 L213,60 L284,70 L355,40 L426,50 L500,30 L500,140 L0,140Z" fill="url(#g1)"/>
-<path d="M0,105 L71,85 L142,95 L213,60 L284,70 L355,40 L426,50 L500,30" fill="none" stroke="#09B8A0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="0" cy="105" r="3" fill="#09B8A0"/><circle cx="71" cy="85" r="3" fill="#09B8A0"/><circle cx="142" cy="95" r="3" fill="#09B8A0"/><circle cx="213" cy="60" r="3" fill="#09B8A0"/><circle cx="284" cy="70" r="3" fill="#09B8A0"/><circle cx="355" cy="40" r="3" fill="#09B8A0"/><circle cx="426" cy="50" r="3" fill="#09B8A0"/><circle cx="500" cy="30" r="3" fill="#09B8A0"/>
-<text x="0" y="138" font-size="9" fill="#6b7280" font-family="Inter">Mon</text><text x="71" y="138" font-size="9" fill="#6b7280" font-family="Inter">Tue</text><text x="142" y="138" font-size="9" fill="#6b7280" font-family="Inter">Wed</text><text x="213" y="138" font-size="9" fill="#6b7280" font-family="Inter">Thu</text><text x="284" y="138" font-size="9" fill="#6b7280" font-family="Inter">Fri</text><text x="355" y="138" font-size="9" fill="#6b7280" font-family="Inter">Sat</text><text x="426" y="138" font-size="9" fill="#6b7280" font-family="Inter">Sun</text>
-</svg>
-</div>
-</div>
-<div class="card">
-<div class="card-header"><div class="card-title">Department Breakdown</div><span style="font-size:11px;color:var(--text-secondary)">All departments</span></div>
-<div style="display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:10px">
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-<div style="width:100%;height:90px;background:linear-gradient(180deg,#3b82f6,#2563eb);border-radius:6px 6px 0 0"></div>
-<div style="font-size:9px;color:var(--text-secondary);text-align:center">Emergency</div>
-<div style="font-size:10px;font-weight:600">68</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-<div style="width:100%;height:72px;background:linear-gradient(180deg,#09B8A0,#078f85);border-radius:6px 6px 0 0"></div>
-<div style="font-size:9px;color:var(--text-secondary);text-align:center">ICU</div>
-<div style="font-size:10px;font-weight:600">54</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-<div style="width:100%;height:60px;background:linear-gradient(180deg,#8b5cf6,#7c3aed);border-radius:6px 6px 0 0"></div>
-<div style="font-size:9px;color:var(--text-secondary);text-align:center">Surgery</div>
-<div style="font-size:10px;font-weight:600">45</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-<div style="width:100%;height:52px;background:linear-gradient(180deg,#f59e0b,#d97706);border-radius:6px 6px 0 0"></div>
-<div style="font-size:9px;color:var(--text-secondary);text-align:center">Pediatrics</div>
-<div style="font-size:10px;font-weight:600">38</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-<div style="width:100%;height:40px;background:linear-gradient(180deg,#10b981,#059669);border-radius:6px 6px 0 0"></div>
-<div style="font-size:9px;color:var(--text-secondary);text-align:center">Maternity</div>
-<div style="font-size:10px;font-weight:600">30</div>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-<div style="width:100%;height:32px;background:linear-gradient(180deg,#6366f1,#4f46e5);border-radius:6px 6px 0 0"></div>
-<div style="font-size:9px;color:var(--text-secondary);text-align:center">Outpatient</div>
-<div style="font-size:10px;font-weight:600">24</div>
-</div>
-</div>
-</div>
-</div>
-<div class="grid-2">
-<div class="card">
-<div class="card-header"><div class="card-title">Template Usage</div></div>
-<div style="display:flex;align-items:center;gap:16px">
-<div style="width:100px;height:100px;border-radius:50%;background:conic-gradient(#3b82f6 0% 35%,#09B8A0 35% 55%,#8b5cf6 55% 72%,#f59e0b 72% 85%,#6b7280 85% 100%);position:relative">
-<div style="position:absolute;inset:20px;background:#fff;border-radius:50%"></div>
-</div>
-<div style="font-size:11px">
-<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:8px;height:8px;border-radius:2px;background:#3b82f6"></span> Admission (35%)</div>
-<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:8px;height:8px;border-radius:2px;background:#09B8A0"></span> Discharge (20%)</div>
-<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:8px;height:8px;border-radius:2px;background:#8b5cf6"></span> Progress (17%)</div>
-<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:8px;height:8px;border-radius:2px;background:#f59e0b"></span> Handover (13%)</div>
-<div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:#6b7280"></span> Other (15%)</div>
-</div>
-</div>
-</div>
-<div class="card">
-<div class="card-header"><div class="card-title">Resource Trends</div></div>
-<svg viewBox="0 0 300 80" style="width:100%;height:80px">
-<path d="M0,60 L50,50 L100,55 L150,35 L200,40 L250,25 L300,30" fill="none" stroke="#3b82f6" stroke-width="2"/>
-<path d="M0,70 L50,65 L100,60 L150,50 L200,45 L250,35 L300,40" fill="none" stroke="#09B8A0" stroke-width="2" stroke-dasharray="4"/>
-<text x="0" y="78" font-size="8" fill="#6b7280" font-family="Inter">Mon</text><text x="50" y="78" font-size="8" fill="#6b7280" font-family="Inter">Tue</text><text x="100" y="78" font-size="8" fill="#6b7280" font-family="Inter">Wed</text><text x="150" y="78" font-size="8" fill="#6b7280" font-family="Inter">Thu</text><text x="200" y="78" font-size="8" fill="#6b7280" font-family="Inter">Fri</text><text x="250" y="78" font-size="8" fill="#6b7280" font-family="Inter">Sat</text><text x="300" y="78" font-size="8" fill="#6b7280" font-family="Inter">Sun</text>
-</svg>
-<div style="display:flex;gap:12px;font-size:10px;color:var(--text-secondary);margin-top:4px">
-<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:2px;background:#3b82f6;border-radius:1px"></span> Bed Occupancy</span>
-<span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:2px;background:#09B8A0;border-radius:1px;border:none;background-image:repeating-linear-gradient(90deg,#09B8A0 0 4px,transparent 4px 8px)"></span> Staff Ratio</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">4 / 17</span>
+<span class="slide-number">4 / 14</span>
 </div>
 
-<!-- SLIDE 5: AI Dashboard -->
+<!-- SLIDE 5: Dashboard Mapping (Real Screenshot) -->
 <div class="slide" id="slide-5">
+<div class="slide-title">Dashboard <span>Mapping</span></div>
+<p class="slide-sub">Configure which forms and data appear on the main dashboard</p>
 <div class="browser-chrome">
 <div class="browser-topbar">
 <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - AI Patient Insights</div>
+<div class="browser-title">ISBAR - Dashboard Mapping</div>
 </div>
-<div class="browser-body">
-<div class="app-layout" style="height:420px">
-<div class="sidebar" style="width:200px">
-<div class="sidebar-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#09B8A0" stroke-width="2" style="width:22px;height:22px"><path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22"/><path d="M12 2a4 4 0 0 0-4 4c0 1.95 1.4 3.58 3.25 3.93"/></svg><span>ISBAR</span></div>
-<div class="sidebar-nav">
-<div class="sidebar-section">AI Tools</div>
-<div class="sidebar-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg> Insights</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg> Alerts</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/13-dashboard-mapping.png" alt="Dashboard Mapping">
+<div class="annotation arrow-bottom" style="top:8%;left:15%">Mapping Configuration</div>
+<div class="annotation arrow-left" style="top:50%;right:3%">Form-to-Dashboard Links</div>
 </div>
 </div>
-<div class="app-main">
-<div class="app-header">
-<h2>&#x1F916; AI Patient Insights</h2>
-<div style="display:flex;gap:6px">
-<button class="btn btn-primary btn-sm" style="background:var(--brand-green)">24h</button>
-<button class="btn btn-outline btn-sm">7d</button>
-<button class="btn btn-outline btn-sm">30d</button>
+<div class="callout">
+<h4>Configuring Dashboard Views</h4>
+<p>Map ISBAR forms and custom templates to dashboard cards. Control what clinical staff see when they log in — prioritize the most relevant information for each department.</p>
 </div>
-</div>
-<div class="app-content" style="padding:16px">
-<div class="stat-grid">
-<div class="stat-card"><div class="stat-label">Total Patients</div><div class="stat-value">12</div></div>
-<div class="stat-card"><div class="stat-label">Critical</div><div class="stat-value" style="color:var(--status-red)">2</div></div>
-<div class="stat-card"><div class="stat-label">Unstable</div><div class="stat-value" style="color:var(--status-amber)">3</div></div>
-<div class="stat-card"><div class="stat-label">Stable</div><div class="stat-value" style="color:var(--status-green)">7</div></div>
-</div>
-<div class="grid-2" style="margin-bottom:16px">
-<div class="card">
-<div class="card-header"><div class="card-title">Clinical Summary</div></div>
-<div style="font-size:12px;color:var(--text-primary);line-height:1.7">
-<p style="margin-bottom:8px"><strong>ICU Overview:</strong> 2 patients require immediate attention. Patient <strong>Ato Hailu</strong> (MRN-4521) shows declining SpO2 trend (96%&#8594;93%) over the past 6 hours, potential respiratory compromise.</p>
-<p style="margin-bottom:8px"><strong>Emergency Dept:</strong> 3 new admissions pending ISBAR documentation. <strong>W/ro Bizuayehu</strong> (MRN-7832) post-operative monitoring shows stable vitals within expected range.</p>
-<p><strong>Recommendation:</strong> Prioritize respiratory assessment for ICU bed 4. Consider additional nursing staff for evening shift coverage.</p>
-</div>
-</div>
-<div class="card">
-<div class="card-header"><div class="card-title">Patient Alerts</div><span class="badge badge-red">5 Active</span></div>
-<div class="alert-card alert-critical">
-<div class="alert-icon">!</div>
-<div><div class="alert-text">SpO2 Below Threshold - Ato Hailu (ICU Bed 4)</div><div class="alert-sub">SpO2 dropped to 93% - respiratory assessment recommended</div></div>
-</div>
-<div class="alert-card alert-critical">
-<div class="alert-icon">!</div>
-<div><div class="alert-text">BP Critical - Ato Getachew (ICU Bed 2)</div><div class="alert-sub">Systolic BP 180/110 - hypertension protocol activated</div></div>
-</div>
-<div class="alert-card alert-warning">
-<div class="alert-icon">&#9888;</div>
-<div><div class="alert-text">Missed Documentation - W/ro Fatuma (ER Bed 7)</div><div class="alert-sub">ISBAR report overdue by 2 hours</div></div>
-</div>
-<div class="alert-card alert-info">
-<div class="alert-icon">&#8505;</div>
-<div><div class="alert-text">Shift Handover Due - All Departments</div><div class="alert-sub">Night shift handover starts in 45 minutes</div></div>
-</div>
-</div>
-</div>
-<div class="card">
-<div class="card-header"><div class="card-title">Patient Vitals Detail</div><div class="badge badge-red">Critical</div></div>
-<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
-<span style="font-size:13px;font-weight:600">Ato Hailu Girma</span><span style="font-size:11px;color:var(--text-secondary)">MRN-4521 &bull; ICU Bed 4</span>
-</div>
-<div class="vitals-grid">
-<div class="vital-card"><div class="vital-value vital-danger">93%</div><div class="vital-label">SpO2</div></div>
-<div class="vital-card"><div class="vital-value vital-warn">102</div><div class="vital-label">Heart Rate</div></div>
-<div class="vital-card"><div class="vital-value vital-normal">36.8</div><div class="vital-label">Temperature</div></div>
-<div class="vital-card"><div class="vital-value vital-warn">142/88</div><div class="vital-label">Blood Pressure</div></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">5 / 17</span>
+<span class="slide-number">5 / 14</span>
 </div>
 
-<!-- SLIDE 6: User Management -->
+<!-- SLIDE 6: Integrations (Real Screenshot) -->
 <div class="slide" id="slide-6">
+<div class="slide-title"><span>Integrations</span></div>
+<p class="slide-sub">Connect ISBAR with external systems, APIs, and third-party services</p>
 <div class="browser-chrome">
 <div class="browser-topbar">
 <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - User Management</div>
+<div class="browser-title">ISBAR - Integrations</div>
 </div>
-<div class="browser-body">
-<div class="app-layout" style="height:420px">
-<div class="sidebar" style="width:200px">
-<div class="sidebar-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#09B8A0" stroke-width="2" style="width:22px;height:22px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>ISBAR</span></div>
-<div class="sidebar-nav">
-<div class="sidebar-section">Administration</div>
-<div class="sidebar-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Users</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg> Settings</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/14-integrations.png" alt="Integrations">
+<div class="annotation arrow-bottom" style="top:10%;left:20%">Available Integrations</div>
+<div class="annotation arrow-left" style="top:50%;right:3%">Connection Status</div>
 </div>
 </div>
-<div class="app-main">
-<div class="app-header">
-<h2>User Management</h2>
-<button class="btn btn-primary btn-sm">+ Add User</button>
+<div class="callout">
+<h4>External Integrations</h4>
+<p>Connect ISBAR with hospital information systems, laboratory systems, and pharmacy databases. Configure API endpoints, authentication, and data sync intervals.</p>
 </div>
-<div class="app-content" style="padding:16px">
-<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center">
-<input class="input" placeholder="Search users by name, username, role..." style="width:300px;font-size:11px">
-<select class="select" style="font-size:11px;width:120px"><option>All Roles</option></select>
-<select class="select" style="font-size:11px;width:140px"><option>All Departments</option></select>
-</div>
-<div class="table-wrap" style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
-<table>
-<thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Department</th><th>Profession</th><th>Shift</th><th>Status</th><th>Actions</th></tr></thead>
-<tbody>
-<tr>
-<td style="font-weight:500">Dr. Dawit Mekonnen</td><td style="color:var(--text-secondary)">dawit.m</td>
-<td><span class="badge badge-red">superadmin</span></td>
-<td>Administration</td><td>Physician</td><td>Day</td>
-<td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Reset PIN</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Abebech Wolde</td><td style="color:var(--text-secondary)">abebech.w</td>
-<td><span class="badge badge-purple">admin</span></td>
-<td>Emergency</td><td>Nurse</td><td>Day</td>
-<td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Reset PIN</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Fatuma Hassan</td><td style="color:var(--text-secondary)">fatuma.h</td>
-<td><span class="badge badge-blue">user</span></td>
-<td>ICU</td><td>Nurse</td><td>Night</td>
-<td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Reset PIN</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Kidist Tesfaye</td><td style="color:var(--text-secondary)">kidist.t</td>
-<td><span class="badge badge-blue">user</span></td>
-<td>Surgery</td><td>Nurse</td><td>Evening</td>
-<td><div class="toggle"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Reset PIN</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Dr. Hanna Gebre</td><td style="color:var(--text-secondary)">hanna.g</td>
-<td><span class="badge badge-purple">admin</span></td>
-<td>Pediatrics</td><td>Physician</td><td>Night</td>
-<td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Reset PIN</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Yonas Tadesse</td><td style="color:var(--text-secondary)">yonas.t</td>
-<td><span class="badge badge-gray">staff</span></td>
-<td>Maternity</td><td>Midwife</td><td>Day</td>
-<td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Reset PIN</button></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- PIN Reset Modal Overlay -->
-<div class="modal-overlay">
-<div class="modal-box">
-<div class="modal-title">Reset PIN</div>
-<div class="modal-sub">For Dr. Dawit Mekonnen (superadmin)</div>
-<div class="modal-step"><div class="modal-step-dot active"></div><div class="modal-step-dot"></div></div>
-<div style="font-size:12px;font-weight:500;color:var(--text-primary);margin-bottom:8px">Step 1: Verify Current Password</div>
-<div style="margin-bottom:12px"><input class="input" type="password" placeholder="Enter your admin password" style="font-size:11px"></div>
-<div style="display:flex;justify-content:flex-end;gap:8px">
-<button class="btn btn-outline btn-sm">Cancel</button>
-<button class="btn btn-primary btn-sm">Verify &amp; Continue</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">6 / 17</span>
+<span class="slide-number">6 / 14</span>
 </div>
 
-<!-- SLIDE 7: Custom Tab Manager -->
+<!-- SLIDE 7: Check-In Logs (Real Screenshot) -->
 <div class="slide" id="slide-7">
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Custom Tab Manager</div>
-</div>
-<div class="browser-body" style="padding:20px;background:var(--body-bg)">
-<div style="max-width:700px;margin:0 auto">
-<div class="wizard-steps">
-<div class="wizard-step done"><div class="wizard-step-num">&#10003;</div>Basic Settings</div>
-<div class="wizard-line done"></div>
-<div class="wizard-step active"><div class="wizard-step-num">2</div>Field Mapping</div>
-</div>
-<div class="grid-2" style="gap:20px">
-<div class="card">
-<div class="card-title" style="margin-bottom:14px">Tab Configuration</div>
-<div class="prop-group">
-<div class="prop-label">Tab Name</div>
-<input class="input" value="nursing_vitals" style="font-size:11px">
-</div>
-<div class="prop-group">
-<div class="prop-label">Display Name</div>
-<input class="input" value="Nursing Vitals Tracker" style="font-size:11px">
-</div>
-<div class="prop-group">
-<div class="prop-label">Template</div>
-<select class="select" style="font-size:11px;width:100%"><option>Vital Signs Assessment</option></select>
-</div>
-<div class="prop-group">
-<div class="prop-label">Department(s)</div>
-<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-<span class="badge badge-blue" style="padding:4px 8px;cursor:pointer">ICU &#10005;</span>
-<span class="badge badge-blue" style="padding:4px 8px;cursor:pointer">Emergency &#10005;</span>
-<span style="font-size:11px;color:var(--brand-green);cursor:pointer">+ Add</span>
-</div>
-</div>
-<div class="prop-group">
-<div class="prop-label">Profession</div>
-<select class="select" style="font-size:11px;width:100%"><option>Nurse</option></select>
-</div>
-<div class="prop-group">
-<div class="prop-label">Dashboard Type</div>
-<div style="display:flex;gap:6px">
-<button class="btn btn-primary btn-sm" style="background:var(--brand-green)">Patient</button>
-<button class="btn btn-outline btn-sm">Resource</button>
-</div>
-</div>
-<div class="prop-group">
-<div class="prop-label">View Style</div>
-<div style="display:flex;gap:6px">
-<button class="btn btn-primary btn-sm" style="background:var(--brand-green)">Card</button>
-<button class="btn btn-outline btn-sm">Table</button>
-<button class="btn btn-outline btn-sm">List</button>
-<button class="btn btn-outline btn-sm">Compact</button>
-</div>
-</div>
-<div class="prop-group">
-<div class="prop-label">Data Retention</div>
-<select class="select" style="font-size:11px;width:100%"><option>Forever</option><option>24 hours</option><option>12 hours</option><option>8 hours</option></select>
-</div>
-</div>
-<div class="card">
-<div class="card-title" style="margin-bottom:12px">Preview</div>
-<div style="background:#f8fafc;border:1px dashed var(--border);border-radius:10px;padding:16px">
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-<span style="width:20px;height:20px;background:var(--brand-green);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px">&#10003;</span>
-<span style="font-size:13px;font-weight:600;color:var(--text-primary)">Nursing Vitals Tracker</span>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:10px">
-<div style="color:var(--text-secondary);margin-bottom:2px">Patient Name</div>
-<div style="font-weight:500;color:var(--text-primary)">Ato Hailu Girma</div>
-</div>
-<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:10px">
-<div style="color:var(--text-secondary);margin-bottom:2px">SpO2</div>
-<div style="font-weight:500;color:var(--status-red)">93%</div>
-</div>
-<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:10px">
-<div style="color:var(--text-secondary);margin-bottom:2px">Heart Rate</div>
-<div style="font-weight:500;color:var(--status-amber)">102 bpm</div>
-</div>
-<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:10px">
-<div style="color:var(--text-secondary);margin-bottom:2px">Temperature</div>
-<div style="font-weight:500;color:var(--status-green)">36.8 C</div>
-</div>
-</div>
-</div>
-<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-<button class="btn btn-outline btn-sm">Back</button>
-<button class="btn btn-primary btn-sm">Create Tab</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">7 / 17</span>
-</div>
-
-<!-- SLIDE 8: Dashboard Form Mapping -->
-<div class="slide" id="slide-8">
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Dashboard Form Mapping</div>
-</div>
-<div class="browser-body" style="padding:20px;background:var(--body-bg)">
-<div style="max-width:750px;margin:0 auto">
-<div class="card" style="margin-bottom:16px">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-<div class="card-title">Form Template Mappings</div>
-<button class="btn btn-primary btn-sm">+ Add Mapping</button>
-</div>
-<div class="table-wrap">
-<table>
-<thead><tr><th>Template</th><th>Department</th><th>Dashboard</th><th>Display Name</th><th>Enabled</th><th>Action</th></tr></thead>
-<tbody>
-<tr>
-<td style="font-weight:500">Admission Assessment</td><td>Emergency</td><td><span class="badge badge-blue">Patient</span></td>
-<td>ER Admissions</td><td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Edit Fields</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Vital Signs Form</td><td>ICU</td><td><span class="badge badge-blue">Patient</span></td>
-<td>ICU Vitals</td><td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Edit Fields</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Discharge Summary</td><td>All</td><td><span class="badge badge-blue">Patient</span></td>
-<td>Discharges</td><td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Edit Fields</button></td>
-</tr>
-<tr>
-<td style="font-weight:500">Bed Status Report</td><td>All</td><td><span class="badge badge-purple">Resource</span></td>
-<td>Bed Overview</td><td><div class="toggle on"></div></td>
-<td><button class="btn btn-outline btn-sm" style="font-size:10px">Edit Fields</button></td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<!-- Edit Modal -->
-<div class="modal-overlay">
-<div class="modal-box" style="width:420px">
-<div class="modal-title">Field Mapping - Vital Signs Form</div>
-<div class="modal-sub">Map template fields to dashboard card display</div>
-<div style="margin-bottom:14px">
-<div class="prop-label">Primary Field (Title)</div>
-<select class="select" style="font-size:11px;width:100%"><option>Patient Full Name</option><option>MRN Number</option></select>
-</div>
-<div style="margin-bottom:14px">
-<div class="prop-label">Secondary Field (Subtitle)</div>
-<select class="select" style="font-size:11px;width:100%"><option>Department</option><option>Admission Date</option></select>
-</div>
-<div style="margin-bottom:14px">
-<div class="prop-label">Status Field</div>
-<select class="select" style="font-size:11px;width:100%"><option>Condition Status</option><option>Priority Level</option></select>
-</div>
-<div style="margin-bottom:14px">
-<div class="prop-label">Identifier Field</div>
-<select class="select" style="font-size:11px;width:100%"><option>MRN</option><option>Bed Number</option></select>
-</div>
-<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-<button class="btn btn-outline btn-sm">Cancel</button>
-<button class="btn btn-primary btn-sm">Save Mapping</button>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">8 / 17</span>
-</div>
-
-<!-- SLIDE 9: Admin Settings -->
-<div class="slide" id="slide-9">
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Admin Settings</div>
-</div>
-<div class="browser-body">
-<div class="app-layout" style="height:420px">
-<div class="sidebar" style="width:200px">
-<div class="sidebar-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#09B8A0" stroke-width="2" style="width:22px;height:22px"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4"/></svg><span>ISBAR</span></div>
-<div class="sidebar-nav">
-<div class="sidebar-section">Admin</div>
-<div class="sidebar-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83"/></svg> Overview</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg> Migration</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg> Backup</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><path d="M17.5 10.5l2.5 2.5-2.5 2.5"/></svg> Theme</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Data</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Security</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notifications</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> Audit Trail</div>
-<div class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Maintenance</div>
-</div>
-</div>
-<div class="app-main">
-<div class="app-header"><h2>System Overview</h2></div>
-<div class="app-content" style="padding:16px">
-<div class="stat-grid" style="grid-template-columns:repeat(5,1fr)">
-<div class="stat-card"><div class="stat-label">Node.js</div><div class="stat-value" style="font-size:16px">v18.19</div></div>
-<div class="stat-card"><div class="stat-label">Uptime</div><div class="stat-value" style="font-size:16px">15d 4h</div></div>
-<div class="stat-card"><div class="stat-label">Users</div><div class="stat-value" style="font-size:16px">24</div></div>
-<div class="stat-card"><div class="stat-label">Reports</div><div class="stat-value" style="font-size:16px">1,247</div></div>
-<div class="stat-card"><div class="stat-label">Templates</div><div class="stat-value" style="font-size:16px">12</div></div>
-</div>
-<div class="card" style="margin-top:14px">
-<div class="card-title" style="margin-bottom:12px">Quick Actions</div>
-<div style="display:flex;gap:10px">
-<button class="btn btn-primary btn-sm">&#x1F4BE; Create Backup</button>
-<button class="btn btn-green btn-sm">&#x2705; Health Check</button>
-<button class="btn btn-outline btn-sm" style="color:var(--status-amber);border-color:var(--status-amber)">&#x1F504; Restart Server</button>
-</div>
-</div>
-<div class="card" style="margin-top:14px">
-<div class="card-title" style="margin-bottom:10px">System Health</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-<div>
-<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text-secondary)">CPU Usage</span><span style="font-weight:600">34%</span></div>
-<div style="height:6px;background:var(--border);border-radius:3px"><div style="height:100%;width:34%;background:var(--status-green);border-radius:3px"></div></div>
-</div>
-<div>
-<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text-secondary)">Memory</span><span style="font-weight:600">67%</span></div>
-<div style="height:6px;background:var(--border);border-radius:3px"><div style="height:100%;width:67%;background:var(--status-amber);border-radius:3px"></div></div>
-</div>
-<div>
-<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text-secondary)">Disk</span><span style="font-weight:600">52%</span></div>
-<div style="height:6px;background:var(--border);border-radius:3px"><div style="height:100%;width:52%;background:var(--brand-green);border-radius:3px"></div></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">9 / 17</span>
-</div>
-
-<!-- SLIDE 10: Check-in Logs -->
-<div class="slide" id="slide-10">
-<div class="browser-chrome">
+<div class="slide-title">Check-In <span>Logs</span></div>
+<p class="slide-sub">Complete audit trail of all staff check-in/out activity</p>
+<div class="two-col">
+<div class="browser-chrome" style="flex:1">
 <div class="browser-topbar">
 <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
 <div class="browser-title">ISBAR - Check-In Logs</div>
 </div>
-<div class="browser-body" style="padding:20px;background:var(--body-bg)">
-<div style="max-width:800px;margin:0 auto">
-<div class="card">
-<div class="card-header">
-<div class="card-title">Check-In Logs</div>
-<button class="btn btn-outline btn-sm">Export CSV</button>
-</div>
-<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-<select class="select" style="font-size:11px;width:130px"><option>All Departments</option><option>Emergency</option><option>ICU</option><option>Surgery</option></select>
-<input class="input" type="date" value="2026-07-21" style="font-size:11px;width:130px">
-<input class="input" type="date" value="2026-07-27" style="font-size:11px;width:130px">
-<input class="input" placeholder="Search staff..." style="font-size:11px;width:180px">
-</div>
-<div class="table-wrap" style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
-<table>
-<thead><tr><th>Staff Name</th><th>Department</th><th>Action</th><th>Shift</th><th>Timestamp</th><th>Duration</th></tr></thead>
-<tbody>
-<tr>
-<td style="font-weight:500">Abebech Wolde</td><td>Emergency</td>
-<td><span class="badge badge-green">Check-In</span></td>
-<td>Day</td><td style="color:var(--text-secondary)">23/07/2026 06:58</td><td>-</td>
-</tr>
-<tr>
-<td style="font-weight:500">Abebech Wolde</td><td>Emergency</td>
-<td><span class="badge badge-red">Check-Out</span></td>
-<td>Day</td><td style="color:var(--text-secondary)">23/07/2026 18:12</td><td>11h 14m</td>
-</tr>
-<tr>
-<td style="font-weight:500">Fatuma Hassan</td><td>ICU</td>
-<td><span class="badge badge-green">Check-In</span></td>
-<td>Night</td><td style="color:var(--text-secondary)">22/07/2026 18:02</td><td>-</td>
-</tr>
-<tr>
-<td style="font-weight:500">Dr. Dawit Mekonnen</td><td>Administration</td>
-<td><span class="badge badge-green">Check-In</span></td>
-<td>Day</td><td style="color:var(--text-secondary)">23/07/2026 07:30</td><td>-</td>
-</tr>
-<tr>
-<td style="font-weight:500">Kidist Tesfaye</td><td>Surgery</td>
-<td><span class="badge badge-green">Check-In</span></td>
-<td>Evening</td><td style="color:var(--text-secondary)">23/07/2026 13:55</td><td>-</td>
-</tr>
-<tr>
-<td style="font-weight:500">Meron Addisu</td><td>ICU</td>
-<td><span class="badge badge-red">Check-Out</span></td>
-<td>Day</td><td style="color:var(--text-secondary)">22/07/2026 18:30</td><td>11h 28m</td>
-</tr>
-<tr>
-<td style="font-weight:500">Dr. Hanna Gebre</td><td>Pediatrics</td>
-<td><span class="badge badge-green">Check-In</span></td>
-<td>Night</td><td style="color:var(--text-secondary)">23/07/2026 18:05</td><td>-</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:11px;color:var(--text-secondary)">
-<span>Showing 1-7 of 24 entries</span>
-<div style="display:flex;gap:4px">
-<button class="btn btn-outline btn-sm" style="padding:4px 8px" disabled>&#9664;</button>
-<button class="btn btn-primary btn-sm" style="padding:4px 8px;background:var(--brand-green)">1</button>
-<button class="btn btn-outline btn-sm" style="padding:4px 8px">2</button>
-<button class="btn btn-outline btn-sm" style="padding:4px 8px">3</button>
-<button class="btn btn-outline btn-sm" style="padding:4px 8px">4</button>
-<button class="btn btn-outline btn-sm" style="padding:4px 8px">&#9654;</button>
+<div class="browser-body">
+<img src="screenshots/images/15-checkin-logs.png" alt="Check-In Logs">
 </div>
 </div>
+<div class="info-panel">
+<h3>Log Information</h3>
+<ul>
+<li><strong>Staff Name</strong> — Who checked in/out</li>
+<li><strong>Timestamp</strong> — Exact date and time</li>
+<li><strong>Ward/Station</strong> — Location assigned</li>
+<li><strong>Shift</strong> — Morning/Afternoon/Night</li>
+<li><strong>Action</strong> — Check-in or Check-out</li>
+<li><strong>PIN Verified</strong> — Authentication status</li>
+</ul>
+<h3 style="margin-top:16px">Use Cases</h3>
+<ul>
+<li>Attendance tracking and reporting</li>
+<li>Shift handover verification</li>
+<li>Compliance auditing</li>
+<li>Staff accountability</li>
+</ul>
 </div>
 </div>
-</div>
-</div>
-<span class="slide-number">10 / 17</span>
+<span class="slide-number">7 / 14</span>
 </div>
 
-<!-- SLIDE 11: Attendance Reports -->
-<div class="slide" id="slide-11">
+<!-- SLIDE 8: Attendance Reports (Real Screenshot) -->
+<div class="slide" id="slide-8">
+<div class="slide-title">Attendance <span>Reports</span></div>
+<p class="slide-sub">Generate and export staff attendance summaries by department and period</p>
 <div class="browser-chrome">
 <div class="browser-topbar">
 <div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
 <div class="browser-title">ISBAR - Attendance Reports</div>
 </div>
-<div class="browser-body" style="padding:20px;background:var(--body-bg)">
-<div style="max-width:800px;margin:0 auto">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-<div class="card-title" style="font-size:16px;font-weight:600;color:var(--text-primary)">Attendance Reports</div>
-<button class="btn btn-primary btn-sm">&#x1F4E5; CSV Download</button>
-</div>
-<div class="stat-grid">
-<div class="stat-card" style="border-left:4px solid var(--status-green)">
-<div class="stat-label">Today's Attendance</div>
-<div class="stat-value" style="color:var(--status-green)">87%</div>
-</div>
-<div class="stat-card" style="border-left:4px solid var(--brand-green)">
-<div class="stat-label">This Week</div>
-<div class="stat-value" style="color:var(--brand-green)">82%</div>
-</div>
-<div class="stat-card" style="border-left:4px solid var(--status-amber)">
-<div class="stat-label">This Month</div>
-<div class="stat-value" style="color:var(--status-amber)">79%</div>
-</div>
-<div class="stat-card" style="border-left:4px solid var(--primary)">
-<div class="stat-label">Total Staff</div>
-<div class="stat-value">24</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/16-attendance.png" alt="Attendance Reports">
+<div class="annotation arrow-bottom" style="top:5%;left:15%">Department Filter</div>
+<div class="annotation arrow-bottom" style="top:5%;right:15%">Date Range Selector</div>
+<div class="annotation arrow-left" style="top:50%;right:3%">Attendance Summary Table</div>
 </div>
 </div>
-<div class="card" style="margin-bottom:16px">
-<div class="card-title" style="margin-bottom:12px">Daily Attendance Rates</div>
-<div style="display:flex;align-items:flex-end;gap:8px;height:100px">
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:82px;background:var(--status-green);border-radius:4px 4px 0 0"></div><div style="font-size:9px;color:var(--text-secondary)">Mon</div></div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:78px;background:var(--brand-green);border-radius:4px 4px 0 0"></div><div style="font-size:9px;color:var(--text-secondary)">Tue</div></div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:85px;background:var(--status-green);border-radius:4px 4px 0 0"></div><div style="font-size:9px;color:var(--text-secondary)">Wed</div></div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:72px;background:var(--status-amber);border-radius:4px 4px 0 0"></div><div style="font-size:9px;color:var(--text-secondary)">Thu</div></div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:80px;background:var(--brand-green);border-radius:4px 4px 0 0"></div><div style="font-size:9px;color:var(--text-secondary)">Fri</div></div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:60px;background:var(--status-amber);border-radius:4px 4px 0 0"></div><div style="font-size:9px;color:var(--text-secondary)">Sat</div></div>
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:100%;height:45px;background:var(--status-red);border-radius:4px 4px 0 0"></div><div style="font-size:9px;color:var(--text-secondary)">Sun</div></div>
+<div class="callout">
+<h4>Generating Reports</h4>
+<p>Select department, date range, and shift type to generate attendance summaries. Export to PDF for HR records or Excel for further analysis. Track check-in compliance and identify coverage gaps.</p>
 </div>
-</div>
-<div class="card">
-<div class="card-title" style="margin-bottom:10px">Staff Breakdown</div>
-<div class="table-wrap" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
-<table>
-<thead><tr><th>Name</th><th>Shifts Attended</th><th>Total Shifts</th><th>Rate</th><th>Status</th></tr></thead>
-<tbody>
-<tr><td style="font-weight:500">Abebech Wolde</td><td>22</td><td>24</td><td style="font-weight:600;color:var(--status-green)">92%</td><td><span class="badge badge-green">Excellent</span></td></tr>
-<tr><td style="font-weight:500">Fatuma Hassan</td><td>20</td><td>24</td><td style="font-weight:600;color:var(--brand-green)">83%</td><td><span class="badge badge-blue">Good</span></td></tr>
-<tr><td style="font-weight:500">Dr. Dawit Mekonnen</td><td>21</td><td>24</td><td style="font-weight:600;color:var(--status-green)">88%</td><td><span class="badge badge-green">Excellent</span></td></tr>
-<tr><td style="font-weight:500">Kidist Tesfaye</td><td>16</td><td>24</td><td style="font-weight:600;color:var(--status-amber)">67%</td><td><span class="badge badge-amber">Needs Review</span></td></tr>
-<tr><td style="font-weight:500">Meron Addisu</td><td>19</td><td>24</td><td style="font-weight:600;color:var(--brand-green)">79%</td><td><span class="badge badge-blue">Good</span></td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">11 / 17</span>
+<span class="slide-number">8 / 14</span>
 </div>
 
-<!-- SLIDE 12: Integrations -->
+<!-- SLIDE 9: User Management (Real Screenshot) -->
+<div class="slide" id="slide-9">
+<div class="slide-title">User <span>Management</span></div>
+<p class="slide-sub">Create, edit, and manage user accounts with role-based access control</p>
+<div class="two-col">
+<div class="browser-chrome" style="flex:1">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - User Management</div>
+</div>
+<div class="browser-body">
+<img src="screenshots/images/17-user-mgmt.png" alt="User Management">
+</div>
+</div>
+<div class="info-panel">
+<h3>User Actions</h3>
+<ul>
+<li><strong>Create User</strong> — Add new staff accounts</li>
+<li><strong>Edit Profile</strong> — Update name, department, role</li>
+<li><strong>Toggle Status</strong> — Activate/deactivate accounts</li>
+<li><strong>Reset PIN</strong> — Reset 4-digit check-in PIN</li>
+<li><strong>Assign Role</strong> — Set permission level</li>
+</ul>
+<h3 style="margin-top:16px">Role Badges</h3>
+<ul>
+<li><span style="color:#dc2626;font-weight:700">Superadmin</span> — Full system access</li>
+<li><span style="color:#7c3aed;font-weight:700">Admin</span> — Administrative access</li>
+<li><span style="color:#2563eb;font-weight:700">User</span> — Department head access</li>
+<li><span style="color:#059669;font-weight:700">Staff</span> — Basic clinical access</li>
+</ul>
+</div>
+</div>
+<span class="slide-number">9 / 14</span>
+</div>
+
+<!-- SLIDE 10: Admin Settings (Real Screenshot) -->
+<div class="slide" id="slide-10">
+<div class="slide-title">Admin <span>Settings</span></div>
+<p class="slide-sub">System-wide configuration, hospital info, and application preferences</p>
+<div class="browser-chrome">
+<div class="browser-topbar">
+<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
+<div class="browser-title">ISBAR - Settings</div>
+</div>
+<div class="browser-body" style="position:relative">
+<img src="screenshots/images/18-admin-settings.png" alt="Admin Settings">
+<div class="annotation arrow-bottom" style="top:8%;left:20%">Hospital Information</div>
+<div class="annotation arrow-left" style="top:45%;right:3%">System Preferences</div>
+</div>
+</div>
+<div class="callout">
+<h4>System Configuration</h4>
+<p>Configure hospital name, departments, shift times, and notification settings. Manage backup schedules, data retention policies, and system maintenance windows.</p>
+</div>
+<span class="slide-number">10 / 14</span>
+</div>
+
+<!-- SLIDE 11: Role-Based Access -->
+<div class="slide" id="slide-11">
+<div class="slide-title">Role-Based <span>Access Control</span></div>
+<p class="slide-sub">Four tiers of access ensuring data security and appropriate permissions</p>
+<div class="role-grid">
+<div class="role-card">
+<div class="ri" style="background:rgba(220,38,38,0.15)">&#x1F6E1;</div>
+<h4>Superadmin</h4>
+<div class="rd">Full system access</div>
+<ul>
+<li>All administrative functions</li>
+<li>User management & PIN reset</li>
+<li>System configuration</li>
+<li>Data export & backup</li>
+<li>Audit log access</li>
+</ul>
+</div>
+<div class="role-card">
+<div class="ri" style="background:rgba(124,58,237,0.15)">&#x1F3DB;</div>
+<h4>Admin</h4>
+<div class="rd">Administrative access</div>
+<ul>
+<li>Form builder & custom tabs</li>
+<li>Dashboard mapping</li>
+<li>Check-in log management</li>
+<li>Attendance reports</li>
+<li>Staff scheduling</li>
+</ul>
+</div>
+<div class="role-card">
+<div class="ri" style="background:rgba(37,99,235,0.15)">&#x1FA7A;</div>
+<h4>User</h4>
+<div class="rd">Department head access</div>
+<ul>
+<li>ISBAR form submission</li>
+<li>Department activity view</li>
+<li>Patient management</li>
+<li>Resource tracking</li>
+<li>Analytics (own dept)</li>
+</ul>
+</div>
+<div class="role-card">
+<div class="ri" style="background:rgba(5,150,105,0.15)">&#x1F464;</div>
+<h4>Staff</h4>
+<div class="rd">Basic clinical access</div>
+<ul>
+<li>Check-in/out only</li>
+<li>View own shift schedule</li>
+<li>View department activity</li>
+<li>Read-only dashboard</li>
+<li>No admin functions</li>
+</ul>
+</div>
+</div>
+<span class="slide-number">11 / 14</span>
+</div>
+
+<!-- SLIDE 12: Security Features -->
 <div class="slide" id="slide-12">
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - External Integrations</div>
+<div class="slide-title">Security <span>Features</span></div>
+<p class="slide-sub">Enterprise-grade security protecting patient data and system integrity</p>
+<div class="sec-grid">
+<div class="sec-card">
+<div class="sci">&#x1F510;</div>
+<h4>PIN Authentication</h4>
+<p>4-digit PIN verification for staff check-in with bcrypt hashing. PINs are never stored in plain text.</p>
 </div>
-<div class="browser-body" style="padding:20px;background:var(--body-bg)">
-<div style="max-width:750px;margin:0 auto">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-<div class="card-title" style="font-size:16px;font-weight:600;color:var(--text-primary)">External Integrations</div>
-<button class="btn btn-primary btn-sm">+ Add Integration</button>
+<div class="sec-card">
+<div class="sci">&#x1F6E1;</div>
+<h4>Role-Based Access</h4>
+<p>Four-tier permission system ensures staff only see data relevant to their role and department.</p>
 </div>
-<div class="integration-card" style="border-left:4px solid var(--status-green)">
-<div class="integration-icon" style="background:#d1fae5;color:var(--status-green)">B</div>
-<div class="integration-info">
-<div class="integration-name">Bahmni EMR</div>
-<div class="integration-desc">Primary EMR system &bull; Connected &bull; Last sync: 5 min ago</div>
+<div class="sec-card">
+<div class="sci">&#x1F4CA;</div>
+<h4>Audit Logging</h4>
+<p>Complete audit trail of all user actions, check-ins, form submissions, and data exports.</p>
 </div>
-<span class="badge badge-green">Connected</span>
+<div class="sec-card">
+<div class="sci">&#x1F512;</div>
+<h4>Data Encryption</h4>
+<p>All data encrypted in transit (HTTPS) and at rest. Database backups encrypted with AES-256.</p>
 </div>
-<div class="integration-card" style="border-left:4px solid var(--status-amber)">
-<div class="integration-icon" style="background:#fef3c7;color:var(--status-amber)">O</div>
-<div class="integration-info">
-<div class="integration-name">OpenMRS</div>
-<div class="integration-desc">Backup EMR &bull; Configured &bull; Sync paused</div>
+<div class="sec-card">
+<div class="sci">&#x23F0;</div>
+<h4>Session Management</h4>
+<p>Automatic session timeout after inactivity. Secure token-based authentication with refresh.</p>
 </div>
-<span class="badge badge-amber">Configured</span>
-</div>
-<div class="integration-card" style="border-left:4px solid var(--text-secondary)">
-<div class="integration-icon" style="background:#f3f4f6;color:var(--text-secondary)">F</div>
-<div class="integration-info">
-<div class="integration-name">HL7 FHIR</div>
-<div class="integration-desc">Interoperability standard &bull; Available for setup</div>
-</div>
-<span class="badge badge-gray">Available</span>
-</div>
-<div class="card" style="margin-top:14px">
-<div class="card-title" style="margin-bottom:12px">Bahmni Configuration</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
-<div><div class="prop-label">Name</div><input class="input" value="Bahmni EMR" style="font-size:11px"></div>
-<div><div class="prop-label">Base URL</div><input class="input" value="https://emr.hospital.gov.et" style="font-size:11px"></div>
-<div><div class="prop-label">Auth Type</div><select class="select" style="font-size:11px;width:100%"><option>Basic Auth</option><option>OAuth 2.0</option><option>API Key</option></select></div>
-<div><div class="prop-label">API Key</div><input class="input" value="sk-bahmni-****-****-4f2a" style="font-size:11px" type="password"></div>
-</div>
-<div class="prop-label" style="margin-bottom:8px">Field Mappings</div>
-<div class="table-wrap" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
-<table>
-<thead><tr><th>ISBAR Field</th><th>Bahmni Field</th><th>Type</th></tr></thead>
-<tbody>
-<tr><td>patient_name</td><td>person.preferredName</td><td>String</td></tr>
-<tr><td>mrn</td><td>patient.mrn</td><td>String</td></tr>
-<tr><td>department</td><td>visit.location</td><td>Reference</td></tr>
-<tr><td>vital_signs</td><td>obs.vitals</td><td>Complex</td></tr>
-</tbody>
-</table>
-</div>
-<div style="display:flex;gap:8px;margin-top:14px">
-<button class="btn btn-outline btn-sm">&#x1F50C; Test Connection</button>
-<button class="btn btn-green btn-sm">&#x1F504; Sync Now</button>
-<button class="btn btn-primary btn-sm">Save Configuration</button>
+<div class="sec-card">
+<div class="sci">&#x1F4DD;</div>
+<h4>Compliance Ready</h4>
+<p>Built to support Ethiopian healthcare data regulations and international patient privacy standards.</p>
 </div>
 </div>
-</div>
-</div>
-</div>
-<span class="slide-number">12 / 17</span>
+<span class="slide-number">12 / 14</span>
 </div>
 
-<!-- SLIDE 13: Ethiopian Calendar Features -->
+<!-- SLIDE 13: Quick Reference -->
 <div class="slide" id="slide-13">
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Ethiopian Calendar Features</div>
-</div>
-<div class="browser-body" style="padding:20px;background:var(--body-bg)">
-<div style="max-width:750px;margin:0 auto">
-<div class="grid-2" style="gap:16px">
-<div class="card">
-<div class="card-title" style="margin-bottom:12px">&#x1F4C5; Ethiopian Calendar (Meskerem 2018)</div>
-<div class="eth-calendar" style="grid-template-columns:repeat(7,1fr)">
-<div class="eth-cal-header">Mon</div><div class="eth-cal-header">Tue</div><div class="eth-cal-header">Wed</div><div class="eth-cal-header">Thu</div><div class="eth-cal-header">Fri</div><div class="eth-cal-header">Sat</div><div class="eth-cal-header">Sun</div>
-<div class="eth-cal-cell">28</div><div class="eth-cal-cell">29</div><div class="eth-cal-cell">30</div><div class="eth-cal-cell today">1</div><div class="eth-cal-cell">2</div><div class="eth-cal-cell">3</div><div class="eth-cal-cell">4</div>
-<div class="eth-cal-cell">5</div><div class="eth-cal-cell">6</div><div class="eth-cal-cell">7</div><div class="eth-cal-cell">8</div><div class="eth-cal-cell">9</div><div class="eth-cal-cell">10</div><div class="eth-cal-cell">11</div>
-<div class="eth-cal-cell">12</div><div class="eth-cal-cell">13</div><div class="eth-cal-cell">14</div><div class="eth-cal-cell">15</div><div class="eth-cal-cell">16</div><div class="eth-cal-cell">17</div><div class="eth-cal-cell">18</div>
-<div class="eth-cal-cell">19</div><div class="eth-cal-cell">20</div><div class="eth-cal-cell">21</div><div class="eth-cal-cell">22</div><div class="eth-cal-cell holiday">23</div><div class="eth-cal-cell">24</div><div class="eth-cal-cell">25</div>
-<div class="eth-cal-cell">26</div><div class="eth-cal-cell">27</div><div class="eth-cal-cell">28</div><div class="eth-cal-cell">29</div><div class="eth-cal-cell">30</div>
-</div>
-<div style="margin-top:10px;font-size:10px;color:var(--text-secondary)">
-<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#fee2e2"></span> Ethiopian Holiday</span>
-<span style="display:inline-flex;align-items:center;gap:4px;margin-left:10px"><span style="width:8px;height:8px;border-radius:2px;background:var(--brand-green)"></span> Today</span>
+<div class="slide-title">Quick <span>Reference</span></div>
+<p class="slide-sub">Essential keyboard shortcuts and common workflows</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px">
+<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px">
+<h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Common Workflows</h3>
+<div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:2">
+<div><span style="color:var(--brand-green);font-weight:600">1.</span> Log in → Select department → Check in with PIN</div>
+<div><span style="color:var(--brand-green);font-weight:600">2.</span> Dashboard → Click patient card → Fill ISBAR form</div>
+<div><span style="color:var(--brand-green);font-weight:600">3.</span> Admin → Form Builder → Create template → Publish</div>
+<div><span style="color:var(--brand-green);font-weight:600">4.</span> Schedule → Select week → Assign shifts → Export</div>
+<div><span style="color:var(--brand-green);font-weight:600">5.</span> Reports → Filter by dept → Generate → Download PDF</div>
 </div>
 </div>
-<div class="card">
-<div class="card-title" style="margin-bottom:12px">&#x1F386; Ethiopian Holidays</div>
-<div style="font-size:11px">
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:500">Meskel</span><span style="color:var(--text-secondary)">17 Meskerem / Sep 27</span></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:500">Finding of True Cross</span><span style="color:var(--text-secondary)">17 Meskerem</span></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:500">Ethiopian Christmas</span><span style="color:var(--text-secondary)">29 Tahsas / Jan 7</span></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:500">Ethiopian Epiphany</span><span style="color:var(--text-secondary)">11 Tir / Jan 19</span></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:500">Adwa Victory</span><span style="color:var(--text-secondary)">1 Yekatit / Mar 2</span></div>
-<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="font-weight:500">Ethiopian Good Friday</span><span style="color:var(--text-secondary)">21 Megabit / Apr 10</span></div>
+<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px">
+<h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Tips & Best Practices</h3>
+<div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:2">
+<div>&#x2705; Always check in at the start of your shift</div>
+<div>&#x2705; Complete ISBAR forms before handover</div>
+<div>&#x2705; Use the AI Dashboard for clinical insights</div>
+<div>&#x2705; Export schedules weekly for distribution</div>
+<div>&#x2705; Report any system issues to admin immediately</div>
 </div>
 </div>
 </div>
-<div class="card" style="margin-top:14px">
-<div class="card-title" style="margin-bottom:10px">&#x1F4D6; Bahire Hasab Algorithm</div>
-<div style="font-family:monospace;font-size:12px;background:#f8fafc;padding:12px;border-radius:8px;color:var(--text-primary);line-height:1.8">
-<strong>Agebat (New Year Calculation):</strong><br>
-Amete Alem = (Amete Mihaaret * 19) mod 4<br>
-Kidase = (Amete Mihaaret * 7) mod 18<br>
-Bahiye Hasab = Kidase + Amete Alem + 15<br>
-<strong>Metkih (Easter):</strong> Bahiye Hasab mod 30<br>
-<strong>Nebene</strong> = 1 if Metkih >= 15, else 0<br>
-<strong>Tnsae (Resurrection)</strong> = Metkih + 14 + Nebene
-</div>
-<div style="margin-top:10px;font-size:11px;color:var(--text-secondary)">
-&#x2728; This algorithm determines all movable Ethiopian holidays for any given year. The ISBAR system automatically calculates and displays these dates alongside Gregorian dates.
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">13 / 17</span>
+<span class="slide-number">13 / 14</span>
 </div>
 
-<!-- SLIDE 14: Security & Audit -->
+<!-- SLIDE 14: Thank You -->
 <div class="slide" id="slide-14">
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Security & Audit</div>
+<div class="ty">
+<h1>Thank You!</h1>
+<p>You've completed the ISBAR Clinical System training. You're now ready to use the system for patient care documentation, staff management, and clinical reporting.</p>
+<div class="cgrid">
+<div class="ccard"><div class="cci">&#x1F4CB;</div><h4>Documentation</h4><p>User guides available in the Resources section</p></div>
+<div class="ccard"><div class="cci">&#x1F4E1;</div><h4>Support</h4><p>Contact IT helpdesk for technical issues</p></div>
+<div class="ccard"><div class="cci">&#x1F91D;</div><h4>Training</h4><p>Additional sessions available on request</p></div>
 </div>
-<div class="browser-body" style="padding:20px;background:var(--body-bg)">
-<div style="max-width:750px;margin:0 auto">
-<div class="grid-2" style="gap:16px;margin-bottom:16px">
-<div class="card">
-<div class="card-title" style="margin-bottom:12px">&#x1F6E1; Security Layers</div>
-<div class="table-wrap">
-<table>
-<thead><tr><th>Layer</th><th>Mechanism</th><th>Status</th></tr></thead>
-<tbody>
-<tr><td style="font-weight:500">Authentication</td><td>4-digit PIN + Password</td><td><span class="badge badge-green">Active</span></td></tr>
-<tr><td style="font-weight:500">Authorization</td><td>Role-Based (RBAC)</td><td><span class="badge badge-green">Active</span></td></tr>
-<tr><td style="font-weight:500">Encryption</td><td>AES-256 at Rest</td><td><span class="badge badge-green">Active</span></td></tr>
-<tr><td style="font-weight:500">Transport</td><td>TLS 1.3</td><td><span class="badge badge-green">Active</span></td></tr>
-<tr><td style="font-weight:500">Session</td><td>JWT + Refresh Tokens</td><td><span class="badge badge-green">Active</span></td></tr>
-<tr><td style="font-weight:500">Audit</td><td>Immutable Log Trail</td><td><span class="badge badge-green">Active</span></td></tr>
-</tbody>
-</table>
+<p style="margin-top:32px;font-size:13px;color:rgba(255,255,255,0.3)">ISBAR Clinical System v2.0 &bull; Adare General Hospital &bull; 2026</p>
 </div>
-</div>
-<div class="card">
-<div class="card-title" style="margin-bottom:12px">&#x1F451; Role Hierarchy</div>
-<div style="font-size:12px;line-height:2">
-<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fee2e2;border-radius:6px;margin-bottom:4px">
-<span style="width:8px;height:8px;border-radius:50%;background:var(--status-red)"></span>
-<strong>superadmin</strong> <span style="color:var(--text-secondary);font-size:10px">&mdash; Full system access, all departments</span>
-</div>
-<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#ede9fe;border-radius:6px;margin-bottom:4px;margin-left:20px">
-<span style="width:8px;height:8px;border-radius:50%;background:#7c3aed"></span>
-<strong>admin</strong> <span style="color:var(--text-secondary);font-size:10px">&mdash; User mgmt, dept-level admin</span>
-</div>
-<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#dbeafe;border-radius:6px;margin-bottom:4px;margin-left:40px">
-<span style="width:8px;height:8px;border-radius:50%;background:#2563eb"></span>
-<strong>user</strong> <span style="color:var(--text-secondary);font-size:10px">&mdash; Create/view reports in assigned dept</span>
-</div>
-<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f3f4f6;border-radius:6px;margin-left:60px">
-<span style="width:8px;height:8px;border-radius:50%;background:#6b7280"></span>
-<strong>staff</strong> <span style="color:var(--text-secondary);font-size:10px">&mdash; View-only access to own data</span>
-</div>
-</div>
-</div>
-</div>
-<div class="card">
-<div class="card-title" style="margin-bottom:10px">&#x1F4DD; Recent Audit Log</div>
-<div class="table-wrap" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
-<table>
-<thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Resource</th><th>IP Address</th></tr></thead>
-<tbody>
-<tr><td style="color:var(--text-secondary);font-size:10px">23/07 14:32:11</td><td>dawit.m</td><td><span class="badge badge-red">DELETE</span></td><td>user: fatuma.h (inactive)</td><td>192.168.1.45</td></tr>
-<tr><td style="color:var(--text-secondary);font-size:10px">23/07 13:15:44</td><td>abebech.w</td><td><span class="badge badge-blue">UPDATE</span></td><td>template: admission_v3</td><td>192.168.1.22</td></tr>
-<tr><td style="color:var(--text-secondary);font-size:10px">23/07 12:08:33</td><td>hanna.g</td><td><span class="badge badge-green">CREATE</span></td><td>report: daily_summary</td><td>192.168.1.67</td></tr>
-<tr><td style="color:var(--text-secondary);font-size:10px">23/07 10:45:22</td><td>dawit.m</td><td><span class="badge badge-amber">EXPORT</span></td><td>data: attendance_aug</td><td>192.168.1.45</td></tr>
-<tr><td style="color:var(--text-secondary);font-size:10px">23/07 09:20:11</td><td>system</td><td><span class="badge badge-gray">BACKUP</span></td><td>auto_backup_20260723</td><td>localhost</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</div>
-</div>
-<span class="slide-number">14 / 17</span>
+<span class="slide-number">14 / 14</span>
 </div>
 
-<!-- SLIDE 15: Future Roadmap -->
-<div class="slide" id="slide-15">
-<div style="text-align:center;margin-bottom:30px">
-<h2 style="font-size:36px;font-weight:800;color:#fff;margin-bottom:8px">&#x1F680; Future Roadmap</h2>
-<p style="color:var(--brand-green);font-size:15px">Where we're headed</p>
-</div>
-<div style="display:flex;gap:16px;max-width:900px;width:100%">
-<div class="roadmap-col">
-<div class="roadmap-title" style="color:var(--status-green)">&#x26A1; Short Term (Q3 2026)</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-green)"></div>Mobile-responsive PWA for tablet use in wards</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-green)"></div>Push notifications for critical alerts</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-green)"></div>Bulk data import from CSV/Excel</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-green)"></div>Enhanced Bahmni bi-directional sync</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-green)"></div>Multi-language support (Amharic UI)</div>
-</div>
-<div class="roadmap-col">
-<div class="roadmap-title" style="color:var(--brand-green)">&#x1F52D; Medium Term (Q4 2026 - Q1 2027)</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--brand-green)"></div>AI-powered clinical decision support</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--brand-green)"></div>Automated ISBAR report generation from vitals</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--brand-green)"></div>HL7 FHIR integration for interoperability</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--brand-green)"></div>Offline mode with sync capability</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--brand-green)"></div>Advanced analytics with predictive modeling</div>
-</div>
-<div class="roadmap-col">
-<div class="roadmap-title" style="color:var(--status-amber)">&#x1F30C; Long Term (2027+)</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-amber)"></div>Multi-hospital network support</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-amber)"></div>Federated learning across facilities</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-amber)"></div>Voice-to-text clinical documentation</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-amber)"></div>Real-time telemedicine integration</div>
-<div class="roadmap-item"><div class="roadmap-dot" style="background:var(--status-amber)"></div>Government health system integration</div>
-</div>
-</div>
-<span class="slide-number">15 / 17</span>
-</div>
-
-<!-- SLIDE 16: Key Takeaways -->
-<div class="slide" id="slide-16">
-<div style="max-width:800px;text-align:center">
-<h2 style="font-size:36px;font-weight:800;color:#fff;margin-bottom:24px">Key Takeaways</h2>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;margin-bottom:30px">
-<div class="card">
-<div style="font-size:28px;margin-bottom:10px">&#x1F527;</div>
-<div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px">What's New in v2</div>
-<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Form Builder, Staff Scheduling, AI Insights, Custom Tabs, Analytics Dashboard, Attendance Tracking, Ethiopian Calendar</div>
-</div>
-<div class="card">
-<div style="font-size:28px;margin-bottom:10px">&#x1F3AF;</div>
-<div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Development Philosophy</div>
-<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">Built FOR Ethiopian healthcare BY understanding local workflows. Offline-first, culturally-aware, role-appropriate access.</div>
-</div>
-<div class="card">
-<div style="font-size:28px;margin-bottom:10px">&#x1F4AA;</div>
-<div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px">Impact</div>
-<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">70% faster documentation, 99.9% uptime, 100% data ownership, HIPAA-equivalent security, multilingual support.</div>
-</div>
-</div>
-<div class="card" style="text-align:left">
-<div class="card-title" style="margin-bottom:10px">&#x2705; Remember These Commands</div>
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:12px">
-<div style="display:flex;gap:8px"><code style="background:#f3f4f6;padding:2px 8px;border-radius:4px;font-size:11px;color:var(--primary);font-weight:600;white-space:nowrap">F1</code> <span style="color:var(--text-secondary)">Open help panel</span></div>
-<div style="display:flex;gap:8px"><code style="background:#f3f4f6;padding:2px 8px;border-radius:4px;font-size:11px;color:var(--primary);font-weight:600;white-space:nowrap">Ctrl+S</code> <span style="color:var(--text-secondary)">Save current form</span></div>
-<div style="display:flex;gap:8px"><code style="background:#f3f4f6;padding:2px 8px;border-radius:4px;font-size:11px;color:var(--primary);font-weight:600;white-space:nowrap">Ctrl+P</code> <span style="color:var(--text-secondary)">Print preview</span></div>
-<div style="display:flex;gap:8px"><code style="background:#f3f4f6;padding:2px 8px;border-radius:4px;font-size:11px;color:var(--primary);font-weight:600;white-space:nowrap">Esc</code> <span style="color:var(--text-secondary)">Close modal / go back</span></div>
-</div>
-</div>
-</div>
-<span class="slide-number">16 / 17</span>
-</div>
-
-<!-- SLIDE 17: Thank You -->
-<div class="slide" id="slide-17">
-<div class="title-slide">
-<div style="font-size:60px;margin-bottom:20px">&#x1F499;</div>
-<h1 style="font-size:48px">Thank You!</h1>
-<div class="title-divider"></div>
-<h2 style="color:var(--brand-green);font-size:18px;font-weight:400;margin-bottom:16px">Questions &amp; Discussion</h2>
-<p style="color:#9ca3af;font-size:14px;margin-bottom:24px">Built with care for Ethiopian healthcare professionals</p>
-<div style="display:flex;justify-content:center;gap:24px;font-size:13px;color:#6b7280">
-<span>&#x1F4E7; support@isbar.et</span>
-<span>&#x1F310; isbar.hospital.gov.et</span>
-<span>&#x1F4DE; +251-11-xxx-xxxx</span>
-</div>
-</div>
-<span class="slide-number">17 / 17</span>
-</div>
-
-<!-- Navigation -->
-<div class="nav-bar" id="navBar">
-<button class="nav-btn" id="prevBtn" onclick="navigate(-1)">&#9664; Previous</button>
+<!-- Navigation Bar -->
+<div class="nav-bar visible" id="navbar">
+<button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
 <div class="nav-dots" id="navDots"></div>
-<span class="nav-counter" id="navCounter">1 / 17</span>
-<button class="nav-btn" id="nextBtn" onclick="navigate(1)">Next &#9654;</button>
+<span class="nav-counter" id="counter">1 / 14</span>
+<button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
 </div>
 
 <script>
-let current=1;const total=17;const navBar=document.getElementById('navBar');
-function showSlide(n){
-document.querySelectorAll('.slide').forEach(s=>s.classList.remove('active'));
-document.getElementById('slide-'+n).classList.add('active');
-document.getElementById('navCounter').textContent=n+' / '+total;
-document.getElementById('prevBtn').disabled=n===1;
-document.getElementById('nextBtn').disabled=n===total;
-document.getElementById('navDots').innerHTML='';
-for(let i=1;i<=total;i++){const d=document.createElement('div');d.className='nav-dot'+(i===n?' active':'');d.onclick=()=>{current=i;showSlide(i)};document.getElementById('navDots').appendChild(d)}
+let current = 1;
+const total = 14;
+const slides = document.querySelectorAll('.slide');
+const dots = document.getElementById('navDots');
+const counter = document.getElementById('counter');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+// Create dots
+for (let i = 1; i <= total; i++) {
+  const dot = document.createElement('div');
+  dot.className = 'nav-dot' + (i === 1 ? ' active' : '');
+  dot.onclick = () => goToSlide(i);
+  dots.appendChild(dot);
 }
-function navigate(dir){current=Math.max(1,Math.min(total,current+dir));showSlide(current)}
-document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowDown')navigate(1);if(e.key==='ArrowLeft'||e.key==='ArrowUp')navigate(-1)});
-let hideTimeout;
-document.addEventListener('mousemove',e=>{
-if(e.clientY>window.innerHeight-80){navBar.classList.add('visible');clearTimeout(hideTimeout);hideTimeout=setTimeout(()=>navBar.classList.remove('visible'),3000)}
+
+function goToSlide(n) {
+  slides[current - 1].classList.remove('active');
+  dots.children[current - 1].classList.remove('active');
+  current = n;
+  slides[current - 1].classList.add('active');
+  dots.children[current - 1].classList.add('active');
+  counter.textContent = current + ' / ' + total;
+  prevBtn.disabled = current === 1;
+  nextBtn.disabled = current === total;
+}
+
+function changeSlide(dir) {
+  const next = current + dir;
+  if (next >= 1 && next <= total) goToSlide(next);
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
 });
-showSlide(1);
+
+goToSlide(1);
 </script>
 </body>
 </html>
