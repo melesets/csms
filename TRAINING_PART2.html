@@ -8,266 +8,233 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
---primary:#003153;--header-bg:#eaf3f7;--body-bg:#f3f4f6;--card-bg:#ffffff;
---border:#e5e7eb;--text-primary:#111827;--text-secondary:#6b7280;
---brand-green:#09B8A0;--status-green:#059669;--status-amber:#d97706;--status-red:#dc2626;
+--primary:#003153;--brand-green:#09B8A0;
+--status-green:#059669;--status-amber:#d97706;--status-red:#dc2626;
 --radius-card:16px;--radius-btn:12px;
 }
 html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e7eb;overflow:hidden;height:100vh}
+body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0a;color:#e5e7eb;overflow:hidden;height:100vh}
 
-/* Slide system */
-.slide{display:none;width:100vw;height:100vh;background:#0a0a0a;justify-content:center;align-items:center;flex-direction:column;padding:40px;overflow-y:auto;position:relative}
-.slide.active{display:flex}
+.slide{display:none;width:100vw;height:100vh;background:#0a0a0a;padding:32px 40px 70px;overflow-y:auto;position:relative}
+.slide.active{display:flex;flex-direction:column}
 .slide-number{position:absolute;top:20px;right:30px;font-size:13px;color:#6b7280;font-weight:500}
-.slide-title{font-size:32px;font-weight:800;color:#fff;text-align:center;margin-bottom:6px}
+.slide-header{text-align:center;margin-bottom:20px;flex-shrink:0}
+.slide-title{font-size:28px;font-weight:800;color:#fff;margin-bottom:4px}
 .slide-title span{color:var(--brand-green)}
-.slide-sub{font-size:14px;color:#9ca3af;text-align:center;margin-bottom:28px;max-width:600px}
+.slide-sub{font-size:13px;color:#9ca3af;max-width:500px;margin:0 auto}
 
-/* Navigation */
-.nav-bar{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(0,49,83,0.95);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;gap:24px;transform:translateY(100%);transition:transform 0.3s ease;z-index:1000;border-top:1px solid rgba(255,255,255,0.1)}
-.nav-bar.visible{transform:translateY(0)}
-.nav-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 20px;border-radius:var(--radius-btn);cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;transition:all 0.2s}
+.side-by-side{display:grid;grid-template-columns:1fr 340px;gap:24px;flex:1;min-height:0;align-items:start}
+.screenshot-panel{position:relative;overflow:hidden;border-radius:12px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+.screenshot-panel img{width:100%;display:block}
+.text-panel{display:flex;flex-direction:column;gap:14px}
+.text-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px}
+.text-card h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.text-card h3 .icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.text-card ul{list-style:none;margin:0}
+.text-card li{font-size:12px;color:rgba(255,255,255,0.6);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.text-card li:last-child{border-bottom:none}
+.text-card li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:11px;flex-shrink:0;margin-top:1px}
+.text-card p{font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6}
+
+.kp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.kp{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center}
+.kp .kp-i{font-size:20px;margin-bottom:4px}
+.kp h4{font-size:12px;font-weight:700;color:#fff;margin-bottom:2px}
+.kp p{font-size:10px;color:rgba(255,255,255,0.4);line-height:1.4}
+
+.role-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:1050px;margin:0 auto}
+.role-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;text-align:center}
+.role-card .ri{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:18px}
+.role-card h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:2px}
+.role-card .rd{font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px}
+.role-card ul{text-align:left;list-style:none}
+.role-card li{font-size:10px;color:rgba(255,255,255,0.6);padding:3px 0;display:flex;align-items:center;gap:5px}
+.role-card li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:9px}
+
+.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px;margin:0 auto}
+.sec-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center}
+.sec-card .sci{font-size:24px;margin-bottom:6px}
+.sec-card h4{font-size:12px;font-weight:700;color:#fff;margin-bottom:3px}
+.sec-card p{font-size:10px;color:rgba(255,255,255,0.5);line-height:1.4}
+
+.nav-bar{position:fixed;bottom:0;left:0;right:0;height:52px;background:rgba(0,49,83,0.95);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;gap:20px;z-index:1000;border-top:1px solid rgba(255,255,255,0.1)}
+.nav-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:7px 18px;border-radius:var(--radius-btn);cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;transition:all 0.2s}
 .nav-btn:hover{background:rgba(255,255,255,0.2)}
 .nav-btn:disabled{opacity:0.3;cursor:not-allowed}
-.nav-dots{display:flex;gap:6px;align-items:center}
-.nav-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);cursor:pointer;transition:all 0.2s}
-.nav-dot.active{background:#09B8A0;width:24px;border-radius:4px}
-.nav-counter{color:rgba(255,255,255,0.7);font-size:13px;font-weight:500;min-width:60px;text-align:center}
+.nav-dots{display:flex;gap:5px;align-items:center}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.25);cursor:pointer;transition:all 0.2s}
+.nav-dot.active{background:var(--brand-green);width:20px;border-radius:3px}
+.nav-counter{color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;min-width:50px;text-align:center}
 
-/* Browser Chrome */
-.browser-chrome{background:#1a1a2e;border-radius:12px;overflow:hidden;width:100%;max-width:1100px;box-shadow:0 25px 80px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08)}
-.browser-topbar{background:#16162a;padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.browser-dots{display:flex;gap:6px}
-.browser-dot{width:10px;height:10px;border-radius:50%}
-.browser-dot.r{background:#ff5f57}.browser-dot.y{background:#febc2e}.browser-dot.g{background:#28c840}
-.browser-title{flex:1;text-align:center;font-size:12px;color:#6b7280;font-weight:500}
-.browser-body{background:var(--body-bg);min-height:420px;position:relative;overflow:hidden}
-.browser-body img{width:100%;height:auto;display:block}
-
-/* Screenshot with annotation */
-.annotation{position:absolute;background:rgba(9,184,160,0.95);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
-.annotation::after{content:'';position:absolute;width:0;height:0;border:6px solid transparent}
-.annotation.arrow-bottom::after{bottom:-12px;left:50%;transform:translateX(-50%);border-top-color:rgba(9,184,160,0.95)}
-.annotation.arrow-right::after{right:-12px;top:50%;transform:translateY(-50%);border-left-color:rgba(9,184,160,0.95)}
-.annotation.arrow-left::after{left:-12px;top:50%;transform:translateY(-50%);border-right-color:rgba(9,184,160,0.95)}
-
-/* Callout box */
-.callout{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;max-width:700px;margin-top:20px}
-.callout h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:6px}
-.callout p{font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6}
-
-/* Two-column layout */
-.two-col{display:grid;grid-template-columns:1fr 320px;gap:20px;max-width:1100px;width:100%}
-.info-panel{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px}
-.info-panel h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:12px}
-.info-panel ul{list-style:none}
-.info-panel li{font-size:12px;color:rgba(255,255,255,0.6);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:8px}
-.info-panel li:last-child{border-bottom:none}
-.info-panel li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:11px}
-
-/* Key points grid */
-.key-points{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin-top:20px}
-.key-point{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center}
-.key-point .kp-icon{font-size:24px;margin-bottom:8px}
-.key-point h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
-.key-point p{font-size:11px;color:rgba(255,255,255,0.5);line-height:1.5}
-
-/* Role cards */
-.role-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1000px}
-.role-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;text-align:center}
-.role-card .ri{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:20px}
-.role-card h4{font-size:14px;font-weight:800;color:#fff;margin-bottom:4px}
-.role-card .rd{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:12px}
-.role-card ul{text-align:left;list-style:none}
-.role-card li{font-size:11px;color:rgba(255,255,255,0.6);padding:4px 0;display:flex;align-items:center;gap:6px}
-.role-card li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:10px}
-
-/* Security grid */
-.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px}
-.sec-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:18px;text-align:center}
-.sec-card .sci{font-size:28px;margin-bottom:8px}
-.sec-card h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
-.sec-card p{font-size:11px;color:rgba(255,255,255,0.5);line-height:1.5}
-
-/* Thank you */
-.ty{text-align:center}
-.ty h1{font-size:44px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff,#09B8A0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
-.ty p{font-size:16px;color:rgba(255,255,255,0.5);max-width:600px;margin:0 auto;line-height:1.7}
-.cgrid{display:flex;gap:20px;justify-content:center;margin-top:30px}
-.ccard{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;text-align:center;width:180px}
-.ccard .cci{font-size:24px;margin-bottom:8px}
-.ccard h4{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
-.ccard p{font-size:11px;color:rgba(255,255,255,0.4)}
-
-/* Scrollbar */
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
 </style>
 </head>
 <body>
 
 <!-- SLIDE 1: Title -->
 <div class="slide active" id="slide-1">
-<div class="ty">
-<div style="font-size:60px;margin-bottom:16px">&#x1F3E5;</div>
-<p style="color:var(--brand-green);font-size:14px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">ISBAR Clinical Documentation System</p>
-<h1>Part II</h1>
-<div style="width:80px;height:4px;background:linear-gradient(90deg,var(--brand-green),var(--primary));border-radius:2px;margin:24px auto"></div>
-<h2 style="font-size:22px;font-weight:400;color:var(--brand-green);margin-bottom:8px">Administration, Analytics, AI & Advanced Features</h2>
-<p>Training Module for System Administrators, Department Heads, and Power Users</p>
-<p style="margin-top:24px;font-size:13px;color:#4b5563">v2.0 &bull; Built for Ethiopian Healthcare</p>
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1">
+<div style="font-size:48px;margin-bottom:12px">&#x1F3E5;</div>
+<p style="color:var(--brand-green);font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">ISBAR Clinical Documentation System</p>
+<h1 style="font-size:40px;font-weight:900;color:#fff;margin-bottom:6px;letter-spacing:-1px">Part II</h1>
+<div style="width:60px;height:3px;background:linear-gradient(90deg,var(--brand-green),var(--primary));border-radius:2px;margin:16px auto"></div>
+<h2 style="font-size:18px;font-weight:400;color:var(--brand-green);margin-bottom:6px">Administration, Analytics, AI & Advanced Features</h2>
+<p style="font-size:13px;color:#9ca3af">Training for System Administrators, Department Heads, and Power Users</p>
+<p style="margin-top:20px;font-size:12px;color:#4b5563">v2.0 &bull; Built for Ethiopian Healthcare</p>
 </div>
-<span class="slide-number">1 / 14</span>
+<span class="slide-number">1 / 11</span>
 </div>
 
-<!-- SLIDE 2: Staff Schedule (Real Screenshot) -->
+<!-- SLIDE 2: Staff Schedule -->
 <div class="slide" id="slide-2">
+<div class="slide-header">
 <div class="slide-title">Staff <span>Schedule</span></div>
-<p class="slide-sub">Visual shift scheduling with drag-and-drop and export capabilities</p>
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Staff Schedule</div>
+<p class="slide-sub">Visual shift scheduling with export capabilities</p>
 </div>
-<div class="browser-body" style="position:relative">
-<img src="screenshots/images/10-staff-schedule.png" alt="Staff Schedule">
-<div class="annotation arrow-bottom" style="top:3%;left:15%">Staff Names & Departments</div>
-<div class="annotation arrow-bottom" style="top:3%;right:15%">Shift Type Selector</div>
-<div class="annotation arrow-right" style="top:45%;left:2%">Week/Date Navigation</div>
+<div class="side-by-side">
+<div class="screenshot-panel"><img src="screenshots/images/10-staff-schedule.png" alt="Staff Schedule"></div>
+<div class="text-panel">
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">📅</span> Schedule Features</h3>
+<ul>
+<li>View staff assignments across <strong>Morning</strong>, <strong>Afternoon</strong>, and <strong>Night</strong> shifts</li>
+<li>Click any cell to assign or update a shift</li>
+<li>Use <strong>PNG/Excel export</strong> for distribution</li>
+<li>Navigate by week using date arrows</li>
+</ul>
 </div>
-</div>
-<div class="two-col" style="margin-top:20px">
-<div class="callout" style="margin-top:0">
-<h4>Schedule Features</h4>
-<p>View and manage staff assignments across Morning, Afternoon, and Night shifts. Click any cell to assign or update a shift. Use PNG/Excel export for distribution.</p>
-</div>
-<div class="info-panel" style="margin-top:0">
-<h3>Shift Types</h3>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">🎨</span> Shift Types</h3>
 <ul>
 <li><span style="color:#3b82f6;font-weight:700">Morning</span> — Day shift coverage</li>
-<li><span style="color:#d97706;font-weight:700">Afternoon</span> — Evening shift coverage</li>
-<li><span style="color:#7c3aed;font-weight:700">Night</span> — Overnight shift coverage</li>
+<li><span style="color:#d97706;font-weight:700">Afternoon</span> — Evening shift</li>
+<li><span style="color:#7c3aed;font-weight:700">Night</span> — Overnight shift</li>
 <li><span style="color:#6b7280;font-weight:700">Off</span> — Rest day</li>
 </ul>
 </div>
 </div>
-<span class="slide-number">2 / 14</span>
+</div>
+<span class="slide-number">2 / 11</span>
 </div>
 
-<!-- SLIDE 3: Form Builder (Real Screenshot) -->
+<!-- SLIDE 3: Form Builder -->
 <div class="slide" id="slide-3">
+<div class="slide-header">
 <div class="slide-title">Form <span>Builder</span></div>
 <p class="slide-sub">Visual drag-and-drop form designer for custom clinical templates</p>
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Form Builder</div>
 </div>
-<div class="browser-body" style="position:relative">
-<img src="screenshots/images/11-form-builder.png" alt="Form Builder">
-<div class="annotation arrow-right" style="top:15%;left:2%">Template Library</div>
-<div class="annotation arrow-bottom" style="top:5%;left:50%">Visual Form Designer</div>
-<div class="annotation arrow-left" style="top:50%;right:3%">Field Properties</div>
+<div class="side-by-side">
+<div class="screenshot-panel"><img src="screenshots/images/11-form-builder.png" alt="Form Builder"></div>
+<div class="text-panel">
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(124,58,237,0.2);color:#a78bfa">🔧</span> Building Forms</h3>
+<ul>
+<li>Select a template to edit or create new</li>
+<li>Drag fields from library into canvas</li>
+<li>Configure validation, options, layout</li>
+<li>Save and publish for clinical staff</li>
+</ul>
+</div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(5,150,105,0.2);color:#34d399">📋</span> Field Types</h3>
+<ul>
+<li><strong>Basic</strong> — Text, Number, Textarea, Select</li>
+<li><strong>Medical</strong> — Vital Signs, Patient Info, Coded Text</li>
+<li><strong>ISBAR</strong> — Identification, Situation, Background, Assessment, Recommendation</li>
+<li><strong>Advanced</strong> — Divider, Rating</li>
+</ul>
 </div>
 </div>
-<div class="callout">
-<h4>Building Custom Forms</h4>
-<p>Select a template to edit or create new. Drag fields from the library into the canvas. Configure validation, options, and layout in the properties panel. Save and publish to make available for clinical staff.</p>
 </div>
-<span class="slide-number">3 / 14</span>
+<span class="slide-number">3 / 11</span>
 </div>
 
-<!-- SLIDE 4: Custom Tabs (Real Screenshot) -->
+<!-- SLIDE 4: Custom Tabs & Dashboard Mapping -->
 <div class="slide" id="slide-4">
-<div class="slide-title">Custom <span>Tabs</span></div>
-<p class="slide-sub">Create and manage custom navigation tabs for department-specific workflows</p>
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Custom Tabs</div>
+<div class="slide-header">
+<div class="slide-title">Custom Tabs <span>& Dashboard Mapping</span></div>
+<p class="slide-sub">Department-specific workflows and dashboard configuration</p>
 </div>
-<div class="browser-body" style="position:relative">
-<img src="screenshots/images/12-custom-tabs.png" alt="Custom Tabs">
-<div class="annotation arrow-bottom" style="top:8%;left:20%">Tab Configuration</div>
-<div class="annotation arrow-left" style="top:45%;right:3%">Tab List & Settings</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1100px;margin:0 auto">
+<div>
+<div class="screenshot-panel" style="margin-bottom:12px"><img src="screenshots/images/12-custom-tabs.png" alt="Custom Tabs"></div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">🏷</span> Custom Tabs</h3>
+<ul>
+<li>Create additional navigation tabs</li>
+<li>Link to custom forms, external URLs, or embedded content</li>
+<li>Tabs stored locally, persist across sessions</li>
+</ul>
 </div>
 </div>
-<div class="callout">
-<h4>Custom Tab Management</h4>
-<p>Create additional navigation tabs for department-specific workflows. Each tab can link to a custom form, external URL, or embedded content. Tabs are stored locally and persist across sessions.</p>
+<div>
+<div class="screenshot-panel" style="margin-bottom:12px"><img src="screenshots/images/13-dashboard-mapping.png" alt="Dashboard Mapping"></div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">📊</span> Dashboard Mapping</h3>
+<ul>
+<li>Map ISBAR forms to dashboard cards</li>
+<li>Control what staff see on login</li>
+<li>Prioritize relevant info per department</li>
+</ul>
 </div>
-<span class="slide-number">4 / 14</span>
+</div>
+</div>
+<span class="slide-number">4 / 11</span>
 </div>
 
-<!-- SLIDE 5: Dashboard Mapping (Real Screenshot) -->
+<!-- SLIDE 5: Integrations -->
 <div class="slide" id="slide-5">
-<div class="slide-title">Dashboard <span>Mapping</span></div>
-<p class="slide-sub">Configure which forms and data appear on the main dashboard</p>
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Dashboard Mapping</div>
-</div>
-<div class="browser-body" style="position:relative">
-<img src="screenshots/images/13-dashboard-mapping.png" alt="Dashboard Mapping">
-<div class="annotation arrow-bottom" style="top:8%;left:15%">Mapping Configuration</div>
-<div class="annotation arrow-left" style="top:50%;right:3%">Form-to-Dashboard Links</div>
-</div>
-</div>
-<div class="callout">
-<h4>Configuring Dashboard Views</h4>
-<p>Map ISBAR forms and custom templates to dashboard cards. Control what clinical staff see when they log in — prioritize the most relevant information for each department.</p>
-</div>
-<span class="slide-number">5 / 14</span>
-</div>
-
-<!-- SLIDE 6: Integrations (Real Screenshot) -->
-<div class="slide" id="slide-6">
+<div class="slide-header">
 <div class="slide-title"><span>Integrations</span></div>
-<p class="slide-sub">Connect ISBAR with external systems, APIs, and third-party services</p>
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Integrations</div>
+<p class="slide-sub">Connect ISBAR with external systems and third-party services</p>
 </div>
-<div class="browser-body" style="position:relative">
-<img src="screenshots/images/14-integrations.png" alt="Integrations">
-<div class="annotation arrow-bottom" style="top:10%;left:20%">Available Integrations</div>
-<div class="annotation arrow-left" style="top:50%;right:3%">Connection Status</div>
+<div class="side-by-side">
+<div class="screenshot-panel"><img src="screenshots/images/14-integrations.png" alt="Integrations"></div>
+<div class="text-panel">
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">🔌</span> External Connections</h3>
+<ul>
+<li>Connect with hospital information systems</li>
+<li>Laboratory system integration</li>
+<li>Pharmacy database connections</li>
+</ul>
+</div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">⚙️</span> Configuration</h3>
+<ul>
+<li>API endpoint setup</li>
+<li>Authentication configuration</li>
+<li>Data sync intervals</li>
+<li>Connection status monitoring</li>
+</ul>
 </div>
 </div>
-<div class="callout">
-<h4>External Integrations</h4>
-<p>Connect ISBAR with hospital information systems, laboratory systems, and pharmacy databases. Configure API endpoints, authentication, and data sync intervals.</p>
 </div>
-<span class="slide-number">6 / 14</span>
+<span class="slide-number">5 / 11</span>
 </div>
 
-<!-- SLIDE 7: Check-In Logs (Real Screenshot) -->
-<div class="slide" id="slide-7">
+<!-- SLIDE 6: Check-In Logs -->
+<div class="slide" id="slide-6">
+<div class="slide-header">
 <div class="slide-title">Check-In <span>Logs</span></div>
 <p class="slide-sub">Complete audit trail of all staff check-in/out activity</p>
-<div class="two-col">
-<div class="browser-chrome" style="flex:1">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Check-In Logs</div>
 </div>
-<div class="browser-body">
-<img src="screenshots/images/15-checkin-logs.png" alt="Check-In Logs">
-</div>
-</div>
-<div class="info-panel">
-<h3>Log Information</h3>
+<div class="side-by-side">
+<div class="screenshot-panel"><img src="screenshots/images/15-checkin-logs.png" alt="Check-In Logs"></div>
+<div class="text-panel">
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">📋</span> Log Information</h3>
 <ul>
 <li><strong>Staff Name</strong> — Who checked in/out</li>
 <li><strong>Timestamp</strong> — Exact date and time</li>
 <li><strong>Ward/Station</strong> — Location assigned</li>
 <li><strong>Shift</strong> — Morning/Afternoon/Night</li>
-<li><strong>Action</strong> — Check-in or Check-out</li>
-<li><strong>PIN Verified</strong> — Authentication status</li>
+<li><strong>Duration</strong> — Time spent on shift</li>
+<li><strong>Status</strong> — Completed/Active</li>
 </ul>
-<h3 style="margin-top:16px">Use Cases</h3>
+</div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(124,58,237,0.2);color:#a78bfa">🎯</span> Use Cases</h3>
 <ul>
 <li>Attendance tracking and reporting</li>
 <li>Shift handover verification</li>
@@ -276,48 +243,53 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0a;c
 </ul>
 </div>
 </div>
-<span class="slide-number">7 / 14</span>
+</div>
+<span class="slide-number">6 / 11</span>
 </div>
 
-<!-- SLIDE 8: Attendance Reports (Real Screenshot) -->
-<div class="slide" id="slide-8">
+<!-- SLIDE 7: Attendance Reports -->
+<div class="slide" id="slide-7">
+<div class="slide-header">
 <div class="slide-title">Attendance <span>Reports</span></div>
-<p class="slide-sub">Generate and export staff attendance summaries by department and period</p>
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Attendance Reports</div>
+<p class="slide-sub">Generate and export staff attendance summaries</p>
 </div>
-<div class="browser-body" style="position:relative">
-<img src="screenshots/images/16-attendance.png" alt="Attendance Reports">
-<div class="annotation arrow-bottom" style="top:5%;left:15%">Department Filter</div>
-<div class="annotation arrow-bottom" style="top:5%;right:15%">Date Range Selector</div>
-<div class="annotation arrow-left" style="top:50%;right:3%">Attendance Summary Table</div>
+<div class="side-by-side">
+<div class="screenshot-panel"><img src="screenshots/images/16-attendance.png" alt="Attendance Reports"></div>
+<div class="text-panel">
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">📊</span> Generating Reports</h3>
+<ul>
+<li>Select <strong>department</strong>, <strong>date range</strong>, and <strong>shift type</strong></li>
+<li>Generate attendance summaries</li>
+<li>Export to PDF for HR records</li>
+<li>Export to Excel for analysis</li>
+</ul>
+</div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">📈</span> What It Tracks</h3>
+<ul>
+<li>Check-in compliance rates</li>
+<li>Coverage gaps by shift</li>
+<li>Average shift duration</li>
+<li>Staff attendance patterns</li>
+</ul>
 </div>
 </div>
-<div class="callout">
-<h4>Generating Reports</h4>
-<p>Select department, date range, and shift type to generate attendance summaries. Export to PDF for HR records or Excel for further analysis. Track check-in compliance and identify coverage gaps.</p>
 </div>
-<span class="slide-number">8 / 14</span>
+<span class="slide-number">7 / 11</span>
 </div>
 
-<!-- SLIDE 9: User Management (Real Screenshot) -->
-<div class="slide" id="slide-9">
+<!-- SLIDE 8: User Management -->
+<div class="slide" id="slide-8">
+<div class="slide-header">
 <div class="slide-title">User <span>Management</span></div>
-<p class="slide-sub">Create, edit, and manage user accounts with role-based access control</p>
-<div class="two-col">
-<div class="browser-chrome" style="flex:1">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - User Management</div>
+<p class="slide-sub">Create, edit, and manage user accounts with role-based access</p>
 </div>
-<div class="browser-body">
-<img src="screenshots/images/17-user-mgmt.png" alt="User Management">
-</div>
-</div>
-<div class="info-panel">
-<h3>User Actions</h3>
+<div class="side-by-side">
+<div class="screenshot-panel"><img src="screenshots/images/17-user-mgmt.png" alt="User Management"></div>
+<div class="text-panel">
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">👤</span> User Actions</h3>
 <ul>
 <li><strong>Create User</strong> — Add new staff accounts</li>
 <li><strong>Edit Profile</strong> — Update name, department, role</li>
@@ -325,7 +297,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0a;c
 <li><strong>Reset PIN</strong> — Reset 4-digit check-in PIN</li>
 <li><strong>Assign Role</strong> — Set permission level</li>
 </ul>
-<h3 style="margin-top:16px">Role Badges</h3>
+</div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(124,58,237,0.2);color:#a78bfa">🏷</span> Role Badges</h3>
 <ul>
 <li><span style="color:#dc2626;font-weight:700">Superadmin</span> — Full system access</li>
 <li><span style="color:#7c3aed;font-weight:700">Admin</span> — Administrative access</li>
@@ -334,218 +308,94 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#0a0a0a;c
 </ul>
 </div>
 </div>
-<span class="slide-number">9 / 14</span>
+</div>
+<span class="slide-number">8 / 11</span>
 </div>
 
-<!-- SLIDE 10: Admin Settings (Real Screenshot) -->
-<div class="slide" id="slide-10">
+<!-- SLIDE 9: Admin Settings -->
+<div class="slide" id="slide-9">
+<div class="slide-header">
 <div class="slide-title">Admin <span>Settings</span></div>
-<p class="slide-sub">System-wide configuration, hospital info, and application preferences</p>
-<div class="browser-chrome">
-<div class="browser-topbar">
-<div class="browser-dots"><div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div></div>
-<div class="browser-title">ISBAR - Settings</div>
+<p class="slide-sub">System-wide configuration and application preferences</p>
 </div>
-<div class="browser-body" style="position:relative">
-<img src="screenshots/images/18-admin-settings.png" alt="Admin Settings">
-<div class="annotation arrow-bottom" style="top:8%;left:20%">Hospital Information</div>
-<div class="annotation arrow-left" style="top:45%;right:3%">System Preferences</div>
+<div class="side-by-side">
+<div class="screenshot-panel"><img src="screenshots/images/18-admin-settings.png" alt="Admin Settings"></div>
+<div class="text-panel">
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">⚙️</span> Configuration</h3>
+<ul>
+<li><strong>Hospital Info</strong> — Name, departments, address</li>
+<li><strong>Shift Times</strong> — Morning/Afternoon/Night hours</li>
+<li><strong>Notifications</strong> — Alert preferences</li>
+<li><strong>Backup</strong> — Schedule and data retention</li>
+</ul>
+</div>
+<div class="text-card">
+<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">🔧</span> System Maintenance</h3>
+<ul>
+<li>Data retention policies</li>
+<li>Maintenance windows</li>
+<li>System health monitoring</li>
+<li>Version updates</li>
+</ul>
 </div>
 </div>
-<div class="callout">
-<h4>System Configuration</h4>
-<p>Configure hospital name, departments, shift times, and notification settings. Manage backup schedules, data retention policies, and system maintenance windows.</p>
 </div>
-<span class="slide-number">10 / 14</span>
+<span class="slide-number">9 / 11</span>
 </div>
 
-<!-- SLIDE 11: Role-Based Access -->
-<div class="slide" id="slide-11">
-<div class="slide-title">Role-Based <span>Access Control</span></div>
-<p class="slide-sub">Four tiers of access ensuring data security and appropriate permissions</p>
-<div class="role-grid">
-<div class="role-card">
-<div class="ri" style="background:rgba(220,38,38,0.15)">&#x1F6E1;</div>
-<h4>Superadmin</h4>
-<div class="rd">Full system access</div>
-<ul>
-<li>All administrative functions</li>
-<li>User management & PIN reset</li>
-<li>System configuration</li>
-<li>Data export & backup</li>
-<li>Audit log access</li>
-</ul>
+<!-- SLIDE 10: Roles & Security -->
+<div class="slide" id="slide-10">
+<div class="slide-header">
+<div class="slide-title">Roles <span>& Security</span></div>
+<p class="slide-sub">Four-tier access control and enterprise security features</p>
 </div>
-<div class="role-card">
-<div class="ri" style="background:rgba(124,58,237,0.15)">&#x1F3DB;</div>
-<h4>Admin</h4>
-<div class="rd">Administrative access</div>
-<ul>
-<li>Form builder & custom tabs</li>
-<li>Dashboard mapping</li>
-<li>Check-in log management</li>
-<li>Attendance reports</li>
-<li>Staff scheduling</li>
-</ul>
+<div class="role-grid" style="margin-bottom:20px">
+<div class="role-card"><div class="ri" style="background:rgba(220,38,38,0.15)">&#x1F6E1;</div><h4>Superadmin</h4><div class="rd">Full system access</div><ul><li>All admin functions</li><li>User management</li><li>System config</li><li>Data export</li><li>Audit logs</li></ul></div>
+<div class="role-card"><div class="ri" style="background:rgba(124,58,237,0.15)">&#x1F3DB;</div><h4>Admin</h4><div class="rd">Administrative access</div><ul><li>Form builder</li><li>Custom tabs</li><li>Check-in logs</li><li>Attendance</li><li>Scheduling</li></ul></div>
+<div class="role-card"><div class="ri" style="background:rgba(37,99,235,0.15)">&#x1FA7A;</div><h4>User</h4><div class="rd">Department head</div><ul><li>ISBAR submission</li><li>Dept activity</li><li>Patient mgmt</li><li>Resources</li><li>Analytics</li></ul></div>
+<div class="role-card"><div class="ri" style="background:rgba(5,150,105,0.15)">&#x1F464;</div><h4>Staff</h4><div class="rd">Basic clinical</div><ul><li>Check-in/out</li><li>View schedule</li><li>Dept activity</li><li>Read-only dash</li><li>No admin</li></ul></div>
 </div>
-<div class="role-card">
-<div class="ri" style="background:rgba(37,99,235,0.15)">&#x1FA7A;</div>
-<h4>User</h4>
-<div class="rd">Department head access</div>
-<ul>
-<li>ISBAR form submission</li>
-<li>Department activity view</li>
-<li>Patient management</li>
-<li>Resource tracking</li>
-<li>Analytics (own dept)</li>
-</ul>
-</div>
-<div class="role-card">
-<div class="ri" style="background:rgba(5,150,105,0.15)">&#x1F464;</div>
-<h4>Staff</h4>
-<div class="rd">Basic clinical access</div>
-<ul>
-<li>Check-in/out only</li>
-<li>View own shift schedule</li>
-<li>View department activity</li>
-<li>Read-only dashboard</li>
-<li>No admin functions</li>
-</ul>
-</div>
-</div>
-<span class="slide-number">11 / 14</span>
-</div>
-
-<!-- SLIDE 12: Security Features -->
-<div class="slide" id="slide-12">
-<div class="slide-title">Security <span>Features</span></div>
-<p class="slide-sub">Enterprise-grade security protecting patient data and system integrity</p>
 <div class="sec-grid">
-<div class="sec-card">
-<div class="sci">&#x1F510;</div>
-<h4>PIN Authentication</h4>
-<p>4-digit PIN verification for staff check-in with bcrypt hashing. PINs are never stored in plain text.</p>
+<div class="sec-card"><div class="sci">&#x1F510;</div><h4>PIN Auth</h4><p>4-digit PIN with bcrypt hashing</p></div>
+<div class="sec-card"><div class="sci">&#x1F6E1;</div><h4>RBAC</h4><p>Four-tier permission system</p></div>
+<div class="sec-card"><div class="sci">&#x1F4CA;</div><h4>Audit Log</h4><p>Complete action trail</p></div>
+<div class="sec-card"><div class="sci">&#x1F512;</div><h4>Encryption</h4><p>HTTPS + AES-256 at rest</p></div>
+<div class="sec-card"><div class="sci">&#x23F0;</div><h4>Sessions</h4><p>Auto-timeout, secure tokens</p></div>
+<div class="sec-card"><div class="sci">&#x1F4DD;</div><h4>Compliance</h4><p>Ethiopian healthcare standards</p></div>
 </div>
-<div class="sec-card">
-<div class="sci">&#x1F6E1;</div>
-<h4>Role-Based Access</h4>
-<p>Four-tier permission system ensures staff only see data relevant to their role and department.</p>
-</div>
-<div class="sec-card">
-<div class="sci">&#x1F4CA;</div>
-<h4>Audit Logging</h4>
-<p>Complete audit trail of all user actions, check-ins, form submissions, and data exports.</p>
-</div>
-<div class="sec-card">
-<div class="sci">&#x1F512;</div>
-<h4>Data Encryption</h4>
-<p>All data encrypted in transit (HTTPS) and at rest. Database backups encrypted with AES-256.</p>
-</div>
-<div class="sec-card">
-<div class="sci">&#x23F0;</div>
-<h4>Session Management</h4>
-<p>Automatic session timeout after inactivity. Secure token-based authentication with refresh.</p>
-</div>
-<div class="sec-card">
-<div class="sci">&#x1F4DD;</div>
-<h4>Compliance Ready</h4>
-<p>Built to support Ethiopian healthcare data regulations and international patient privacy standards.</p>
-</div>
-</div>
-<span class="slide-number">12 / 14</span>
+<span class="slide-number">10 / 11</span>
 </div>
 
-<!-- SLIDE 13: Quick Reference -->
-<div class="slide" id="slide-13">
-<div class="slide-title">Quick <span>Reference</span></div>
-<p class="slide-sub">Essential keyboard shortcuts and common workflows</p>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px">
-<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px">
-<h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Common Workflows</h3>
-<div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:2">
-<div><span style="color:var(--brand-green);font-weight:600">1.</span> Log in → Select department → Check in with PIN</div>
-<div><span style="color:var(--brand-green);font-weight:600">2.</span> Dashboard → Click patient card → Fill ISBAR form</div>
-<div><span style="color:var(--brand-green);font-weight:600">3.</span> Admin → Form Builder → Create template → Publish</div>
-<div><span style="color:var(--brand-green);font-weight:600">4.</span> Schedule → Select week → Assign shifts → Export</div>
-<div><span style="color:var(--brand-green);font-weight:600">5.</span> Reports → Filter by dept → Generate → Download PDF</div>
+<!-- SLIDE 11: Thank You -->
+<div class="slide" id="slide-11">
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center">
+<h1 style="font-size:40px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff,#09B8A0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px">Thank You!</h1>
+<p style="font-size:14px;color:rgba(255,255,255,0.5);max-width:500px;line-height:1.7">You've completed the ISBAR Clinical System training. You're now ready to use the system for patient care documentation, staff management, and clinical reporting.</p>
+<div class="kp-grid" style="max-width:600px;margin-top:28px">
+<div class="kp"><div class="kp-i">&#x1F4CB;</div><h4>Documentation</h4><p>User guides in Resources</p></div>
+<div class="kp"><div class="kp-i">&#x1F4E1;</div><h4>Support</h4><p>Contact IT helpdesk</p></div>
+<div class="kp"><div class="kp-i">&#x1F91D;</div><h4>Training</h4><p>Additional sessions on request</p></div>
 </div>
+<p style="margin-top:28px;font-size:11px;color:rgba(255,255,255,0.3)">ISBAR Clinical System v2.0 &bull; Adare General Hospital &bull; 2026</p>
 </div>
-<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px">
-<h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:14px">Tips & Best Practices</h3>
-<div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:2">
-<div>&#x2705; Always check in at the start of your shift</div>
-<div>&#x2705; Complete ISBAR forms before handover</div>
-<div>&#x2705; Use the AI Dashboard for clinical insights</div>
-<div>&#x2705; Export schedules weekly for distribution</div>
-<div>&#x2705; Report any system issues to admin immediately</div>
-</div>
-</div>
-</div>
-<span class="slide-number">13 / 14</span>
+<span class="slide-number">11 / 11</span>
 </div>
 
-<!-- SLIDE 14: Thank You -->
-<div class="slide" id="slide-14">
-<div class="ty">
-<h1>Thank You!</h1>
-<p>You've completed the ISBAR Clinical System training. You're now ready to use the system for patient care documentation, staff management, and clinical reporting.</p>
-<div class="cgrid">
-<div class="ccard"><div class="cci">&#x1F4CB;</div><h4>Documentation</h4><p>User guides available in the Resources section</p></div>
-<div class="ccard"><div class="cci">&#x1F4E1;</div><h4>Support</h4><p>Contact IT helpdesk for technical issues</p></div>
-<div class="ccard"><div class="cci">&#x1F91D;</div><h4>Training</h4><p>Additional sessions available on request</p></div>
-</div>
-<p style="margin-top:32px;font-size:13px;color:rgba(255,255,255,0.3)">ISBAR Clinical System v2.0 &bull; Adare General Hospital &bull; 2026</p>
-</div>
-<span class="slide-number">14 / 14</span>
-</div>
-
-<!-- Navigation Bar -->
-<div class="nav-bar visible" id="navbar">
+<!-- Navigation -->
+<div class="nav-bar" id="navbar">
 <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
 <div class="nav-dots" id="navDots"></div>
-<span class="nav-counter" id="counter">1 / 14</span>
+<span class="nav-counter" id="counter">1 / 11</span>
 <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
 </div>
 
 <script>
-let current = 1;
-const total = 14;
-const slides = document.querySelectorAll('.slide');
-const dots = document.getElementById('navDots');
-const counter = document.getElementById('counter');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-
-// Create dots
-for (let i = 1; i <= total; i++) {
-  const dot = document.createElement('div');
-  dot.className = 'nav-dot' + (i === 1 ? ' active' : '');
-  dot.onclick = () => goToSlide(i);
-  dots.appendChild(dot);
-}
-
-function goToSlide(n) {
-  slides[current - 1].classList.remove('active');
-  dots.children[current - 1].classList.remove('active');
-  current = n;
-  slides[current - 1].classList.add('active');
-  dots.children[current - 1].classList.add('active');
-  counter.textContent = current + ' / ' + total;
-  prevBtn.disabled = current === 1;
-  nextBtn.disabled = current === total;
-}
-
-function changeSlide(dir) {
-  const next = current + dir;
-  if (next >= 1 && next <= total) goToSlide(next);
-}
-
-// Keyboard navigation
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
-  if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
-});
-
+let current=1;const total=11;const slides=document.querySelectorAll('.slide');const dots=document.getElementById('navDots');const counter=document.getElementById('counter');const prevBtn=document.getElementById('prevBtn');const nextBtn=document.getElementById('nextBtn');
+for(let i=1;i<=total;i++){const d=document.createElement('div');d.className='nav-dot'+(i===1?' active':'');d.onclick=()=>goToSlide(i);dots.appendChild(d)}
+function goToSlide(n){slides[current-1].classList.remove('active');dots.children[current-1].classList.remove('active');current=n;slides[current-1].classList.add('active');dots.children[current-1].classList.add('active');counter.textContent=current+' / '+total;prevBtn.disabled=current===1;nextBtn.disabled=current===total}
+function changeSlide(dir){const next=current+dir;if(next>=1&&next<=total)goToSlide(next)}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();changeSlide(1)}if(e.key==='ArrowLeft'){e.preventDefault();changeSlide(-1)}});
 goToSlide(1);
 </script>
 </body>
