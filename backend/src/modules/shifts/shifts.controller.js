@@ -46,13 +46,22 @@ export const staffAction = asyncHandler(async (req, res) => {
 
 export const getCheckInLogs = asyncHandler(async (req, res) => {
   const { startDate, endDate, department, staffId, page, limit } = req.query;
-  const result = await shiftsService.getCheckInLogs({ startDate, endDate, department, staffId, page: parseInt(page) || 1, limit: parseInt(limit) || 50 });
+  const isNonAdmin = req.user.role !== 'admin' && req.user.role !== 'superadmin';
+  const result = await shiftsService.getCheckInLogs({
+    startDate, endDate, department, staffId,
+    page: parseInt(page) || 1, limit: parseInt(limit) || 50,
+    parentUserId: isNonAdmin ? req.user.id : undefined
+  });
   res.json(result);
 });
 
 export const getAttendanceReport = asyncHandler(async (req, res) => {
   const { startDate, endDate, department } = req.query;
-  const result = await shiftsService.getAttendanceReport({ startDate, endDate, department });
+  const isNonAdmin = req.user.role !== 'admin' && req.user.role !== 'superadmin';
+  const result = await shiftsService.getAttendanceReport({
+    startDate, endDate, department,
+    parentUserId: isNonAdmin ? req.user.id : undefined
+  });
   res.json(result);
 });
 

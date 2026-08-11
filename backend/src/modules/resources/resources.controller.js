@@ -6,7 +6,7 @@ import * as resourcesService from './resources.service.js';
 import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const getResources = asyncHandler(async (req, res) => {
-  const resources = await resourcesService.findAllResources();
+  const resources = await resourcesService.findAllResources(req.query.department);
   res.json(resources);
 });
 

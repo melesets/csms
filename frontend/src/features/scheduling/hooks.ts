@@ -32,7 +32,7 @@ export function useDepartments() {
   return departments;
 }
 
-export function useSchedules(department: string, startDate: string, endDate: string, staffUserId?: number, shiftTypeId?: number) {
+export function useSchedules(department: string, startDate: string, endDate: string, staffUserId?: number, shiftTypeId?: number, parentUserId?: number) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const initialLoad = useState(true);
@@ -44,11 +44,12 @@ export function useSchedules(department: string, startDate: string, endDate: str
       const params = new URLSearchParams({ department, startDate, endDate });
       if (staffUserId) params.set('staffUserId', String(staffUserId));
       if (shiftTypeId) params.set('shiftTypeId', String(shiftTypeId));
+      if (parentUserId) params.set('parentUserId', String(parentUserId));
       const data = await apiGet(`/scheduling/schedules?${params}`);
       setSchedules(data);
     } catch { setSchedules([]); }
     finally { setLoading(false); }
-  }, [department, startDate, endDate, staffUserId, shiftTypeId]);
+  }, [department, startDate, endDate, staffUserId, shiftTypeId, parentUserId]);
 
   useEffect(() => { fetchSchedules(true); }, [fetchSchedules]);
   return { schedules, setSchedules, loading, refresh: fetchSchedules };

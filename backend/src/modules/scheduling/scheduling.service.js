@@ -56,9 +56,9 @@ export const getSchedulingStaff = async ({ department, userId, userRole }) => {
   } else {
     query = `SELECT id, name, username, profession, department, profile_picture FROM users
              WHERE role = 'staff' AND isactive = TRUE
-               AND (parent_user_id = $1 OR LOWER(department) = LOWER($2))
+               AND parent_user_id = $1
              ORDER BY name`;
-    params = [userId, department || ''];
+    params = [userId];
   }
 
   const { rows } = await pool.query(query, params);
@@ -111,7 +111,7 @@ export const deleteShiftType = async (id) => {
 
 // ── Schedule CRUD ────────────────────────────────────────────────────────
 
-export const getSchedules = async ({ department, startDate, endDate, staffUserId, shiftTypeId }) => {
+export const getSchedules = async ({ department, startDate, endDate, staffUserId, shiftTypeId, parentUserId }) => {
   const conditions = ['s.department = $1', 's.schedule_date >= $2', 's.schedule_date <= $3'];
   const params = [department, startDate, endDate];
   let idx = 4;
@@ -123,6 +123,10 @@ export const getSchedules = async ({ department, startDate, endDate, staffUserId
   if (shiftTypeId) {
     conditions.push(`s.shift_type_id = $${idx++}`);
     params.push(shiftTypeId);
+  }
+  if (parentUserId) {
+    conditions.push(`u.parent_user_id = $${idx++}`);
+    params.push(parentUserId);
   }
 
   const { rows } = await pool.query(
@@ -272,7 +276,7 @@ export const logScheduleChange = async (data) => {
   return rows[0];
 };
 
-export const getChangeLog = async ({ department, startDate, endDate, staffUserId }) => {
+export const getChangeLog = async ({ department, startDate, endDate, staffUserId, parentUserId }) => {
   const conditions = ['scl.department = $1', 'scl.schedule_date >= $2', 'scl.schedule_date <= $3'];
   const params = [department, startDate, endDate];
   let idx = 4;
@@ -280,6 +284,11 @@ export const getChangeLog = async ({ department, startDate, endDate, staffUserId
   if (staffUserId) {
     conditions.push(`scl.staff_user_id = $${idx++}`);
     params.push(staffUserId);
+  }
+  if (parentUserId) {
+    conditions.push(`(u.parent_user_id = $${idx} OR u.id = $${idx})`);
+    params.push(parentUserId);
+    idx += 1;
   }
 
   const { rows } = await pool.query(
@@ -332,7 +341,7 @@ export const setMinimumStaffing = async (data) => {
 
 // ── Staff Unavailability ─────────────────────────────────────────────────
 
-export const getUnavailability = async ({ department, startDate, endDate, userId }) => {
+export const getUnavailability = async ({ department, startDate, endDate, userId, parentUserId }) => {
   let query = `
     SELECT su.*, u.name AS user_name, u.profession AS staff_role
     FROM staff_unavailability su
@@ -348,6 +357,11 @@ export const getUnavailability = async ({ department, startDate, endDate, userId
   if (department) {
     query += ` AND u.department = $${idx++}`;
     params.push(department);
+  }
+  if (parentUserId) {
+    query += ` AND (u.parent_user_id = $${idx} OR u.id = $${idx})`;
+    params.push(parentUserId);
+    idx += 1;
   }
   query += ' ORDER BY su.date_from ASC';
 

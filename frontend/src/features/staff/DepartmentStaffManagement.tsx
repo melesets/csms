@@ -69,8 +69,9 @@ export const DepartmentStaffManagement = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const parentUserIdParam = user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `?parentUserId=${user.id}` : '';
         const [staffRes, usersRes] = await Promise.all([
-          fetch('/api/department-staff'),
+          fetch(`/api/department-staff${parentUserIdParam}`),
           fetch('/api/users')
         ]);
         if (staffRes.ok) setStaff(await staffRes.json());
@@ -142,14 +143,16 @@ export const DepartmentStaffManagement = () => {
     if (editingStaff) {
       const res = await fetch(`/api/department-staff/${editingStaff.id}`, { method: 'PUT', body: fd });
       if (res.ok) {
-        const updatedRes = await fetch('/api/department-staff');
+        const parentUserIdParam = user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `?parentUserId=${user.id}` : '';
+        const updatedRes = await fetch(`/api/department-staff${parentUserIdParam}`);
         if (updatedRes.ok) setStaff(await updatedRes.json());
         window.dispatchEvent(new Event('staff-updated'));
       }
     } else {
       const res = await fetch('/api/department-staff', { method: 'POST', body: fd });
       if (res.ok) {
-        const updatedRes = await fetch('/api/department-staff');
+        const parentUserIdParam = user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `?parentUserId=${user.id}` : '';
+        const updatedRes = await fetch(`/api/department-staff${parentUserIdParam}`);
         if (updatedRes.ok) setStaff(await updatedRes.json());
         window.dispatchEvent(new Event('staff-updated'));
       }

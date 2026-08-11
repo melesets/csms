@@ -4,7 +4,11 @@ import { asyncHandler } from '../../middleware/errorHandler.js';
 import * as irService from './inventoryReports.service.js';
 
 export const getReports = asyncHandler(async (req, res) => {
-  const reports = await irService.findAllReports(req.query.department);
+  const isNonAdmin = req.user.role !== 'admin' && req.user.role !== 'superadmin';
+  const reports = await irService.findAllReports(
+    req.query.department,
+    isNonAdmin ? req.user.id : undefined
+  );
   res.json(reports);
 });
 

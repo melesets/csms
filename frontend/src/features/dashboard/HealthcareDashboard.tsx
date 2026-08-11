@@ -418,8 +418,8 @@ export const HealthcareDashboard: React.FC<{ onNavigate?: (page: string) => void
         departmentFilter
           ? fetch(`/api/dashboard-mappings/by-department/${encodeURIComponent(departmentFilter)}/resource${prof}`).catch(() => null)
           : Promise.resolve(null),
-        fetch(`/api/form-submissions${deptParam ? (deptParam.includes('?') ? deptParam : `?${deptParam.slice(1)}`) + (user?.profession ? `${deptParam.includes('?') ? '&' : '?'}profession=${encodeURIComponent(user.profession)}` : '') : user?.profession ? `?profession=${encodeURIComponent(user.profession)}` : ''}`),
-        fetch('/api/resources'),
+        fetch(`/api/form-submissions?limit=2000${departmentFilter ? `&department=${encodeURIComponent(departmentFilter)}` : ''}${user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `&parentUserId=${user.id}` : ''}`),
+        fetch(`/api/resources${departmentFilter ? `?department=${encodeURIComponent(departmentFilter)}` : ''}`),
         fetch(`/api/inventory-reports${departmentFilter ? `?department=${encodeURIComponent(departmentFilter)}` : ''}`),
       ]);
 
@@ -491,7 +491,7 @@ export const HealthcareDashboard: React.FC<{ onNavigate?: (page: string) => void
 
       if ((departmentFilter && (!Array.isArray(submissions) || submissions.length === 0))) {
         try {
-          const allRes = await fetch('/api/form-submissions');
+          const allRes = await fetch(`/api/form-submissions${user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `?parentUserId=${user.id}` : ''}`);
           const allSubs = allRes.ok ? await allRes.json() : [];
           const allowedTemplateIds = new Set(
             (patientMappingsNormalized || [])
@@ -754,7 +754,7 @@ export const HealthcareDashboard: React.FC<{ onNavigate?: (page: string) => void
         const hadProfessionFilter = !!user?.profession;
         try {
           if (deptFilterRaw) {
-            const auditUrl = `/api/form-submissions?department=${encodeURIComponent(deptFilterRaw)}`;
+            const auditUrl = `/api/form-submissions?department=${encodeURIComponent(deptFilterRaw)}${user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `&parentUserId=${user.id}` : ''}`;
             const resAudit = await fetch(auditUrl);
             if (resAudit.ok) {
               const deptSubs = await resAudit.json();
@@ -764,7 +764,7 @@ export const HealthcareDashboard: React.FC<{ onNavigate?: (page: string) => void
             }
           } else if (hadProfessionFilter) {
             // No explicit department, but we still want a broader pool without profession filter
-            const resAll = await fetch('/api/form-submissions');
+            const resAll = await fetch(`/api/form-submissions${user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `?parentUserId=${user.id}` : ''}`);
             if (resAll.ok) {
               const all = await resAll.json();
               if (Array.isArray(all) && all.length >= (auditPool?.length || 0)) {
@@ -877,7 +877,7 @@ export const HealthcareDashboard: React.FC<{ onNavigate?: (page: string) => void
 
       // Fetch all submissions (unfiltered) for custom tabs
       try {
-        const allSubsRes = await fetch('/api/form-submissions');
+        const allSubsRes = await fetch(`/api/form-submissions${user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id ? `?parentUserId=${user.id}` : ''}`);
         if (allSubsRes.ok) {
           const allSubsData = await allSubsRes.json();
           setAllFormSubmissions(Array.isArray(allSubsData) ? allSubsData : []);
@@ -1788,7 +1788,7 @@ export const HealthcareDashboard: React.FC<{ onNavigate?: (page: string) => void
                 </div>
                 <button
                   className="inline-flex items-center px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-medium text-xs hover:bg-indigo-700 transition-colors"
-                  onClick={() => { window.location.href = '#/isbar'; }}
+                   onClick={() => { window.location.href = '#/csms'; }}
                   type="button"
                 >
                   Start Round

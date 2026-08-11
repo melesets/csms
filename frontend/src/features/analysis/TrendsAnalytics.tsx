@@ -136,8 +136,11 @@ export const TrendsAnalytics = () => {
         const params = new URLSearchParams();
         if (dept && dept !== 'All') params.set('department', dept);
         if (timeframe) params.set('timeframe', timeframe);
+        if (user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id) {
+          params.set('parentUserId', String(user.id));
+        }
         const qs = params.toString(); if (qs) url += `?${qs}`;
-        const [res, resR] = await Promise.all([fetch(url), fetch('/api/resources')]);
+        const [res, resR] = await Promise.all([fetch(url), fetch(`/api/resources${dept && dept !== 'All' ? `?department=${encodeURIComponent(dept)}` : ''}`)]);
         if (res.ok) { const d = await res.json(); setRecords(Array.isArray(d) ? d : []); }
         else { setRecords([]); setError('Failed to load analytics data.'); }
         if (resR.ok) { const r = await resR.json(); setResources(Array.isArray(r) ? r : []); }

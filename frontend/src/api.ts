@@ -8,8 +8,8 @@ function resolveApiBase() {
         ? configured
         : `/${configured}`;
   }
-  if (typeof window !== 'undefined' && window.location?.pathname?.startsWith('/isbar')) {
-    return '/isbar/api';
+  if (typeof window !== 'undefined' && window.location?.pathname?.startsWith('/csms')) {
+    return '/csms/api';
   }
   return '/api';
 }
@@ -37,19 +37,30 @@ function handle401() {
   localStorage.removeItem('isbar_admin_impersonator');
   localStorage.removeItem('active_shift_session');
 
-  window.location.href = '/isbar/login';
+  window.location.href = '/csms/login';
   setTimeout(() => { isRedirectingToLogin = false; }, 3000);
 }
 
 export function getMediaUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
   if (path.startsWith('http')) return path;
+  if (path.startsWith('/uploads/')) {
+    const apiBase = resolveApiBase();
+    const prefix = apiBase.replace('/api', '');
+    return `${prefix}${path}`;
+  }
   return path;
 }
 
 export async function apiGet(path: string) {
   const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
-  if (res.status === 401) { handle401(); throw Object.assign(new Error('Session expired'), { status: 401 }); }
+  if (res.status === 401) {
+    if (!path.includes('/login') && !path.includes('/logout')) {
+      handle401();
+    }
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error || 'Session expired'), { status: 401 });
+  }
   if (!res.ok) {
     const text = await res.text();
     const err = new Error(text || `GET ${path} failed`);
@@ -66,7 +77,13 @@ export async function apiPost(path: string, data: any) {
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(data),
   });
-  if (res.status === 401) { handle401(); throw Object.assign(new Error('Session expired'), { status: 401 }); }
+  if (res.status === 401) {
+    if (!path.includes('/login') && !path.includes('/logout')) {
+      handle401();
+    }
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error || 'Session expired'), { status: 401 });
+  }
   if (!res.ok) {
     let body: any;
     try { body = await res.json(); } catch { body = await res.text(); }
@@ -87,7 +104,11 @@ export async function apiPut(path: string, data: any) {
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(data),
   });
-  if (res.status === 401) { handle401(); throw Object.assign(new Error('Session expired'), { status: 401 }); }
+  if (res.status === 401) {
+    handle401();
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error || 'Session expired'), { status: 401 });
+  }
   if (!res.ok) {
     const text = await res.text();
     const err = new Error(text || `PUT ${path} failed`);
@@ -107,7 +128,11 @@ export async function apiPatch(path: string, data?: any) {
     options.body = JSON.stringify(data);
   }
   const res = await fetch(`${API_BASE}${path}`, options);
-  if (res.status === 401) { handle401(); throw Object.assign(new Error('Session expired'), { status: 401 }); }
+  if (res.status === 401) {
+    handle401();
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error || 'Session expired'), { status: 401 });
+  }
   if (!res.ok) {
     const text = await res.text();
     const err = new Error(text || `PATCH ${path} failed`);
@@ -120,7 +145,11 @@ export async function apiPatch(path: string, data?: any) {
 
 export async function apiDelete(path: string) {
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE', headers: authHeaders() });
-  if (res.status === 401) { handle401(); throw Object.assign(new Error('Session expired'), { status: 401 }); }
+  if (res.status === 401) {
+    handle401();
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error || 'Session expired'), { status: 401 });
+  }
   if (!res.ok) {
     const text = await res.text();
     const err = new Error(text || `DELETE ${path} failed`);
@@ -131,19 +160,34 @@ export async function apiDelete(path: string) {
   return res.json();
 }
 
-// Global fetch interceptor - injects Authorization header into ALL /api requests
+// Global fetch interceptor - rewrites /api/ URLs to use API_BASE and injects Authorization header
 (function installGlobalAuthInterceptor() {
   const originalFetch = window.fetch;
   (window as any).fetch = function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url.includes('/api/')) {
+      let rewrittenUrl = url;
+      if (API_BASE !== '/api' && !url.startsWith(API_BASE)) {
+        const idx = url.indexOf('/api/');
+        if (idx !== -1) {
+          rewrittenUrl = API_BASE + url.slice(idx + 4);
+        }
+      }
       const headers = new Headers(init?.headers);
       if (!headers.has('Authorization')) {
         const token = authHeaders().Authorization;
         if (token) headers.set('Authorization', token);
       }
-      return originalFetch(input, { ...init, headers }).then((res) => {
-        if (res.status === 401 && !url.includes('/login') && !url.includes('/logout')) {
+      let fetchInput: RequestInfo | URL;
+      if (typeof input === 'string') {
+        fetchInput = rewrittenUrl;
+      } else if (input instanceof URL) {
+        fetchInput = new URL(rewrittenUrl, input.origin);
+      } else {
+        fetchInput = new Request(rewrittenUrl, input);
+      }
+      return originalFetch(fetchInput, { ...init, headers }).then((res) => {
+        if (res.status === 401 && !rewrittenUrl.includes('/login') && !rewrittenUrl.includes('/logout')) {
           handle401();
         }
         return res;

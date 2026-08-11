@@ -42,11 +42,12 @@ export async function createSubmission(data) {
 }
 
 export async function findSubmissions(filters) {
-  const { formId, department, user, limit, timeframe, profession, dateFrom, dateTo, search, mrn, page, offset, cursor } = filters;
+  const { formId, department, user, limit, timeframe, profession, dateFrom, dateTo, search, mrn, page, offset, cursor, parentUserId } = filters;
 
   const baseWhere = [];
   const baseParams = [];
   let idx = 1;
+  let needsUserJoin = false;
 
   if (formId) {
     baseWhere.push(`s.template_id = $${idx++}`);
@@ -64,6 +65,12 @@ export async function findSubmissions(filters) {
   if (profession) {
     baseWhere.push(`(s.submitted_by_profession = $${idx} AND (t.profession = $${idx} OR t.profession IS NULL))`);
     baseParams.push(profession);
+    idx += 1;
+  }
+  if (parentUserId) {
+    needsUserJoin = true;
+    baseWhere.push(`(su.parent_user_id = $${idx} OR su.id = $${idx})`);
+    baseParams.push(parentUserId);
     idx += 1;
   }
   if (timeframe) {
@@ -105,7 +112,8 @@ export async function findSubmissions(filters) {
   }
 
   const whereClause = baseWhere.length > 0 ? 'WHERE ' + baseWhere.join(' AND ') : '';
-  const joinClause = 'LEFT JOIN form_templates t ON s.template_id = t.id';
+  const joinClause = 'LEFT JOIN form_templates t ON s.template_id = t.id' +
+    (needsUserJoin ? ' LEFT JOIN users su ON su.username = s.submitted_by' : '');
 
   // Cursor-based pagination (keyset) — efficient for large offsets
   if (cursor) {

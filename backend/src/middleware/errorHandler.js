@@ -3,11 +3,12 @@
 // Exports an asyncHandler wrapper to eliminate repetitive try/catch blocks.
 
 export const errorHandler = (err, req, res, next) => {
-  console.error(`[Error] ${req.method} ${req.path}:`, err.message);
-  res.status(err.status || 500).json({
+  const statusCode = err.status || err.statusCode || 500;
+  console.error(`[Error] ${req.method} ${req.path} (${statusCode}):`, err.message, err.type || err.detail || err.code || '');
+  res.status(statusCode).json({
     error: err.message || 'Internal server error',
     code: err?.code,
-    detail: err?.detail,
+    detail: err?.detail || err.type,
   });
 };
 

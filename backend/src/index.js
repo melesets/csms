@@ -124,37 +124,39 @@ function startDbReadinessProbe({ intervalMs = 3000 } = {}) {
 }
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 3777;
+const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+
+// Serve uploads under both /csms/uploads and /uploads
 app.use('/uploads/profiles', (req, res, next) => {
   res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
   res.set('ETag', '');
   next();
 }, express.static(path.join(__dirname, '../uploads/profiles'), { maxAge: '7d', etag: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/csms/uploads', express.static(path.join(__dirname, '../uploads')));
 
+if (isProduction) {
+  // Serve frontend assets under /csms/
+  app.use('/csms', express.static(frontendDist, { maxAge: '1y', etag: true, index: 'index.html' }));
+}
+
+// Root redirect in production
 app.get('/', (req, res) => {
+  if (isProduction) {
+    return res.redirect(301, '/csms/');
+  }
   res.send('ISBAR Backend is Running! Access API at /api/');
 });
 
-app.use(requireAuth);
-app.use(routes);
-
-app.get('/api/test-db', async (req, res) => {
-  try {
-    if (!isReady) return res.status(503).json({ success: false, error: 'Database initializing' });
-    await pool.query('SELECT 1');
-    res.json({ success: true, message: 'Database connection successful.' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/health', async (req, res) => {
+// Public endpoints (no auth required)
+const healthHandler = async (req, res) => {
   try {
     res.json({
       status: 'online',
@@ -165,7 +167,36 @@ app.get('/api/health', async (req, res) => {
   } catch (err) {
     res.status(500).json({ status: 'error', db_check: 'failed', error: err.message });
   }
-});
+};
+const testDbHandler = async (req, res) => {
+  try {
+    if (!isReady) return res.status(503).json({ success: false, error: 'Database initializing' });
+    await pool.query('SELECT 1');
+    res.json({ success: true, message: 'Database connection successful.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+app.get('/api/test-db', testDbHandler);
+app.get('/api/health', healthHandler);
+app.get('/csms/api/test-db', testDbHandler);
+app.get('/csms/api/health', healthHandler);
+
+if (isProduction) {
+  // SPA fallback - serves index.html for all /csms/* routes (except API and uploads)
+  app.get('/csms/*', (req, res, next) => {
+    if (req.path.startsWith('/csms/api/') || req.path.startsWith('/csms/uploads/')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
+app.use(requireAuth);
+app.use(routes);
+
+// In production, also mount all API routes under /csms/api
+if (isProduction) {
+  app.use('/csms', routes);
+}
 
 app.use(errorHandler);
 

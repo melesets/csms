@@ -7,8 +7,10 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "build": "cd frontend && npm run build",
+    "build:production": "cd frontend && npm run build:production",
     "lint": "cd frontend && npm run lint",
     "start": "cd backend && npm run start",
+    "start:production": "cd backend && cross-env NODE_ENV=production node src/index.js",
     "start:all": "scripts/start.bat",
     "pm2:start": "pm2 start backend/ecosystem.config.cjs",
     "pm2:restart": "pm2 restart isbar",
@@ -17,7 +19,8 @@
     "pm2:logs": "pm2 logs isbar",
     "pm2:list": "pm2 list",
     "pm2:save": "pm2 save",
-    "deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy-windows.ps1"
+    "deploy": "powershell -ExecutionPolicy Bypass -File scripts/deploy-windows.ps1",
+    "production": "npm run build:production && npm run start:production"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

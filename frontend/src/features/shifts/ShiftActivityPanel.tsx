@@ -308,7 +308,7 @@ export function ShiftActivityPanel({
             </div>
             <button
               className="px-4 py-2 rounded-lg bg-brand text-white text-xs font-semibold hover:bg-brand-600 transition-colors"
-              onClick={() => { window.location.href = '#/isbar'; }}
+              onClick={() => { window.location.href = '#/csms'; }}
               type="button"
             >
               Start Round

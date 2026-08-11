@@ -3,7 +3,7 @@
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'csms-fallback-secret';
-const EXEMPT_PATHS = ['/api/login', '/api/logout', '/api/auth', '/api/test-db', '/api/health'];
+const EXEMPT_PATHS = ['/api/login', '/api/logout', '/api/auth', '/api/test-db', '/api/health', '/csms/api/login', '/csms/api/logout', '/csms/api/auth', '/csms/api/test-db', '/csms/api/health'];
 
 // Role hierarchy: higher number = more privileges
 const ROLE_HIERARCHY = {

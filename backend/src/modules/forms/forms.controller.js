@@ -6,6 +6,17 @@ import * as formsService from './forms.service.js';
 import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const createSubmission = asyncHandler(async (req, res) => {
+  // Enforce profession: user can only submit as their own profession (admin/superadmin exempt)
+  const userRole = req.user?.role;
+  const userProfession = req.user?.profession;
+  const submittedProfession = req.body.submitted_by_profession;
+
+  if (!['admin', 'superadmin'].includes(userRole) && userProfession && submittedProfession) {
+    if (userProfession.toLowerCase() !== submittedProfession.toLowerCase()) {
+      return res.status(403).json({ error: `You can only submit forms as "${userProfession}"` });
+    }
+  }
+
   const submission = await formsService.createSubmission(req.body);
   res.json(submission);
 });
@@ -35,6 +46,16 @@ export const updateSubmission = asyncHandler(async (req, res) => {
 });
 
 export const deleteSubmission = asyncHandler(async (req, res) => {
+  // Only admin/superadmin or the original submitter can delete
+  const userRole = req.user?.role;
+  const username = req.user?.username;
+  if (!['admin', 'superadmin'].includes(userRole)) {
+    const existing = await formsService.findSubmissionById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Submission not found' });
+    if (existing.submitted_by !== username) {
+      return res.status(403).json({ error: 'You can only delete your own submissions' });
+    }
+  }
   const deleted = await formsService.deleteSubmission(req.params.id);
   if (!deleted) return res.status(404).json({ error: 'Submission not found' });
   logAdminAction({ action: 'delete', module: 'forms', targetId: req.params.id, performedBy: req.user?.username, ip: req.ip });

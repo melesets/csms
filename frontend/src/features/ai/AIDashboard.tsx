@@ -100,7 +100,7 @@ interface Metrics {
 }
 
 const AIDashboard: React.FC = () => {
-  const { getUserDepartmentFilter } = useAuth();
+  const { user, getUserDepartmentFilter } = useAuth();
   const [patients, setPatients] = useState<PatientData[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [insights, setInsights] = useState<AIInsights | null>(null);
@@ -116,6 +116,9 @@ const AIDashboard: React.FC = () => {
       const dept = getUserDepartmentFilter();
       const params = new URLSearchParams({ timeRange: selectedTimeRange });
       if (dept) params.append('department', dept);
+      if (user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id) {
+        params.append('parentUserId', String(user.id));
+      }
       const res = await fetch(`/api/ai/patient-data?${params}`);
       if (res.ok) {
         const data = await res.json();

@@ -213,7 +213,7 @@ function generateDetailedAnalysis(patients, metrics, timeRange, department) {
 // Fetch patient data
 router.get('/patient-data', async (req, res) => {
   try {
-    const { department, timeRange } = req.query;
+    const { department, timeRange, parentUserId } = req.query;
     let interval = "24 hours";
     if (timeRange === '7d') interval = "7 days";
     else if (timeRange === '30d') interval = "30 days";
@@ -227,6 +227,10 @@ router.get('/patient-data', async (req, res) => {
     if (department) {
       params.push(department);
       query += ` AND LOWER(fs.template_department) = LOWER($${params.length})`;
+    }
+    if (parentUserId) {
+      params.push(parentUserId);
+      query += ` AND (fs.submitted_by IN (SELECT username FROM users WHERE parent_user_id = $${params.length}) OR fs.submitted_by = (SELECT username FROM users WHERE id = $${params.length}))`;
     }
     query += ' ORDER BY fs.submitted_at DESC';
 

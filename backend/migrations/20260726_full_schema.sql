@@ -363,7 +363,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO users (username, password, name, email, role, department, isactive)
 VALUES (
     'superadmin',
-    '$2b$10$YQ8GvFOCwPjKhKHuFpJhZeQxVpGfn1WzGqYmKXy3hLz5kN7mO9pQr',
+    '$2b$10$bKrwDDh/8uBd8KwpB9fpJ.13nTOtLWdnu.gkQ/EtRPYvGiQcBz7j6',
     'Super Administrator',
     'superadmin@isbar.local',
     'superadmin',

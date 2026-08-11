@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types/auth';
 import { apiPost } from '../api';
+import { isPageAccessible } from '../config/pages';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -46,20 +47,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (username: string, password: string, profession?: string): Promise<boolean> => {
+  const login = async (username: string, password: string, profession?: string): Promise<string | null> => {
     try {
       const userData = await apiPost('/login', { username, password, profession });
       setUser(userData);
       localStorage.setItem('isbar_user', JSON.stringify(userData));
-      return true;
+      return null;
     } catch (e: any) {
+      const msg = e?.message || e?.error || 'Invalid username or password';
       try {
-        const parsed = typeof e?.message === 'string' ? JSON.parse(e.message) : e;
-        console.error('Login failed:', parsed);
+        const parsed = typeof msg === 'string' ? JSON.parse(msg) : msg;
+        const errorMsg = parsed?.error || parsed?.message || msg;
+        console.error('Login failed:', errorMsg);
+        return typeof errorMsg === 'string' ? errorMsg : 'Invalid username or password';
       } catch {
-        console.error('Login failed:', e);
+        console.error('Login failed:', msg);
+        return typeof msg === 'string' ? msg : 'Invalid username or password';
       }
-      return false;
     }
   };
 
@@ -177,45 +181,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 1. Superadmin has all permissions
     if (user.role === 'superadmin') return true;
 
-    // 2. If explicit permissions exist, they are the source of truth
-    const modulePermission = (user.permissions || []).find(p => p.module === module);
-    if (modulePermission) {
-      if (!action) return modulePermission.actions.length > 0;
-      return modulePermission.actions.includes(action);
-    }
+    const userPermissions = user.permissions || [];
 
-    // 3. Fallback: Role-based defaults if no explicit permissions defined for this module
+    // 2. Admin has all permissions
     if (user.role === 'admin') return true;
 
-    // Special profession-based rule for resources (existing logic)
+    // 3. If explicit permissions exist, they are the ONLY source of truth (no fallback)
+    if (userPermissions.length > 0) {
+      const modulePermission = userPermissions.find((p: any) => p.module === module);
+      if (modulePermission) {
+        if (!action) return modulePermission.actions.length > 0;
+        return modulePermission.actions.includes(action);
+      }
+      // Module not in explicit permissions = denied
+      return false;
+    }
+
+    // 4. No explicit permissions set — use role-based defaults
+    const defaultModules = ['dashboard', 'isbar', 'scheduling'];
+    if (defaultModules.includes(module)) return true;
+
     if (module === 'resources') {
       return user.profession === 'Nurse' || user.profession === 'Midwifery';
     }
-
-    // Default: basic modules for everyone
-    const defaultModules = ['dashboard', 'isbar', 'scheduling'];
-    if (defaultModules.includes(module)) return true;
 
     return false;
   };
 
   const canAccessPage = (page: string): boolean => {
     if (!user) return false;
-
-    const pageAccess: Record<string, string[]> = {
-      'dashboard': ['superadmin', 'admin', 'user', 'staff', 'viewer'],
-      'reports': ['superadmin', 'admin', 'user', 'staff'],
-      'department-staff': ['superadmin', 'admin', 'user', 'staff'],
-      'resources': ['superadmin', 'admin', 'staff'],
-      'all-records': ['superadmin', 'admin', 'user', 'staff'],
-      'analytics': ['superadmin', 'admin', 'user', 'staff'],
-      'scheduling': ['superadmin', 'admin', 'user', 'staff', 'viewer'],
-      'form-builder': ['superadmin', 'admin'],
-      'user-management': ['superadmin', 'admin']
-    };
-
-    const allowedRoles = pageAccess[page] || [];
-    return allowedRoles.includes(user.role);
+    return isPageAccessible(page, user.permissions, user.role);
   };
 
   const getUserDepartmentFilter = (): string | null => {

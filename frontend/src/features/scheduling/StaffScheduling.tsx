@@ -44,7 +44,8 @@ export default function StaffScheduling() {
   const activeDepartment = isAdmin ? filterDepartment : userDepartment;
 
   const { shiftTypes } = useShiftTypes();
-  const { schedules, setSchedules, loading, refresh: refreshSchedules } = useSchedules(activeDepartment, startDate, endDate, filterStaffId);
+  const parentUserId = !isAdmin ? user?.id : undefined;
+  const { schedules, setSchedules, loading, refresh: refreshSchedules } = useSchedules(activeDepartment, startDate, endDate, filterStaffId, undefined, parentUserId);
   const holidays = useHolidays(startDate, endDate);
   const { staff } = useStaff(activeDepartment);
   const allDepartments = useDepartments();

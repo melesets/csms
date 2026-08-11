@@ -42,22 +42,9 @@ export const LoginForm = () => {
       }
     }
 
-    const success = await login(username, password, profession);
-    if (!success) {
-      try {
-        const health: any = await apiGet('/health');
-        if (!health?.ready) {
-          setError('Service temporarily unavailable. Please try again shortly.');
-        } else {
-          setError('Invalid username or password');
-        }
-      } catch (e: any) {
-        if ((e as any)?.status === 503) {
-          setError('Service temporarily unavailable. Please try again shortly.');
-        } else {
-          setError('Invalid username or password');
-        }
-      }
+    const errorMsg = await login(username, password, profession);
+    if (errorMsg) {
+      setError(errorMsg);
     }
 
     setIsLoading(false);
@@ -143,7 +130,6 @@ export const LoginForm = () => {
                   {PROFESSIONS.map((prof: string) => (
                     <option key={prof} value={prof}>{prof}</option>
                   ))}
-                  <option value="Admin">Admin</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-gray-400">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -183,10 +169,10 @@ export const LoginForm = () => {
 
       {/* Right Panel - Premium Welcome Section */}
       <div className="relative w-full lg:w-1/2 flex flex-col items-center justify-between overflow-hidden min-h-[40vh] lg:min-h-screen bg-[#001220]">
-        <div className="absolute inset-0 bg-[url('/isbar/login-bg.jpg')] bg-cover bg-center" />
+        <div className="absolute inset-0 bg-[url('/csms/login-bg.jpg')] bg-cover bg-center" />
         
         {/* Balanced overlay to make the image visible while keeping the centered text readable */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#003153]/80 via-[#002640]/70 to-[#001220]/80" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#003153]/50 via-[#002640]/40 to-[#001220]/60" />
 
         {/* Spacer to push welcome content down if needed, but since we use justify-between, we want centered welcome and bottom footer */}
         <div />
@@ -198,17 +184,17 @@ export const LoginForm = () => {
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg uppercase whitespace-nowrap font-display">Adare General Hospital</h1>
-          <p className="text-sm lg:text-base text-emerald-300 font-semibold tracking-widest uppercase mb-6 drop-shadow-md">
+          <p className="text-xs sm:text-sm text-emerald-300 font-semibold tracking-widest uppercase mb-4 drop-shadow-md whitespace-nowrap">
             Clinical Service Management System - CSMS
           </p>
+          <div className="w-16 h-[1px] bg-emerald-400/50 mx-auto mb-6"></div>
 
           <p className="text-sm text-white/90 leading-relaxed max-w-md mx-auto mb-8 drop-shadow">
             Empowering healthcare professionals with secure, reliable, and advanced management tools for better patient care.
           </p>
 
-          <div className="flex items-center justify-center gap-3 text-white/80 bg-black/20 py-2.5 px-5 rounded-full w-max mx-auto backdrop-blur-md border border-white/10">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-semibold tracking-wide">Enterprise Grade Security</span>
+          <div className="mt-6">
+            <img src={`${import.meta.env.BASE_URL}LOGO.png`} alt="Adare General Hospital Logo" className="h-16 w-auto mx-auto drop-shadow-lg opacity-90" />
           </div>
         </div>
 

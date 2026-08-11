@@ -455,7 +455,12 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
       setLoadingHistory(true);
       setSubmissionHistoryError(null);
       // Fetch all submissions (across all departments) to show complete submissionHistory for this patient
-      const res = await fetch('/api/form-submissions');
+      const params = new URLSearchParams();
+      if (user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id) {
+        params.set('parentUserId', String(user.id));
+      }
+      const qs = params.toString();
+      const res = await fetch(`/api/form-submissions${qs ? `?${qs}` : ''}`);
       const data: Record<string, unknown>[] = res.ok ? await res.json() : [];
       // Exclude rounds and audits, but include all patient-matched submissions
       const isExcluded = (name: unknown) => {

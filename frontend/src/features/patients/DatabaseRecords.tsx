@@ -5,7 +5,106 @@ import { Search, Calendar, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRigh
 import ExcelJS from 'exceljs';
 import { EthiopianDateDisplay } from '../../components/shared/date/EthiopianDateDisplay';
 import { CustomSelect } from '../../components/shared/CustomSelect';
-import { ethiopianStringToGregorianString, ETHIOPIAN_MONTHS, gregorianToEthiopian, formatEthiopianDate } from '../../utils/ethiopianCalendar';
+import { ethiopianStringToGregorianString, ETHIOPIAN_MONTHS, gregorianToEthiopian, ethiopianToGregorian, formatEthiopianDate, isValidEthiopianDate, EthiopianDate } from '../../utils/ethiopianCalendar';
+import { apiGet } from '../../api';
+
+function resolveApiBaseForFetch() {
+  const configured = (import.meta as any)?.env?.VITE_API_URL || (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
+  if (configured) {
+    return configured.startsWith('http') ? configured : configured.startsWith('/') ? configured : `/${configured}`;
+  }
+  if (typeof window !== 'undefined' && window.location?.pathname?.startsWith('/csms')) {
+    return '/csms/api';
+  }
+  return '/api';
+}
+
+// Ethiopian calendar date picker that outputs DD-MM-YYYY format
+function EthiopianDatePicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [temp, setTemp] = useState<EthiopianDate>(() => {
+    if (value) {
+      const parts = value.split(/[^0-9]+/).filter(Boolean);
+      if (parts.length === 3) {
+        let d: number, m: number, y: number;
+        if (/^\d{4}$/.test(parts[0])) { y = +parts[0]; m = +parts[1]; d = +parts[2]; }
+        else { d = +parts[0]; m = +parts[1]; y = +parts[2]; }
+        if (!isNaN(d) && !isNaN(m) && !isNaN(y)) return { year: y, month: m, day: d };
+      }
+    }
+    return gregorianToEthiopian(new Date());
+  });
+
+  const toEthStr = (e: EthiopianDate) => `${String(e.day).padStart(2, '0')}-${String(e.month).padStart(2, '0')}-${e.year}`;
+  const gregPreview = (() => {
+    try {
+      if (!isValidEthiopianDate(temp)) return null;
+      const g = ethiopianToGregorian(temp);
+      return `${g.getFullYear()}-${String(g.getMonth() + 1).padStart(2, '0')}-${String(g.getDate()).padStart(2, '0')}`;
+    } catch { return null; }
+  })();
+
+  const days = Array.from({ length: temp.month === 13 ? (temp.year % 4 === 3 ? 6 : 5) : 30 }, (_, i) => i + 1);
+  const years = Array.from({ length: 100 }, (_, i) => temp.year - 50 + i);
+
+  const apply = (next?: EthiopianDate) => {
+    const d = next || temp;
+    if (isValidEthiopianDate(d)) {
+      onChange(toEthStr(d));
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className="w-full relative">
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <div className="relative">
+        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+        <input
+          type="text"
+          readOnly
+          value={value || ''}
+          onClick={() => setOpen(true)}
+          placeholder="DD-MM-YYYY"
+          className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer bg-white"
+        />
+      </div>
+      {value && gregPreview && <div className="text-xs text-gray-500 mt-1">Gregorian: {gregPreview}</div>}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute z-50 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl p-4 w-80">
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div>
+                <label className="block text-[10px] font-medium text-gray-500 mb-0.5">Day</label>
+                <select value={temp.day} onChange={e => setTemp({ ...temp, day: +e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                  {days.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium text-gray-500 mb-0.5">Month</label>
+                <select value={temp.month} onChange={e => setTemp({ ...temp, month: +e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                  {ETHIOPIAN_MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium text-gray-500 mb-0.5">Year</label>
+                <select value={temp.year} onChange={e => setTemp({ ...temp, year: +e.target.value })} className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                  {years.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="text-xs text-gray-500 text-center mb-3 pb-2 border-t pt-2">{formatEthiopianDate(temp, 'long')}</div>
+            <div className="flex gap-2">
+              <button onClick={() => { onChange(''); setOpen(false); }} className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Clear</button>
+              <button onClick={() => apply()} className="flex-1 px-3 py-1.5 text-sm bg-[#003153] text-white rounded-lg hover:bg-[#00223b]">Apply</button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // Simple Ethiopian to Gregorian conversion (approximate, for filtering)
 function ethiopianToGregorian(ethYear: number, ethMonth: number, ethDay: number): [number, number, number] {
@@ -218,7 +317,6 @@ export const DatabaseRecords = () => {
       setLoading(true);
       setError(null);
       try {
-        let url = '/api/form-submissions';
         const params: Record<string, string> = {};
         if (selectedTemplateId) {
           const maybeNum = Number(selectedTemplateId);
@@ -227,6 +325,8 @@ export const DatabaseRecords = () => {
           }
         }
         if (searchTerm) params.search = searchTerm;
+        if (selectedDepartment) params.department = selectedDepartment;
+        if (selectedUser) params.user = selectedUser;
         if (dateFrom) {
           const fromDate = toGregorianDateFromEthiopianInput(dateFrom);
           if (fromDate && !isNaN(fromDate.getTime())) {
@@ -245,25 +345,14 @@ export const DatabaseRecords = () => {
             params.dateTo = `${y}-${m}-${d}`;
           }
         }
-        // Pagination params (server-side). Backend may ignore; client will still cap as fallback.
         params.limit = String(PAGE_SIZE);
         params.page = String(page);
-        // Server-side scoping for non-admins
         if (!isAdmin && user?.department) params.department = String(user.department);
-        if (!isAdmin && user?.profession) params.profession = String(user.profession);
+        if (!isAdmin && user?.id) params.parentUserId = String(user.id);
 
-        const buildQuery = (obj: Record<string, string>) => url + '?' + new URLSearchParams(obj).toString();
-        const fetchWithQuery = async (queryObj: Record<string, string>) => {
-          const res = await fetch(buildQuery(queryObj));
-          if (!res.ok) throw new Error('Failed to fetch records');
-          const totalCount = res.headers.get('X-Total-Count');
-          const data = await res.json();
-          return { data: Array.isArray(data) ? data : [], total: totalCount ? parseInt(totalCount) : 0 };
-        };
-
-        const { data, total } = await fetchWithQuery(params);
-        setRecords(data);
-        setTotalServerRecords(total);
+        const qs = new URLSearchParams(params).toString();
+        const data = await apiGet(`/form-submissions?${qs}`);
+        setRecords(Array.isArray(data) ? data : []);
       } catch (err: any) {
         setError(err.message || 'Error fetching records');
       } finally {
@@ -271,7 +360,7 @@ export const DatabaseRecords = () => {
       }
     };
     fetchRecords();
-  }, [searchTerm, dateFrom, dateTo, user, selectedTemplateId, page, refreshKey]);
+  }, [searchTerm, dateFrom, dateTo, user, selectedTemplateId, page, refreshKey, selectedDepartment, selectedUser]);
 
   // Helper: Ethiopian string DD-MM-YYYY from Gregorian Date
   const toEthInput = (g: Date): string => {
@@ -767,25 +856,7 @@ export const DatabaseRecords = () => {
               <button onClick={exportToCSV} className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Export</button>
               <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
             </div>
-            <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date From (Eth)</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input type="text" placeholder="DD-MM-YYYY" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              </div>
-              {dateFrom && (() => {
-                const [d, m, y] = dateFrom.split('-').map(Number);
-                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-                  try {
-                    const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
-                    return (
-                      <div className="text-xs text-gray-500 mt-1">Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}</div>
-                    );
-                  } catch { }
-                }
-                return null;
-              })()}
-            </div>
+            <EthiopianDatePicker label="Date From (Eth)" value={dateFrom} onChange={setDateFrom} />
           </div>
           {/* Row: Date To (Eth) */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -794,25 +865,7 @@ export const DatabaseRecords = () => {
               <button onClick={exportToCSV} className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Export</button>
               <button onClick={deleteSelected} disabled={selectedIds.size === 0} className={`px-3 py-2 rounded-lg text-white ${selectedIds.size === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>Delete selected</button>
             </div>
-            <div className="w-full">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date To (Eth)</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input type="text" placeholder="DD-MM-YYYY" value={dateTo} onChange={e => setDateTo(e.target.value)} className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-              </div>
-              {dateTo && (() => {
-                const [d, m, y] = dateTo.split('-').map(Number);
-                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-                  try {
-                    const [gy, gm, gd] = ethiopianToGregorian(y, m, d);
-                    return (
-                      <div className="text-xs text-gray-500 mt-1">Gregorian: {`${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`}</div>
-                    );
-                  } catch { }
-                }
-                return null;
-              })()}
-            </div>
+            <EthiopianDatePicker label="Date To (Eth)" value={dateTo} onChange={setDateTo} />
           </div>
           {/* Row: Quick Ranges */}
           <div className="flex flex-wrap items-center gap-2">
@@ -864,7 +917,8 @@ export const DatabaseRecords = () => {
                       }
                     }
                     const BATCH_SIZE = 500;
-                    const url = '/api/form-submissions';
+                    const apiBase = resolveApiBaseForFetch();
+                    const url = `${apiBase}/form-submissions`;
                     const buildQuery = (obj: Record<string, string>) => url + '?' + new URLSearchParams(obj).toString();
 
                     // First fetch to get total count

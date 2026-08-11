@@ -60,8 +60,9 @@ function ResourceManagement() {
 
   /* ─── Fetch data ─────────────────────────────────── */
   useEffect(() => {
-    fetch('/api/resources').then(r => r.ok ? r.json() : []).then(d => setResources(Array.isArray(d) ? d : [])).catch(() => setResources([]));
-  }, []);
+    const deptParam = user?.role !== 'admin' && user?.role !== 'superadmin' && user?.department ? `?department=${encodeURIComponent(user.department)}` : '';
+    fetch(`/api/resources${deptParam}`).then(r => r.ok ? r.json() : []).then(d => setResources(Array.isArray(d) ? d : [])).catch(() => setResources([]));
+  }, [user]);
 
   useEffect(() => {
     const url = deptFilter ? `/inventory-reports?department=${encodeURIComponent(deptFilter)}` : '/inventory-reports';
@@ -188,7 +189,8 @@ function ResourceManagement() {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error(`Failed to ${editMode ? 'update' : 'add'} resource`);
 
-      const fresh = await fetch('/api/resources');
+      const freshDeptParam = user?.role !== 'admin' && user?.role !== 'superadmin' && user?.department ? `?department=${encodeURIComponent(user.department)}` : '';
+      const fresh = await fetch(`/api/resources${freshDeptParam}`);
       if (fresh.ok) setResources(await fresh.json());
       setNewResource({ name: '', type: 'Drug', quantity: '', standardQuantity: '', unit: '', expiredDate: '', batchNumber: '' });
       setShowModal(false); setEditMode(false); setEditResourceId(null);

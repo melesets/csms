@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { User, PROFESSIONS } from '../../types/auth';
 import { X } from 'lucide-react';
+import { getUniqueModules } from '../../config/pages';
 
 interface UserFormProps {
   user: User | null;
@@ -38,16 +39,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
     parentUserId: user?.parentUserId || null,
   });
 
-  const AVAILABLE_MODULES = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'isbar', label: 'Report' },
-    { id: 'staff', label: 'Department Staff' },
-    { id: 'resources', label: 'Resources' },
-    { id: 'database', label: 'All Records' },
-    { id: 'trends', label: 'Analytics' },
-    { id: 'form-builder', label: 'Form Builder' },
-    { id: 'user-management', label: 'User Management' }
-  ];
+  const AVAILABLE_MODULES = getUniqueModules();
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 

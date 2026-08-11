@@ -2,14 +2,6 @@
 // Provides responsive sidebar with role-based menu items and global search
 import React, { useState, useRef, useCallback } from 'react';
 import {
-  Home,
-  ClipboardList,
-  Users,
-  Package,
-  Database,
-  TrendingUp,
-  Settings,
-  UserPlus,
   Menu,
   X,
   LogOut,
@@ -19,14 +11,7 @@ import {
   Shield,
   ChevronsLeft,
   ChevronsRight,
-  FileText,
-  LayoutDashboard,
-  Plug,
   ChevronDown,
-  CalendarDays,
-  Tag,
-  Clock,
-  BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
@@ -34,6 +19,7 @@ import { Search } from 'lucide-react';
 import { useSearch } from '../../hooks/useSearch';
 import { EthiopianDateTimeDisplay } from './date/EthiopianDateTimeDisplay';
 import { CheckInNotificationBell } from './CheckInNotificationBell';
+import { ALL_PAGES } from '../../config/pages';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -47,7 +33,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   const [isHovering, setIsHovering] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set([]));
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { user, logout, hasPermission, revertImpersonation } = useAuth();
+  const { user, logout, hasPermission, canAccessPage, revertImpersonation } = useAuth();
   const { shift, setShift, activeSession } = useShift();
   const isAdminImpersonating = !!localStorage.getItem('isbar_admin_impersonator');
   const { query, setQuery } = useSearch();
@@ -77,32 +63,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
     });
   };
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home, module: 'dashboard', group: 'clinical' as const },
-    { id: 'isbar', label: 'Report', icon: ClipboardList, module: 'isbar', group: 'clinical' as const },
-    { id: 'staff', label: 'Department Activity', icon: Users, module: 'staff', group: 'clinical' as const },
-    { id: 'resources', label: 'Resources', icon: Package, module: 'resources', group: 'clinical' as const },
-    { id: 'database', label: 'All Records', icon: Database, module: 'database', group: 'clinical' as const },
-    { id: 'trends', label: 'Analytics', icon: TrendingUp, module: 'trends', group: 'clinical' as const },
-    { id: 'scheduling', label: 'Staff Schedule', icon: CalendarDays, module: 'scheduling', group: 'clinical' as const },
-    { id: 'form-builder', label: 'Form Builder', icon: FileText, module: 'form-builder', adminOnly: true, group: 'admin' as const },
-    { id: 'custom-tabs', label: 'Custom Tabs', icon: Tag, module: 'form-builder', adminOnly: true, group: 'admin' as const },
-    { id: 'dashboard-mapping', label: 'Dashboard Mapping', icon: LayoutDashboard, module: 'form-builder', adminOnly: true, group: 'admin' as const },
-    { id: 'integrations', label: 'Integrations', icon: Plug, module: 'form-builder', adminOnly: true, group: 'admin' as const },
-    { id: 'check-in-logs', label: 'Check-In Logs', icon: Clock, module: 'staff', adminOnly: true, group: 'admin' as const },
-    { id: 'attendance-reports', label: 'Attendance Reports', icon: BarChart3, module: 'staff', adminOnly: true, group: 'admin' as const },
-    { id: 'user-management', label: 'User Management', icon: UserPlus, module: 'user-management', adminOnly: true, group: 'admin' as const },
-    { id: 'admin-settings', label: 'Settings', icon: Settings, module: 'user-management', adminOnly: true, group: 'admin' as const },
-  ];
+  const menuItems = ALL_PAGES;
 
   const filteredMenuItems = menuItems.filter(item => {
-    if (item.adminOnly && user?.role !== 'admin') return false;
-    
-    // Explicit override for the department user needing to see their staff
-    if (item.module === 'staff' && user?.role === 'user' && user?.department) return true;
-
-    // Rely on the hasPermission logic which should handle role-based defaults or explicit overrides
-    return hasPermission(item.module);
+    // Use canAccessPage which checks the specific page ID against permissions
+    return canAccessPage(item.id);
   });
 
   return (
@@ -175,7 +140,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
           )}
 
           {/* Admin Section - collapsible */}
-          {user?.role === 'admin' && filteredMenuItems.some(item => item.group === 'admin') && (
+          {(user?.role === 'admin' || user?.role === 'superadmin') && filteredMenuItems.some(item => item.group === 'admin') && (
             <div>
               <div>
                 {sidebarExpanded && (

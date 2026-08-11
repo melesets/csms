@@ -3,7 +3,11 @@
 
 import pool from '../../config/database.js';
 
-export async function findAllResources() {
+export async function findAllResources(department) {
+  if (department) {
+    const { rows } = await pool.query('SELECT * FROM resources WHERE LOWER(department) = LOWER($1) ORDER BY id DESC', [department]);
+    return rows;
+  }
   const result = await pool.query('SELECT * FROM resources ORDER BY id DESC');
   return result.rows;
 }

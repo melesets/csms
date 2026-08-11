@@ -23,7 +23,7 @@ export interface Permission {
 
 export interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string, profession?: string) => Promise<boolean>;
+  login: (username: string, password: string, profession?: string) => Promise<string | null>;
   logout: () => void;
   impersonate?: (params: { userId?: string; username?: string }) => Promise<boolean>;
   revertImpersonation?: () => void;

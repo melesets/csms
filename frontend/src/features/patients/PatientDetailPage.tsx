@@ -105,7 +105,12 @@ export const PatientDetailPage: React.FC<PatientDetailPageProps> = ({ patient, o
   const loadHistory = useCallback(async () => {
     try {
       setLoadingHistory(true);
-      const res = await fetch('/api/form-submissions');
+      const params = new URLSearchParams();
+      if (user?.role !== 'admin' && user?.role !== 'superadmin' && user?.id) {
+        params.set('parentUserId', String(user.id));
+      }
+      const qs = params.toString();
+      const res = await fetch(`/api/form-submissions${qs ? `?${qs}` : ''}`);
       const data: Record<string, unknown>[] = res.ok ? await res.json() : [];
       const isExcluded = (name: unknown) => {
         const n = String(name || '').toLowerCase();

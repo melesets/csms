@@ -33,7 +33,7 @@ export async function getUserActivity(username) {
   };
 }
 
-export async function getDepartmentActivity(department) {
+export async function getDepartmentActivity(department, parentUserId) {
   let submissionsQuery = `SELECT fs.id, fs.template_name, fs.submitted_at, fs.submitted_by_name, fs.form_data, ss.shift_name
     FROM form_submissions fs LEFT JOIN shift_sessions ss ON fs.shift_session_id::text = ss.id::text`;
   let resourcesQuery = `SELECT r.id, r.name, r.type, r.quantity, r.unit, r.updated_at, r.last_updated_by, ss.shift_name
@@ -42,12 +42,25 @@ export async function getDepartmentActivity(department) {
     FROM inventory_reports ir LEFT JOIN shift_sessions ss ON ir.shift_session_id::text = ss.id::text`;
 
   const params = [];
+  const submissionsConditions = [];
+  const resourcesConditions = [];
+  const reportsConditions = [];
+
   if (department !== 'All') {
-    submissionsQuery += ' WHERE fs.template_department = $1';
-    resourcesQuery += ' WHERE r.department = $1';
-    reportsQuery += ' WHERE ir.department = $1';
+    submissionsConditions.push('fs.template_department = $' + (params.length + 1));
+    resourcesConditions.push('r.department = $' + (params.length + 1));
+    reportsConditions.push('ir.department = $' + (params.length + 1));
     params.push(department);
   }
+
+  if (parentUserId) {
+    submissionsConditions.push(`(fs.submitted_by IN (SELECT username FROM users WHERE parent_user_id = $${params.length + 1}) OR fs.submitted_by = (SELECT username FROM users WHERE id = $${params.length + 1}))`);
+    params.push(parentUserId);
+  }
+
+  if (submissionsConditions.length) submissionsQuery += ' WHERE ' + submissionsConditions.join(' AND ');
+  if (resourcesConditions.length) resourcesQuery += ' WHERE ' + resourcesConditions.join(' AND ');
+  if (reportsConditions.length) reportsQuery += ' WHERE ' + reportsConditions.join(' AND ');
 
   const [submissionsResult, resourcesResult, reportsResult] = await Promise.all([
     pool.query(submissionsQuery + ' ORDER BY fs.submitted_at DESC LIMIT 30', params),

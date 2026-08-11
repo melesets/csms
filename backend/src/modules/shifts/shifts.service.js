@@ -169,7 +169,7 @@ export async function getLatestHandover(ward, profession, mrn) {
 }
 
 export async function getCheckInLogs(filters = {}) {
-  const { startDate, endDate, department, staffId, page = 1, limit = 50 } = filters;
+  const { startDate, endDate, department, staffId, page = 1, limit = 50, parentUserId } = filters;
   const params = [];
   const conditions = [];
 
@@ -188,6 +188,10 @@ export async function getCheckInLogs(filters = {}) {
   if (staffId) {
     params.push(staffId);
     conditions.push(`ss.user_id = $${params.length}`);
+  }
+  if (parentUserId) {
+    params.push(parentUserId);
+    conditions.push(`(u.parent_user_id = $${params.length} OR u.id = $${params.length})`);
   }
 
   const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
@@ -223,7 +227,7 @@ export async function getCheckInLogs(filters = {}) {
 }
 
 export async function getAttendanceReport(filters = {}) {
-  const { startDate, endDate, department } = filters;
+  const { startDate, endDate, department, parentUserId } = filters;
   const params = [];
   const conditions = [];
 
@@ -238,6 +242,10 @@ export async function getAttendanceReport(filters = {}) {
   if (department) {
     params.push(department);
     conditions.push(`u.department = $${params.length}`);
+  }
+  if (parentUserId) {
+    params.push(parentUserId);
+    conditions.push(`(u.parent_user_id = $${params.length} OR u.id = $${params.length})`);
   }
 
   const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';

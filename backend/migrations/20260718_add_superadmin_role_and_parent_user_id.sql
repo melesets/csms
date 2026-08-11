@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_users_parent_user_id ON users(parent_user_id);
 INSERT INTO users (username, password, name, email, role, department, isactive, created_at)
 VALUES (
   'superadmin',
-  '$2b$10$YQ8GvFOCwPjKhKHuFpJhZeQxVpGfn1WzGqYmKXy3hLz5kN7mO9pQr',
+  '$2b$10$bKrwDDh/8uBd8KwpB9fpJ.13nTOtLWdnu.gkQ/EtRPYvGiQcBz7j6',
   'Super Administrator',
   'superadmin@isbar.local',
   'superadmin',

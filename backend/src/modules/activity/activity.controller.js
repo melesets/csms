@@ -9,7 +9,11 @@ export const getUserActivity = asyncHandler(async (req, res) => {
 });
 
 export const getDepartmentActivity = asyncHandler(async (req, res) => {
-  const activity = await activityService.getDepartmentActivity(req.params.department);
+  const isNonAdmin = req.user.role !== 'admin' && req.user.role !== 'superadmin';
+  const activity = await activityService.getDepartmentActivity(
+    req.params.department,
+    isNonAdmin ? req.user.id : undefined
+  );
   res.json(activity);
 });
 

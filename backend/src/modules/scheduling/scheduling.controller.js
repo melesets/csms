@@ -55,14 +55,15 @@ export const deleteShiftType = async (req, res) => {
 // ── Schedules ────────────────────────────────────────────────────────────
 
 export const getSchedules = async (req, res) => {
-  const { department, startDate, endDate, staffUserId, shiftTypeId } = req.query;
+  const { department, startDate, endDate, staffUserId, shiftTypeId, parentUserId } = req.query;
   if (!department || !startDate || !endDate) {
     return res.status(400).json({ error: 'department, startDate, and endDate are required' });
   }
   const schedules = await schedulingService.getSchedules({
     department, startDate, endDate,
     staffUserId: staffUserId ? parseInt(staffUserId) : undefined,
-    shiftTypeId: shiftTypeId ? parseInt(shiftTypeId) : undefined
+    shiftTypeId: shiftTypeId ? parseInt(shiftTypeId) : undefined,
+    parentUserId: parentUserId ? parseInt(parentUserId) : undefined
   });
   res.json(schedules);
 };
@@ -187,8 +188,11 @@ export const getUnavailability = async (req, res) => {
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'startDate and endDate are required' });
   }
+  const isNonAdmin = req.user.role !== 'admin' && req.user.role !== 'superadmin';
   const items = await schedulingService.getUnavailability({
-    department, startDate, endDate, userId: userId ? parseInt(userId) : undefined
+    department, startDate, endDate,
+    userId: userId ? parseInt(userId) : undefined,
+    parentUserId: isNonAdmin ? req.user.id : undefined
   });
   res.json(items);
 };
@@ -218,10 +222,13 @@ export const getChangeLog = async (req, res) => {
   if (!department || !startDate || !endDate) {
     return res.status(400).json({ error: 'department, startDate, and endDate are required' });
   }
-  const log = await schedulingService.getChangeLog({
-    department, startDate, endDate, staffUserId: staffUserId ? parseInt(staffUserId) : undefined
+  const isNonAdmin = req.user.role !== 'admin' && req.user.role !== 'superadmin';
+  const items = await schedulingService.getChangeLog({
+    department, startDate, endDate,
+    staffUserId: staffUserId ? parseInt(staffUserId) : undefined,
+    parentUserId: isNonAdmin ? req.user.id : undefined
   });
-  res.json(log);
+  res.json(items);
 };
 
 // ── Holidays ─────────────────────────────────────────────────────────────
