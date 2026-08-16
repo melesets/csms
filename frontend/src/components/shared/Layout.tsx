@@ -18,7 +18,7 @@ import { useShift } from '../../hooks/useShift';
 import { Search } from 'lucide-react';
 import { useSearch } from '../../hooks/useSearch';
 import { EthiopianDateTimeDisplay } from './date/EthiopianDateTimeDisplay';
-import { CheckInNotificationBell } from './CheckInNotificationBell';
+import { NotificationBell } from './NotificationBell';
 import { ALL_PAGES } from '../../config/pages';
 
 interface LayoutProps {
@@ -66,6 +66,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   const menuItems = ALL_PAGES;
 
   const filteredMenuItems = menuItems.filter(item => {
+    // Hide pages marked as hidden
+    if (item.hidden) return false;
     // Use canAccessPage which checks the specific page ID against permissions
     return canAccessPage(item.id);
   });
@@ -234,7 +236,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
             <button 
               onClick={() => {
                 if (revertImpersonation) revertImpersonation();
-                window.location.href = '/'; 
+                onNavigate?.('dashboard');
               }}
               className="px-3 py-1 bg-white text-red-700 text-xs font-bold rounded shadow hover:bg-gray-100 transition-colors"
             >
@@ -285,12 +287,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
                       return 'Check-In Logs';
                     case 'attendance-reports':
                       return 'Attendance Reports';
+                    case 'activity-log':
+                      return 'Activity Log';
                     case 'integrations':
                       return 'Integrations';
                     case 'user-management':
                       return 'User Management';
                     case 'units':
                       return 'Unit Management';
+                    case 'feedback':
+                      return 'Feedback';
                     default:
                       return currentPage.replace('-', ' ');
                   }
@@ -313,29 +319,29 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
               <div className="hidden md:flex items-center text-xs font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200">
                 <EthiopianDateTimeDisplay date={new Date()} showTime format="long" />
               </div>
-              <CheckInNotificationBell />
+              <NotificationBell onNavigate={onNavigate} />
 
               {activeSession && (
                 <div className="hidden lg:flex items-center gap-3">
                   <div className="flex flex-col items-end">
                     <span className="text-[9px] uppercase font-bold text-gray-400">Ward / Station</span>
-                    <span className="text-xs font-bold text-blue-700">{activeSession.ward}</span>
+                    <span className="text-xs font-bold text-[#003153]">{activeSession.ward}</span>
                   </div>
                   <div className="h-6 w-[1px] bg-gray-300" />
                   <div className="flex flex-col items-end">
                     <span className="text-[9px] uppercase font-bold text-gray-400">Shift</span>
-                    <span className="text-xs font-bold text-indigo-700">{activeSession.shiftName}</span>
+                    <span className="text-xs font-bold text-[#002640]">{activeSession.shiftName}</span>
                   </div>
                 </div>
               )}
 
               {user?.role === 'admin' && (
-                <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-                  <label className="text-[10px] font-bold text-blue-600 uppercase">View Shift:</label>
+                <div className="flex items-center space-x-2 bg-[#003153]/5 px-3 py-1.5 rounded-lg border border-[#003153]/10">
+                  <label className="text-[10px] font-bold text-[#003153] uppercase">View Shift:</label>
                   <select
                     value={shift}
                     onChange={e => setShift(e.target.value as any)}
-                    className="text-xs font-bold bg-transparent text-blue-700 outline-none cursor-pointer"
+                    className="text-xs font-bold bg-transparent text-[#002640] outline-none cursor-pointer"
                   >
                     <option value="All">All Shifts</option>
                     <option value="Morning">Morning</option>

@@ -43,6 +43,7 @@ function handle401() {
 
 export function getMediaUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined;
+  if (path === 'null' || path === 'undefined' || path.length < 5) return undefined;
   if (path.startsWith('http')) return path;
   if (path.startsWith('/uploads/')) {
     const apiBase = resolveApiBase();
@@ -64,6 +65,27 @@ export async function apiGet(path: string) {
   if (!res.ok) {
     const text = await res.text();
     const err = new Error(text || `GET ${path} failed`);
+    (err as any).status = res.status;
+    (err as any).statusText = res.statusText;
+    throw err;
+  }
+  return res.json();
+}
+
+export async function apiUpload(path: string, formData: FormData): Promise<any> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+  if (res.status === 401) {
+    handle401();
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error || 'Session expired'), { status: 401 });
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    const err = new Error(text || `UPLOAD ${path} failed`);
     (err as any).status = res.status;
     (err as any).statusText = res.statusText;
     throw err;

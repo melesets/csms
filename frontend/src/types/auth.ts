@@ -9,7 +9,7 @@ export interface User {
   profession?: 'Nurse' | 'Midwifery' | 'General Practitioner' | 'Senior Physician' | 'Admin' | 'Laboratory' | 'Pharmacy' | 'Radiology' | 'Other Coordinators';
   isActive: boolean;
   permissions: Permission[];
-  shiftType?: 'TID' | 'BID' | '24H' | '36H' | '48H';
+  shiftType?: '4H' | '8H' | '12H' | '24H' | '36H' | '48H' | '72H';
   createdBy?: string;
   createdAt?: string;
   lastLogin?: string;

@@ -44,7 +44,7 @@ export async function findAllPatients(department) {
     return {
       id: row.id,
       mrn: row.mrn_val,
-      patientName: findVal(['patientName', 'Patient Name', 'Patient name', 'patient_name', 'PatientName', 'name', 'Name']),
+      patientName: findVal(['patientName', 'Patient Name', 'Patient name', 'patient_name', 'PatientName', 'name', 'Name', 'Client Name', 'clientName', 'Client name']),
       age: findVal(['Age', 'age', 'patientAge']) || null,
       gender: findVal(['Gender', 'gender', 'sex', 'Sex']) || 'N/A',
       bedNumber: findVal(['BN', 'bedNumber', 'Bed Number', 'bed_number', 'bn', 'Bed', 'bed', 'bedNo', 'BedNo']),
@@ -59,7 +59,7 @@ export async function findAllPatients(department) {
   });
 }
 
-export async function findPatientByMrn(mrn, department) {
+async function queryPatientByMrn(mrn, department) {
   let query = `
     SELECT form_data, template_name, template_department, submitted_at, submitted_by_name
     FROM form_submissions WHERE 1=1
@@ -86,11 +86,21 @@ export async function findPatientByMrn(mrn, department) {
   return result.rows[0] || null;
 }
 
+export async function findPatientByMrn(mrn, department) {
+  // Prefer the department-scoped match, but fall back to a global search so MRN
+  // auto-population still works when the patient record was created under a
+  // different department than the current form's template.
+  const scoped = await queryPatientByMrn(mrn, department);
+  if (scoped) return scoped;
+  if (department) return await queryPatientByMrn(mrn, null);
+  return null;
+}
+
 export async function findMrns(department) {
   let query = `
     SELECT DISTINCT 
       COALESCE(form_data->>'mrn', form_data->>'MRN', form_data->>'patient_mrn', form_data->>'patientMrn', form_data->>'_mrn') as mrn,
-      COALESCE(form_data->>'patientName', form_data->>'Patient name', form_data->>'patient_name') as patient_name
+      COALESCE(form_data->>'patientName', form_data->>'Patient name', form_data->>'patient_name', form_data->>'clientName', form_data->>'Client Name') as patient_name
     FROM form_submissions 
     WHERE COALESCE(form_data->>'mrn', form_data->>'MRN', form_data->>'patient_mrn', form_data->>'patientMrn', form_data->>'_mrn') IS NOT NULL
     AND COALESCE(form_data->>'mrn', form_data->>'MRN', form_data->>'patient_mrn', form_data->>'patientMrn', form_data->>'_mrn') != ''

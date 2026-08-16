@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
-import { X, Unlock, Lock, Zap, LogOut, Users } from 'lucide-react';
+import { X, Unlock, Lock, Zap, LogOut, Users, FileText, Package, Clock, ChevronRight } from 'lucide-react';
 import { apiGet, apiPost, getMediaUrl } from '../../api';
+import { EthiopianDateTimeDisplay } from '../../components/shared/date/EthiopianDateTimeDisplay';
 
 interface StaffMember {
   id: string;
@@ -34,6 +35,14 @@ const getAvatarColor = (name: string) => {
   return AVATAR_COLORS[idx];
 };
 
+const getShiftElapsed = (start: string | null) => {
+  if (!start) return '';
+  const diff = Math.max(0, Date.now() - new Date(start).getTime());
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
+
 export const DepartmentStaffPanel = () => {
   const { user, setActiveOperator } = useAuth();
   const { shiftContext, refreshShiftContext } = useShift();
@@ -45,6 +54,7 @@ export const DepartmentStaffPanel = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterDept, setFilterDept] = useState('');
+  const [modalAction, setModalAction] = useState<'choose' | 'checkin' | 'checkout'>('choose');
 
   const fetchStaff = async () => {
     if (!user) return;
@@ -130,6 +140,7 @@ export const DepartmentStaffPanel = () => {
           setRequirePin(!!s.has_pin);
           setPin('');
           setError('');
+          setModalAction(s.session_id ? 'choose' : 'checkin');
         }}
         className={`group relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-200
           hover:-translate-y-0.5 active:translate-y-0 text-left w-full
@@ -257,7 +268,7 @@ export const DepartmentStaffPanel = () => {
                 return (
                   <button
                     key={s.id}
-                    onClick={() => { setSelectedStaff(s); setRequirePin(!!s.has_pin); setPin(''); setError(''); }}
+                    onClick={() => { setSelectedStaff(s); setRequirePin(!!s.has_pin); setPin(''); setError(''); setModalAction('checkin'); }}
                     className="flex items-center gap-3 px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors text-left w-full"
                   >
                     <div className={`relative w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-xs shrink-0`}>
@@ -298,9 +309,10 @@ export const DepartmentStaffPanel = () => {
         const avatarColor = getAvatarColor(selectedStaff.name);
         const isCheckOut = !!selectedStaff.session_id;
         const hasPhoto = selectedStaff.profile_picture && selectedStaff.profile_picture !== 'null' && selectedStaff.profile_picture.length > 5;
+        const closeModal = () => { setSelectedStaff(null); setPin(''); setError(''); setModalAction('choose'); };
         return (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className={`px-5 py-4 flex items-center justify-between ${isCheckOut ? 'bg-orange-50' : 'bg-[#003153]/5'}`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-sm`}>
@@ -322,77 +334,157 @@ export const DepartmentStaffPanel = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => { setSelectedStaff(null); setPin(''); setError(''); }}
+                  onClick={closeModal}
                   className="text-gray-400 hover:text-gray-600 transition p-1.5 rounded-full hover:bg-white"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleAction} className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <p className={`text-sm font-bold ${isCheckOut ? 'text-orange-600' : 'text-[#003153]'}`}>
-                    {isCheckOut ? (
-                      <span className="flex items-center gap-1.5"><LogOut className="w-4 h-4" /> Clock Out</span>
-                    ) : (
-                      <span className="flex items-center gap-1.5"><Zap className="w-4 h-4" /> Take Control</span>
-                    )}
-                  </p>
-                  
-                  {selectedStaff.has_pin ? (
+              {isCheckOut && modalAction === 'choose' ? (
+                <div className="p-5">
+                  <div className="rounded-xl bg-[#003153]/[0.04] border border-[#003153]/10 px-4 py-3 mb-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Clock className="w-4 h-4 text-[#003153] shrink-0" />
+                        <span className="text-xs font-bold text-[#003153] truncate">{selectedStaff.shift_name || 'On Duty'}</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 shrink-0">
+                          ● On Duty
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600 shrink-0">{getShiftElapsed(selectedStaff.start_time)} on duty</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1.5">
+                      Clocked in at <EthiopianDateTimeDisplay date={selectedStaff.start_time} showTime format="long" size="xs" />
+                    </p>
+                  </div>
+
+                  <p className="text-sm font-bold text-gray-900 mb-3">What would you like to do?</p>
+                  <div className="space-y-2.5">
                     <button
                       type="button"
                       onClick={() => {
-                        if (requirePin && pin.length !== 4) return;
-                        setRequirePin(!requirePin);
+                        window.location.href = `/csms/?reporter=${selectedStaff.id}&reporterName=${encodeURIComponent(selectedStaff.name)}&reporterUsername=${encodeURIComponent(selectedStaff.username)}`;
                       }}
-                      className={`text-[10px] flex items-center gap-1 font-bold px-2.5 py-1 rounded-full transition-colors ${
-                        requirePin ? 'bg-[#003153]/10 text-[#003153]' : 'bg-emerald-100 text-emerald-700'
-                      }`}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#003153] hover:bg-[#002640] text-white shadow-md shadow-[#003153]/20 transition-all transform active:scale-[0.98] group"
                     >
-                      {requirePin ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                      {requirePin ? 'PIN On' : 'No PIN'}
+                      <span className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </span>
+                      <span className="flex-1 text-left min-w-0">
+                        <span className="block text-sm font-bold">Report</span>
+                        <span className="block text-[11px] text-white/75 font-medium truncate">File a handover / shift report</span>
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
                     </button>
-                  ) : (
-                    <span className="text-[10px] flex items-center gap-1 font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                      <Unlock className="w-3 h-3" /> No PIN Required
-                    </span>
-                  )}
-                </div>
-
-                {error && (
-                  <div className="mb-3 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 text-center">
-                    {error}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = `/csms/?dest=inventory&reporter=${selectedStaff.id}&reporterName=${encodeURIComponent(selectedStaff.name)}&reporterUsername=${encodeURIComponent(selectedStaff.username)}`;
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#003153] hover:bg-[#002640] text-white shadow-md shadow-[#003153]/20 transition-all transform active:scale-[0.98] group"
+                    >
+                      <span className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <Package className="w-5 h-5" />
+                      </span>
+                      <span className="flex-1 text-left min-w-0">
+                        <span className="block text-sm font-bold">Inventory</span>
+                        <span className="block text-[11px] text-white/75 font-medium truncate">Update stock &amp; equipment</span>
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModalAction('checkout')}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#003153] hover:bg-[#002640] text-white shadow-md shadow-[#003153]/20 transition-all transform active:scale-[0.98] group"
+                    >
+                      <span className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <LogOut className="w-5 h-5" />
+                      </span>
+                      <span className="flex-1 text-left min-w-0">
+                        <span className="block text-sm font-bold">Clock Out</span>
+                        <span className="block text-[11px] text-white/75 font-medium truncate">End your shift now</span>
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    </button>
                   </div>
-                )}
+                </div>
+              ) : (
+                <form onSubmit={handleAction} className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className={`text-sm font-bold ${isCheckOut ? 'text-orange-600' : 'text-[#003153]'}`}>
+                      {isCheckOut ? (
+                        <span className="flex items-center gap-1.5"><LogOut className="w-4 h-4" /> Clock Out</span>
+                      ) : (
+                        <span className="flex items-center gap-1.5"><Zap className="w-4 h-4" /> Take Control</span>
+                      )}
+                    </p>
+                    
+                    {selectedStaff.has_pin ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (requirePin && pin.length !== 4) return;
+                          setRequirePin(!requirePin);
+                        }}
+                        className={`text-[10px] flex items-center gap-1 font-bold px-2.5 py-1 rounded-full transition-colors ${
+                          requirePin ? 'bg-[#003153]/10 text-[#003153]' : 'bg-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        {requirePin ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                        {requirePin ? 'PIN On' : 'No PIN'}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] flex items-center gap-1 font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                        <Unlock className="w-3 h-3" /> No PIN Required
+                      </span>
+                    )}
+                  </div>
 
-                {requirePin && (
-                  <input
-                    type="password"
-                    autoComplete="one-time-code"
-                    maxLength={4}
-                    pattern="\d{4}"
-                    autoFocus
-                    value={pin}
-                    onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-                    className="w-full text-center text-3xl tracking-[0.5em] py-4 rounded-xl border-2 border-gray-200 focus:border-[#003153] focus:ring-0 bg-gray-50 focus:bg-white transition-colors mb-4 shadow-inner"
-                    placeholder="••••"
-                    disabled={isSubmitting}
-                  />
-                )}
+                  {error && (
+                    <div className="mb-3 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 text-center">
+                      {error}
+                    </div>
+                  )}
 
-                <button
-                  type="submit"
-                  disabled={(requirePin && pin.length !== 4) || isSubmitting}
-                  className={`w-full py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 disabled:opacity-40
-                    ${isCheckOut
-                      ? 'bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-200'
-                      : 'bg-[#003153] hover:bg-[#002640] shadow-md shadow-[#003153]/20'
-                    }`}
-                >
-                  {isSubmitting ? 'Verifying...' : isCheckOut ? 'Clock Out' : 'Clock In'}
-                </button>
-              </form>
+                  {requirePin && (
+                    <input
+                      type="password"
+                      autoComplete="one-time-code"
+                      maxLength={4}
+                      pattern="\d{4}"
+                      autoFocus
+                      value={pin}
+                      onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                      className="w-full text-center text-3xl tracking-[0.5em] py-4 rounded-xl border-2 border-gray-200 focus:border-[#003153] focus:ring-0 bg-gray-50 focus:bg-white transition-colors mb-4 shadow-inner"
+                      placeholder="••••"
+                      disabled={isSubmitting}
+                    />
+                  )}
+
+                  {isCheckOut && (
+                    <button
+                      type="button"
+                      onClick={() => setModalAction('choose')}
+                      className="w-full mb-2 py-2.5 rounded-xl font-semibold text-gray-500 hover:bg-gray-50 border border-gray-200 transition-colors text-sm"
+                    >
+                      ← Back
+                    </button>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={(requirePin && pin.length !== 4) || isSubmitting}
+                    className={`w-full py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 disabled:opacity-40
+                      ${isCheckOut
+                        ? 'bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-200'
+                        : 'bg-[#003153] hover:bg-[#002640] shadow-md shadow-[#003153]/20'
+                      }`}
+                  >
+                    {isSubmitting ? 'Verifying...' : isCheckOut ? 'Clock Out' : 'Clock In'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         );

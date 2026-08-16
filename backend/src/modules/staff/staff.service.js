@@ -30,6 +30,9 @@ export async function findAllStaff(parentUserId, department) {
   let query = `
     SELECT u.id, u.name, u.username, u.profession AS role, u.department, u.profile_picture,
            u.created_by AS "createdBy", u.parent_user_id AS "parentUserId",
+           u.email, u.address, u.phone, u.qualification, u.service_start_date AS "serviceStartDate",
+           u.hospital_start_date AS "hospitalStartDate",
+           u.created_at AS "memberSince", u.isactive AS "isActive",
            ss.shift_name AS "currentShift", ss.start_time AS "shiftStartTime", ss.is_active AS "isOnDuty"
     FROM users u
     LEFT JOIN shift_sessions ss ON u.id = ss.user_id AND ss.is_active = true
@@ -55,7 +58,10 @@ export async function findAllStaff(parentUserId, department) {
   } catch (joinErr) {
     let fallbackQuery = `
       SELECT u.id, u.name, u.username, u.profession AS role, u.department, u.profile_picture,
-             u.created_by AS "createdBy", u.parent_user_id AS "parentUserId"
+             u.created_by AS "createdBy", u.parent_user_id AS "parentUserId",
+             u.email, u.address, u.phone, u.qualification, u.service_start_date AS "serviceStartDate",
+             u.hospital_start_date AS "hospitalStartDate",
+             u.created_at AS "memberSince", u.isactive AS "isActive"
       FROM users u WHERE u.role = 'staff'
     `;
     const fallbackParams = [];
@@ -76,26 +82,36 @@ export async function findAllStaff(parentUserId, department) {
 
 export async function createStaff(data) {
   const { name, role, department, createdBy, parentUserId } = data;
+  const { email, address, phone, qualification, serviceStartDate, hospitalStartDate } = data;
   const tempUsername = name.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 10000);
-  const tempEmail = tempUsername + '@isbar.local';
+  const tempEmail = email || tempUsername + '@isbar.local';
   const profilePicture = data.profilePicture || null;
 
   const result = await pool.query(
-    'INSERT INTO users (name, profession, department, role, username, email, password, isactive, created_by, parent_user_id, created_at, profile_picture) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, NOW(), $10) RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture',
-    [name, role, department, 'staff', tempUsername, tempEmail, 'staffpass', createdBy ?? null, parentUserId ?? null, profilePicture]
+    `INSERT INTO users (name, profession, department, role, username, email, password, isactive, created_by, parent_user_id, created_at, profile_picture, address, phone, qualification, service_start_date, hospital_start_date)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, NOW(), $10, $11, $12, $13, $14, $15)
+     RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture, email, address, phone, qualification, service_start_date AS "serviceStartDate", hospital_start_date AS "hospitalStartDate"`,
+    [name, role, department, 'staff', tempUsername, tempEmail, 'staffpass', createdBy ?? null, parentUserId ?? null, profilePicture, address || null, phone || null, qualification || null, serviceStartDate || null, hospitalStartDate || null]
   );
   return result.rows[0];
 }
 
 export async function updateStaff(id, data) {
   const { name, role, department, profilePicture, parentUserId } = data;
+  const { email, address, phone, qualification, serviceStartDate, hospitalStartDate } = data;
   let query, params;
   if (profilePicture) {
-    query = 'UPDATE users SET name = $1, profession = $2, department = $3, profile_picture = $4, parent_user_id = COALESCE($6, parent_user_id) WHERE id = $5 AND role = $7 RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture';
-    params = [name, role, department, profilePicture, id, parentUserId ?? null, 'staff'];
+    query = `UPDATE users SET name = $1, profession = $2, department = $3, profile_picture = $4, parent_user_id = COALESCE($6, parent_user_id),
+             email = $7, address = $8, phone = $9, qualification = $10, service_start_date = $11, hospital_start_date = $12
+             WHERE id = $5 AND role = $13
+             RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture, email, address, phone, qualification, service_start_date AS "serviceStartDate", hospital_start_date AS "hospitalStartDate"`;
+    params = [name, role, department, profilePicture, id, parentUserId ?? null, email || null, address || null, phone || null, qualification || null, serviceStartDate || null, hospitalStartDate || null, 'staff'];
   } else {
-    query = 'UPDATE users SET name = $1, profession = $2, department = $3, parent_user_id = COALESCE($5, parent_user_id) WHERE id = $4 AND role = $6 RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture';
-    params = [name, role, department, id, parentUserId ?? null, 'staff'];
+    query = `UPDATE users SET name = $1, profession = $2, department = $3, parent_user_id = COALESCE($5, parent_user_id),
+             email = $6, address = $7, phone = $8, qualification = $9, service_start_date = $10, hospital_start_date = $11
+             WHERE id = $4 AND role = $12
+             RETURNING id, name, profession AS role, department, created_by AS "createdBy", parent_user_id AS "parentUserId", profile_picture, email, address, phone, qualification, service_start_date AS "serviceStartDate", hospital_start_date AS "hospitalStartDate"`;
+    params = [name, role, department, id, parentUserId ?? null, email || null, address || null, phone || null, qualification || null, serviceStartDate || null, hospitalStartDate || null, 'staff'];
   }
   const result = await pool.query(query, params);
   return result.rows[0] || null;

@@ -15,7 +15,9 @@ export async function findAllReports(department, parentUserId) {
     conditions.push(`(ir.staffid IN (SELECT id FROM users WHERE parent_user_id = $${params.length}) OR ir.staffid = $${params.length})`);
     const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
     const { rows } = await pool.query(
-      `SELECT ir.* FROM inventory_reports ir ${whereClause} ORDER BY ir.date DESC`,
+      `SELECT ir.id, ir.shift, ir.staffname AS "staffName", ir.staffid AS "staffId", ir.department,
+              ir.date, ir.resources, ir.co_signers, ir.shift_session_id
+       FROM inventory_reports ir ${whereClause} ORDER BY ir.date DESC`,
       params
     );
     return rows;

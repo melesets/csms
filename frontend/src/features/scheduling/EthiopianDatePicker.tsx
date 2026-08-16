@@ -36,10 +36,21 @@ interface Props {
 export default function EthiopianDatePicker({ value, onChange }: Props) {
   const eth = useMemo(() => gregorianToEthiopian(toLocal(value)), [value]);
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const [viewMonth, setViewMonth] = useState(eth.month);
   const [viewYear, setViewYear] = useState(eth.year);
   const [selectedDay, setSelectedDay] = useState(eth.day);
   const ref = useRef<HTMLDivElement>(null);
+
+  const DROPDOWN_HEIGHT = 430;
+
+  const toggleOpen = () => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setOpenUp(rect.bottom + DROPDOWN_HEIGHT > window.innerHeight && rect.top - DROPDOWN_HEIGHT > 0);
+    }
+    setOpen(o => !o);
+  };
 
   useEffect(() => {
     const e = gregorianToEthiopian(toLocal(value));
@@ -102,7 +113,7 @@ export default function EthiopianDatePicker({ value, onChange }: Props) {
   return (
     <div className="relative" ref={ref}>
       <div
-        onClick={() => setOpen(o => !o)}
+        onClick={toggleOpen}
         className="flex items-center gap-1.5 border border-gray-200 rounded-md px-2 py-1 cursor-pointer hover:border-gray-300 transition-colors select-none"
         title={`Gregorian: ${value}`}
       >
@@ -111,7 +122,7 @@ export default function EthiopianDatePicker({ value, onChange }: Props) {
       </div>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 w-[300px] overflow-hidden">
+        <div className={`absolute left-0 ${openUp ? 'bottom-full mb-1' : 'top-full mt-1'} bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 w-[300px] overflow-hidden`}>
           <div className="px-4 pt-4 pb-2">
             <div className="text-[11px] text-gray-400 font-medium mb-0.5">Selected Date</div>
             <div className="text-sm font-bold text-gray-800">{headerLabel}</div>

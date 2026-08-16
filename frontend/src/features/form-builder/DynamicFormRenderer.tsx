@@ -68,6 +68,19 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     });
   };
 
+  // Normalize a string for name/label matching
+  const norm = (s: any) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // Match a field by its name OR label (handles auto-generated timestamp suffixes)
+  const fieldMatches = useCallback((field: FormField, names: string[]) => {
+    const fn = norm(field.name);
+    const fl = norm(field.label);
+    return names.some(nm => {
+      const t = norm(nm);
+      return fn === t || fl === t || fn.startsWith(t);
+    });
+  }, []);
+
   // MRN lookup functionality
   const lookupPatientByMRN = useCallback(async (mrn: string) => {
     if (!mrn || mrn.length < 2) return;
@@ -81,76 +94,45 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       if (response.ok) {
         const patientData = await response.json();
 
-        // Auto-populate identification fields
-        const fieldsToPopulate = {
-          // Patient Name variations
-          'Patient Name': patientData.patientName,
-          patientName: patientData.patientName,
-          'Patient name': patientData.patientName,
-          patient_name: patientData.patientName,
-          PatientName: patientData.patientName,
-          name: patientData.patientName,
-          Name: patientData.patientName,
-
-          // MRN variations
-          MRN: patientData.mrn,
-          mrn: patientData.mrn,
-          patient_mrn: patientData.mrn,
-          patientMrn: patientData.mrn,
-          _mrn: patientData.mrn,
-
-          // Age variations
-          Age: patientData.age,
-          age: patientData.age,
-          AGE: patientData.age,
-
-          // Gender variations
-          Gender: patientData.gender,
-          gender: patientData.gender,
-          GENDER: patientData.gender,
-          sex: patientData.gender,
-          Sex: patientData.gender,
-
-          // Bed Number variations
-          BN: patientData.bedNumber,
-          bedNumber: patientData.bedNumber,
-          'Bed Number': patientData.bedNumber,
-          bed_number: patientData.bedNumber,
-          bn: patientData.bedNumber,
-          Bed: patientData.bedNumber,
-          bed: patientData.bedNumber,
-          'Bed No': patientData.bedNumber,
-          bedNo: patientData.bedNumber,
-
-          // Date of Birth variations
-          dateOfBirth: patientData.dateOfBirth,
-          'Date of Birth': patientData.dateOfBirth,
-          dob: patientData.dateOfBirth,
-          DOB: patientData.dateOfBirth,
-
-          // Allergies variations
-          allergies: patientData.allergies,
-          Allergies: patientData.allergies,
-          ALLERGIES: patientData.allergies,
-
-          // Diagnosis variations
-          diagnosis: patientData.diagnosis,
-          Diagnosis: patientData.diagnosis,
-          'Current Diagnosis': patientData.diagnosis,
-          currentDiagnosis: patientData.diagnosis
-        };
+        // Auto-populate identification fields (matched by field name OR label)
+        const populateSpecs: Array<{ names: string[]; value: any; isGender?: boolean }> = [
+          { names: ['Patient Name', 'patientName', 'Patient name', 'patient_name', 'PatientName', 'name', 'Name', 'Client Name', 'clientName', 'Client name'], value: patientData.patientName },
+          { names: ['MRN', 'mrn', 'patient_mrn', 'patientMrn', '_mrn'], value: patientData.mrn },
+          { names: ['Age', 'age', 'AGE', 'Patient Age', 'patientAge'], value: patientData.age },
+          { names: ['Gender', 'gender', 'GENDER', 'sex', 'Sex', 'SEX'], value: patientData.gender, isGender: true },
+          { names: ['BN', 'bedNumber', 'Bed Number', 'bed_number', 'bn', 'Bed', 'bed', 'Bed No', 'bedNo', 'BedNo'], value: patientData.bedNumber },
+          { names: ['dateOfBirth', 'Date of Birth', 'dob', 'DOB', 'birthDate', 'Birth Date'], value: patientData.dateOfBirth },
+          { names: ['allergies', 'Allergies', 'ALLERGIES', 'allergy', 'Allergy'], value: patientData.allergies },
+          { names: ['diagnosis', 'Diagnosis', 'Current Diagnosis', 'currentDiagnosis', 'Primary Diagnosis', 'primaryDiagnosis', 'condition', 'Condition'], value: patientData.diagnosis },
+        ];
 
         // Only populate fields that exist in the form
         const updatedData: Record<string, any> = {};
-        Object.entries(fieldsToPopulate).forEach(([fieldName, value]) => {
-          // Check if field exists in template
-          const fieldExists = templateFields.some(field => field.name === fieldName);
-          // Only populate if field exists and is currently empty or contains placeholder-like value
-          if (value && fieldExists) {
-            const currentVal = formData[fieldName];
-            if (!currentVal || currentVal === '' || currentVal === 'N/A' || currentVal === 'Unknown') {
-              updatedData[fieldName] = value;
+        populateSpecs.forEach(({ names, value, isGender }) => {
+          if (!value) return;
+          const target = templateFields.find(field => fieldMatches(field, names));
+          if (!target) return;
+
+          const currentVal = formData[target.name];
+          if (!currentVal || currentVal === '' || currentVal === 'N/A' || currentVal === 'Unknown') {
+            let finalValue = value;
+            if (isGender && (target.options || []).length > 0) {
+              // Map stored gender text to the field's select options
+              const optionValues = target.options || [];
+              const sv = norm(String(value));
+              const matched = optionValues.find(o => {
+                const ov = norm(String((o as any).value));
+                const ol = norm(String((o as any).label));
+                return ov === sv || ol === sv
+                  || (sv === 'm' && (ov === 'm' || ov === 'male' || ol === 'male'))
+                  || (sv === 'f' && (ov === 'f' || ov === 'female' || ol === 'female'))
+                  || (sv === '1' && ov === '1')
+                  || (sv === '2' && ov === '2');
+              });
+              if (!matched) return; // Don't populate an unmatchable gender
+              finalValue = (matched as any).value;
             }
+            updatedData[target.name] = finalValue;
           }
         });
 
@@ -171,16 +153,14 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     } finally {
       setMrnLookupLoading(false);
     }
-  }, [template.department, templateFields]);
+  }, [template.department, templateFields, fieldMatches]);
 
   // Debounced MRN lookup
   useEffect(() => {
-    const mrnFields = ['mrn', 'MRN', 'patient_mrn', 'patientMrn', '_mrn'];
-    const currentMRN = mrnFields
-      .map(f => formData[f])
-      .find(v => v && String(v).trim()) || '';
+    const mrnField = templateFields.find(field => fieldMatches(field, ['MRN', 'mrn', 'patient_mrn', 'patientMrn', '_mrn']));
+    const currentMRN = mrnField ? (formData[mrnField.name] || '') : '';
 
-    if (currentMRN && currentMRN.length >= 2) {
+    if (currentMRN && String(currentMRN).trim().length >= 2) {
       const timeoutId = setTimeout(() => {
         lookupPatientByMRN(String(currentMRN));
       }, 1000);
@@ -188,16 +168,16 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     } else {
       setMrnLookupStatus('');
     }
-  }, [
-    formData.mrn, formData.MRN, formData.patient_mrn, formData.patientMrn, formData._mrn,
-    lookupPatientByMRN
-  ]);
+  }, [formData, templateFields, fieldMatches, lookupPatientByMRN]);
 
   // Skip Logic Evaluation Engine
   const evaluateSkipLogic = useCallback((field: FormField): boolean => {
     if (!field.skipLogic) return true; // No skip logic = always visible
 
     const { action, operator, conditions } = field.skipLogic;
+
+    // No conditions = no logic applied
+    if (!conditions || conditions.length === 0) return true;
 
     // Evaluate each condition
     const results = conditions.map(condition => {
@@ -208,14 +188,24 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
       // Implement operator logic
       switch (condition.operator) {
-        case 'equals':
+        case 'equals': {
+          if (Array.isArray(fieldValue)) return fieldValue.some(v => v == compareValue);
+          if (Array.isArray(compareValue)) return compareValue.some(v => v == fieldValue);
           return fieldValue == compareValue;
-        case 'not_equals':
+        }
+        case 'not_equals': {
+          if (Array.isArray(fieldValue)) return !fieldValue.some(v => v == compareValue);
+          if (Array.isArray(compareValue)) return !compareValue.some(v => v == fieldValue);
           return fieldValue != compareValue;
-        case 'contains':
-          return String(fieldValue || '').includes(String(compareValue || ''));
-        case 'not_contains':
-          return !String(fieldValue || '').includes(String(compareValue || ''));
+        }
+        case 'contains': {
+          const haystack = Array.isArray(fieldValue) ? fieldValue.join(' ') : String(fieldValue || '');
+          return haystack.includes(String(compareValue || ''));
+        }
+        case 'not_contains': {
+          const haystack = Array.isArray(fieldValue) ? fieldValue.join(' ') : String(fieldValue || '');
+          return !haystack.includes(String(compareValue || ''));
+        }
         case 'greater_than':
           return Number(fieldValue) > Number(compareValue);
         case 'less_than':
@@ -228,9 +218,11 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           return !fieldValue || fieldValue === '' || (Array.isArray(fieldValue) && fieldValue.length === 0);
         case 'is_not_empty':
           return !!fieldValue && fieldValue !== '' && (!Array.isArray(fieldValue) || fieldValue.length > 0);
-        case 'in_list':
+        case 'in_list': {
           const listValues = Array.isArray(compareValue) ? compareValue : String(compareValue).split(',').map(v => v.trim());
+          if (Array.isArray(fieldValue)) return fieldValue.some(v => listValues.includes(String(v)));
           return listValues.includes(String(fieldValue));
+        }
         default:
           return true;
       }
@@ -273,6 +265,11 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       const func = new Function(...safeVarNames, `return ${safeFormula}`);
       let result = func(...safeVarNames.map(varName => context[varName]));
 
+      // Guard against NaN results (e.g. empty dependencies) - never store NaN
+      if (typeof result === 'number' && isNaN(result)) {
+        return field.calculation.errorValue !== undefined ? field.calculation.errorValue : undefined;
+      }
+
       // Type conversion and rounding
       if (resultType === 'number') {
         result = Number(result);
@@ -282,7 +279,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       } else if (resultType === 'text') {
         result = String(result);
       } else if (resultType === 'boolean') {
-        result = Boolean(result);
+        result = typeof result === 'string' ? result.toLowerCase() === 'true' : Boolean(result);
       }
 
       return result;
@@ -307,7 +304,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
     calculatedFields.forEach(field => {
       const newValue = calculateFieldValue(field);
-      if (newValue !== undefined && newValue !== formData[field.name]) {
+      if (newValue !== undefined && !Number.isNaN(newValue) && newValue !== formData[field.name]) {
         setFormData(prev => ({ ...prev, [field.name]: newValue }));
       }
     });
@@ -403,8 +400,8 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
     switch (field.type) {
       case 'text':
-        // Check if this is an MRN field
-        const isMrnField = ['mrn', 'MRN', 'patient_mrn', 'patientMrn', '_mrn'].includes(field.name);
+        // Check if this is an MRN field (matched by name or label)
+        const isMrnField = fieldMatches(field, ['MRN', 'mrn', 'patient_mrn', 'patientMrn', '_mrn']);
 
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
@@ -606,30 +603,40 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           </div>
         );
 
-      case 'checkbox':
+      case 'checkbox': {
+        const isSingleSelect = field.selectionMode === 'single';
+        const isHorizontal = field.optionsLayout === 'horizontal';
+
         return (
           <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            <div className="space-y-2">
+            <div className={isHorizontal ? 'flex flex-wrap gap-x-6 gap-y-2' : 'space-y-2'}>
               {(field.options || []).map((option, index) => {
                 // Handle both string options and object options
                 const optionValue = typeof option === 'string' ? option : option.value;
                 const optionLabel = typeof option === 'string' ? option : option.label;
+                const currentValues = Array.isArray(value) ? value : (value ? [value] : []);
+                const isChecked = isSingleSelect
+                  ? (Array.isArray(value) ? value.includes(optionValue) : value === optionValue)
+                  : currentValues.includes(optionValue);
                 return (
                   <label key={index} className="flex items-center">
                     <input
                       type="checkbox"
                       value={optionValue}
-                      checked={(value || []).includes(optionValue)}
+                      checked={isChecked}
                       onChange={(e) => {
-                        const currentValues = value || [];
-                        if (e.target.checked) {
-                          handleInputChange(field.name, [...currentValues, optionValue]);
+                        if (isSingleSelect) {
+                          handleInputChange(field.name, e.target.checked ? optionValue : '');
                         } else {
-                          handleInputChange(field.name, currentValues.filter((v: string) => v !== optionValue));
+                          if (e.target.checked) {
+                            handleInputChange(field.name, [...currentValues, optionValue]);
+                          } else {
+                            handleInputChange(field.name, currentValues.filter((v: string) => v !== optionValue));
+                          }
                         }
                       }}
                       disabled={disabled}
@@ -643,6 +650,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
+      }
 
       case 'date':
         return (
@@ -687,28 +695,152 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               </label>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border border-gray-200 rounded-lg">
-              {(field.fields || []).map((subField, index) => (
-                <div key={index}>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    {subField.label}
-                    {subField.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  <input
-                    type={subField.type}
-                    value={formData[subField.name] || ''}
-                    onChange={(e) => handleInputChange(subField.name, e.target.value)}
-                    placeholder={subField.placeholder}
-                    min={subField.min}
-                    max={subField.max}
-                    disabled={disabled}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  />
-                </div>
-              ))}
+              {(field.fields || []).map((subField, index) => {
+                const subValue = formData[subField.name] || '';
+                const isBP = subField.mode === 'bp';
+                const subStep = subField.precision !== undefined ? 1 / Math.pow(10, subField.precision) : 1;
+
+                if (isBP) {
+                  const [sys, dia] = String(subValue).split('/');
+                  return (
+                    <div key={index}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        {subField.label}
+                        {subField.required && <span className="text-red-500 ml-1">*</span>}
+                        {subField.unit && <span className="ml-1 text-gray-400">{subField.unit}</span>}
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          value={sys || ''}
+                          onChange={(e) => handleInputChange(subField.name, `${e.target.value || ''}/${dia || ''}`)}
+                          placeholder="Systolic"
+                          min={subField.min}
+                          max={subField.max}
+                          disabled={disabled}
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        />
+                        <span className="text-gray-400 text-sm">/</span>
+                        <input
+                          type="number"
+                          value={dia || ''}
+                          onChange={(e) => handleInputChange(subField.name, `${sys || ''}/${e.target.value || ''}`)}
+                          placeholder="Diastolic"
+                          min={subField.min}
+                          max={subField.max}
+                          disabled={disabled}
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={index}>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      {subField.label}
+                      {subField.required && <span className="text-red-500 ml-1">*</span>}
+                      {subField.unit && <span className="ml-1 text-gray-400">{subField.unit}</span>}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={subField.type}
+                        value={subValue}
+                        onChange={(e) => handleInputChange(subField.name, subField.type === 'number'
+                          ? (e.target.value === '' ? '' : parseFloat(e.target.value))
+                          : e.target.value)}
+                        placeholder={subField.placeholder}
+                        min={subField.min}
+                        max={subField.max}
+                        step={subStep}
+                        disabled={disabled}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${subField.unit ? 'pr-12' : ''}`}
+                      />
+                      {subField.unit && (
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">
+                          {subField.unit}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
           </div>
         );
+
+      case 'measurement': {
+        const isBP = field.mode === 'bp';
+        const step = field.precision !== undefined ? 1 / Math.pow(10, field.precision) : 1;
+
+        if (isBP) {
+          const [sys, dia] = String(value).split('/');
+          return (
+            <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {field.label}
+                {field.required && <span className="text-red-500 ml-1">*</span>}
+                {field.unit && <span className="ml-1 text-xs text-gray-400">{field.unit}</span>}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={sys || ''}
+                  onChange={(e) => handleInputChange(field.name, `${e.target.value || ''}/${dia || ''}`)}
+                  placeholder="Systolic"
+                  min={field.min}
+                  max={field.max}
+                  disabled={disabled}
+                  className={baseInputClass}
+                />
+                <span className="text-gray-400">/</span>
+                <input
+                  type="number"
+                  value={dia || ''}
+                  onChange={(e) => handleInputChange(field.name, `${sys || ''}/${e.target.value || ''}`)}
+                  placeholder="Diastolic"
+                  min={field.min}
+                  max={field.max}
+                  disabled={disabled}
+                  className={baseInputClass}
+                />
+              </div>
+              {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+            </div>
+          );
+        }
+
+        return (
+          <div key={field.id} className={`${getWidthClass()} px-2 mb-4`}>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+              {field.unit && <span className="ml-1 text-xs text-gray-400">{field.unit}</span>}
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                value={value}
+                onChange={(e) => handleInputChange(field.name, e.target.value === '' ? '' : parseFloat(e.target.value))}
+                placeholder={field.placeholder}
+                min={field.min}
+                max={field.max}
+                step={step}
+                disabled={disabled}
+                className={`${baseInputClass} ${field.unit ? 'pr-14' : ''}`}
+              />
+              {field.unit && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+                  {field.unit}
+                </span>
+              )}
+            </div>
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          </div>
+        );
+      }
 
       case 'patient-info':
         return (

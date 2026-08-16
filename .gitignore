@@ -54,3 +54,7 @@ venv/
 # Uploads (user-generated content)
 backend/uploads/profiles/*
 !backend/uploads/profiles/.gitkeep
+
+# Uploads (user-generated content)
+backend/uploads/feedback/*
+!backend/uploads/feedback/.gitkeep

@@ -10,4 +10,5 @@ export { default as EthiopianDateTimeDisplay } from './date/EthiopianDateTimeDis
 export * from './date/EthiopianDateInput';
 export { default as EthiopianDateTimePicker } from './date/EthiopianDateTimePicker';
 export { CustomSelect } from './CustomSelect';
+export * from './FeedbackNotificationBell';
 

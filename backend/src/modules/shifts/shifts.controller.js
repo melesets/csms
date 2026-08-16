@@ -3,7 +3,7 @@ import { asyncHandler } from '../../middleware/errorHandler.js';
 import * as shiftsService from './shifts.service.js';
 
 export const getShiftContext = asyncHandler(async (req, res) => {
-  const context = await shiftsService.getShiftContext();
+  const context = await shiftsService.getShiftContext(req.query.department);
   res.json(context);
 });
 

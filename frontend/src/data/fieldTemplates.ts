@@ -1,4 +1,6 @@
 // Field template definitions - reusable form field configurations
+import { CLINICAL_PARAMETERS } from './clinicalMeasurements';
+
 export const fieldTemplates = [
   // Basic Fields
   {
@@ -360,5 +362,130 @@ export const fieldTemplates = [
       style: 'line', // line, space, heading
       validation: {}
     }
-  }
+  },
+
+  // Patient Identification Fields
+  // preserveName keeps the canonical key (MRN, patientName, age...) so MRN
+  // auto-population and backend patient lookups keep working
+  {
+    type: 'text',
+    label: 'Patient Name',
+    category: 'patient',
+    icon: 'User',
+    defaultProps: {
+      label: 'Patient Name',
+      name: 'patientName',
+      placeholder: 'Enter patient name...',
+      required: true,
+      preserveName: true,
+      validation: {}
+    }
+  },
+  {
+    type: 'text',
+    label: 'MRN',
+    category: 'patient',
+    icon: 'Hash',
+    defaultProps: {
+      label: 'MRN',
+      name: 'MRN',
+      placeholder: 'Enter or auto-populate MRN...',
+      required: true,
+      preserveName: true,
+      validation: {}
+    }
+  },
+  {
+    type: 'number',
+    label: 'Age',
+    category: 'patient',
+    icon: 'Calendar',
+    defaultProps: {
+      label: 'Age',
+      name: 'age',
+      min: 0,
+      max: 120,
+      required: false,
+      preserveName: true,
+      validation: { min: 0, max: 120 }
+    }
+  },
+  {
+    type: 'select',
+    label: 'Sex',
+    category: 'patient',
+    icon: 'Users',
+    defaultProps: {
+      label: 'Sex',
+      name: 'sex',
+      required: false,
+      preserveName: true,
+      options: [
+        { value: 'Male', label: 'Male' },
+        { value: 'Female', label: 'Female' }
+      ],
+      validation: {}
+    }
+  },
+  {
+    type: 'text',
+    label: 'Bed Number',
+    category: 'patient',
+    icon: 'BedDouble',
+    defaultProps: {
+      label: 'Bed Number',
+      name: 'bedNumber',
+      placeholder: 'e.g. Bed 12',
+      required: false,
+      preserveName: true,
+      validation: {}
+    }
+  },
+  {
+    type: 'text',
+    label: 'Client Name',
+    category: 'patient',
+    icon: 'UserPlus',
+    defaultProps: {
+      label: 'Client Name',
+      name: 'clientName',
+      placeholder: 'Enter client name...',
+      required: false,
+      preserveName: true,
+      validation: {}
+    }
+  },
+  {
+    type: 'text',
+    label: 'Maternal Name',
+    category: 'patient',
+    icon: 'HeartHandshake',
+    defaultProps: {
+      label: 'Maternal Name',
+      name: 'maternalName',
+      placeholder: "Enter mother's name...",
+      required: false,
+      preserveName: true,
+      validation: {}
+    }
+  },
+
+  // Clinical Measurement Fields (generated from the clinical parameter library)
+  ...CLINICAL_PARAMETERS.map(p => ({
+    type: 'measurement' as const,
+    label: p.label,
+    category: 'clinical' as const,
+    icon: 'Activity',
+    defaultProps: {
+      label: p.label,
+      name: p.key,
+      unit: p.unit,
+      min: p.min,
+      max: p.max,
+      precision: p.precision,
+      mode: p.type === 'bp' ? 'bp' as const : undefined,
+      required: false,
+      validation: { min: p.min, max: p.max }
+    }
+  }))
 ];

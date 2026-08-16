@@ -144,6 +144,13 @@ app.use('/csms/uploads', express.static(path.join(__dirname, '../uploads')));
 
 if (isProduction) {
   // Serve frontend assets under /csms/
+  // index.html must never be long-cached (always revalidate so new bundles are picked up on other computers)
+  app.use('/csms', (req, res, next) => {
+    if (req.path === '/' || req.path === '/index.html') {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+    next();
+  });
   app.use('/csms', express.static(frontendDist, { maxAge: '1y', etag: true, index: 'index.html' }));
 }
 

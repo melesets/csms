@@ -22,6 +22,9 @@ import aiInsightsRoutes from '../modules/ai-insights/aiInsights.routes.js';
 import integrationRoutes from '../modules/integrations/integration.routes.js';
 import adminRoutes from '../modules/admin/admin.routes.js';
 import schedulingRoutes from '../modules/scheduling/scheduling.routes.js';
+import bedAllocationRoutes from '../modules/bed-allocation/bedAllocation.routes.js';
+import feedbackRoutes from '../modules/feedback/feedback.routes.js';
+import customTabsRoutes from '../modules/custom-tabs/customTabs.routes.js';
 
 
 const router = Router();
@@ -45,6 +48,9 @@ router.use('/api/ai', aiInsightsRoutes);
 router.use('/api/integrations', integrationRoutes);
 router.use('/api/admin', adminRoutes);
 router.use('/api/scheduling', schedulingRoutes);
+router.use('/api/bed-allocation', bedAllocationRoutes);
+router.use('/api/feedback', feedbackRoutes);
+router.use('/api/custom-tabs', customTabsRoutes);
 
 
 export default router;

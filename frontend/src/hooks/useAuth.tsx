@@ -186,23 +186,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 2. Admin has all permissions
     if (user.role === 'admin') return true;
 
-    // 3. If explicit permissions exist, they are the ONLY source of truth (no fallback)
+    // 3. Clinical modules are always accessible to all users
+    const clinicalModules = ['dashboard', 'isbar', 'survey', 'staff', 'resources', 'database', 'trends', 'scheduling', 'feedback'];
+    if (clinicalModules.includes(module)) {
+      // Resources still require nurse/midwifery profession check
+      if (module === 'resources') {
+        return user.profession === 'Nurse' || user.profession === 'Midwifery';
+      }
+      return true;
+    }
+
+    // 4. If explicit permissions exist for non-clinical modules, check them
     if (userPermissions.length > 0) {
       const modulePermission = userPermissions.find((p: any) => p.module === module);
       if (modulePermission) {
         if (!action) return modulePermission.actions.length > 0;
         return modulePermission.actions.includes(action);
       }
-      // Module not in explicit permissions = denied
       return false;
-    }
-
-    // 4. No explicit permissions set — use role-based defaults
-    const defaultModules = ['dashboard', 'isbar', 'scheduling'];
-    if (defaultModules.includes(module)) return true;
-
-    if (module === 'resources') {
-      return user.profession === 'Nurse' || user.profession === 'Midwifery';
     }
 
     return false;

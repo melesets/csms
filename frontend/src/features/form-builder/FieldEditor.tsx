@@ -4,6 +4,7 @@ import { Trash2, Settings, Eye, Calculator, Plus, X, AlertCircle, Database, Sear
 import { FormField, FormSection, SkipLogic, SkipCondition, CalculatedField, TerminologyConfig } from '../../types/formBuilder';
 import { FormulaBuilder } from './FormulaBuilder';
 import { ConceptPicker } from './ConceptPicker';
+import { CLINICAL_PARAMETERS } from '../../data/clinicalMeasurements';
 
 interface FieldEditorProps {
   field: FormField;
@@ -62,6 +63,51 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
   const removeOption = (index: number) => {
     const currentOptions = (field.options as Array<{ value: string; label: string }>) || [];
     handleOptionsChange(currentOptions.filter((_, i) => i !== index));
+  };
+
+  // Vital-signs subfield handlers
+  const handleVitalSubfieldChange = (index: number, updates: Partial<NonNullable<FormField['fields']>[number]>) => {
+    const currentFields = field.fields || [];
+    const newFields = [...currentFields];
+    newFields[index] = { ...newFields[index], ...updates };
+    handleChange({ fields: newFields });
+  };
+
+  const addLibrarySubfield = (key: string) => {
+    if (!key) return;
+    const p = CLINICAL_PARAMETERS.find(x => x.key === key);
+    if (!p) return;
+    const currentFields = field.fields || [];
+    if (currentFields.some(f => f.name === p.key)) return;
+    handleChange({
+      fields: [...currentFields, {
+        name: p.key,
+        label: p.label,
+        type: p.type === 'bp' ? 'text' : 'number',
+        min: p.min,
+        max: p.max,
+        unit: p.unit,
+        precision: p.precision,
+        mode: p.type === 'bp' ? 'bp' : undefined
+      }]
+    });
+  };
+
+  const addCustomSubfield = () => {
+    const currentFields = field.fields || [];
+    handleChange({
+      fields: [...currentFields, {
+        name: `measurement_${currentFields.length + 1}`,
+        label: `Measurement ${currentFields.length + 1}`,
+        type: 'number',
+        unit: ''
+      }]
+    });
+  };
+
+  const removeVitalSubfield = (index: number) => {
+    const currentFields = field.fields || [];
+    handleChange({ fields: currentFields.filter((_, i) => i !== index) });
   };
 
   // Skip Logic Handlers
@@ -345,34 +391,291 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ field, sections, allFi
           <div className="space-y-2">
             {((field.options as Array<{ value: string; label: string }>) || []).map((option, index) => (
               <div key={`option-${index}`} className="space-y-2 p-3 border border-gray-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={option.value}
-                    onChange={(e) => updateOption(index, 'value', e.target.value)}
-                    placeholder="Value"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Option {index + 1}
+                  </span>
                   <button
                     onClick={() => removeOption(index)}
                     className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete this option (value and label)"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <input
-                  type="text"
-                  value={option.label}
-                  onChange={(e) => updateOption(index, 'label', e.target.value)}
-                  placeholder="Display Label"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Value (stored in record)
+                  </label>
+                  <input
+                    type="text"
+                    value={option.value}
+                    onChange={(e) => updateOption(index, 'value', e.target.value)}
+                    placeholder="e.g. fever"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Display Label (shown to users)
+                  </label>
+                  <input
+                    type="text"
+                    value={option.label}
+                    onChange={(e) => updateOption(index, 'label', e.target.value)}
+                    placeholder="e.g. Fever"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
             ))}
           </div>
+
+          {/* Checkbox-specific settings */}
+          {field.type === 'checkbox' && (
+            <div className="pt-2 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Selection Mode
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleChange({ selectionMode: 'multiple' })}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${field.selectionMode === 'single'
+                        ? 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100'
+                        : 'border-blue-500 bg-blue-50 text-blue-700'
+                      }`}
+                  >
+                    Multiple selection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChange({ selectionMode: 'single' })}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${field.selectionMode === 'single'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100'
+                      }`}
+                  >
+                    Single selection
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Single selection stores one value; multiple selection stores a list.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Options Layout
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleChange({ optionsLayout: 'vertical' })}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${field.optionsLayout === 'horizontal'
+                        ? 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100'
+                        : 'border-blue-500 bg-blue-50 text-blue-700'
+                      }`}
+                  >
+                    Vertical
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChange({ optionsLayout: 'horizontal' })}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${field.optionsLayout === 'horizontal'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100'
+                      }`}
+                  >
+                    Horizontal
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Horizontal stacks options side-by-side instead of vertically.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )
       }
+
+      {/* Vital-signs measurement parameters */}
+      {field.type === 'vital-signs' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-md font-medium text-gray-900">Measurements</h4>
+            <div className="flex items-center gap-2">
+              <select
+                value=""
+                onChange={(e) => {
+                  addLibrarySubfield(e.target.value);
+                }}
+                className="px-2 py-1.5 text-xs font-medium bg-gray-50 border border-gray-300 text-gray-700 rounded-lg"
+              >
+                <option value="">+ Add from Library</option>
+                {CLINICAL_PARAMETERS
+                  .filter(p => !(field.fields || []).some(f => f.name === p.key))
+                  .map(p => (
+                    <option key={p.key} value={p.key}>{p.label} ({p.unit || 'no unit'})</option>
+                  ))}
+              </select>
+              <button
+                onClick={addCustomSubfield}
+                className="px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                + Custom
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {(field.fields || []).map((sub, index) => (
+              <div key={index} className="space-y-2 p-3 border border-gray-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={sub.label}
+                    onChange={(e) => handleVitalSubfieldChange(index, { label: e.target.value })}
+                    placeholder="Measurement label"
+                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={() => removeVitalSubfield(index)}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Remove this measurement"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-500 mb-0.5">Unit</label>
+                    <input
+                      type="text"
+                      value={sub.unit || ''}
+                      onChange={(e) => handleVitalSubfieldChange(index, { unit: e.target.value })}
+                      placeholder="e.g. °C"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-500 mb-0.5">Min</label>
+                    <input
+                      type="number"
+                      value={sub.min ?? ''}
+                      onChange={(e) => handleVitalSubfieldChange(index, { min: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-500 mb-0.5">Max</label>
+                    <input
+                      type="number"
+                      value={sub.max ?? ''}
+                      onChange={(e) => handleVitalSubfieldChange(index, { max: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-medium text-gray-500 mb-0.5">Decimals</label>
+                    <input
+                      type="number"
+                      value={sub.precision ?? ''}
+                      onChange={(e) => handleVitalSubfieldChange(index, { precision: e.target.value === '' ? undefined : parseInt(e.target.value) })}
+                      min={0}
+                      max={3}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                {sub.type === 'number' && (
+                  <label className="flex items-center text-xs text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={sub.mode === 'bp'}
+                      onChange={(e) => handleVitalSubfieldChange(index, { mode: e.target.checked ? 'bp' : undefined })}
+                      className="w-3.5 h-3.5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-1.5"
+                    />
+                    Blood Pressure (split systolic / diastolic)
+                  </label>
+                )}
+              </div>
+            ))}
+            {(field.fields || []).length === 0 && (
+              <p className="text-xs text-gray-500 italic">
+                No measurements yet. Add from the library or create custom ones.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Measurement field properties */}
+      {field.type === 'measurement' && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+            <input
+              type="text"
+              value={field.unit || ''}
+              onChange={(e) => handleChange({ unit: e.target.value })}
+              placeholder="e.g. °C, mmHg, kg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Min Value</label>
+              <input
+                type="number"
+                value={field.min ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                  handleChange({ min: v, validation: { ...(field.validation || {}), min: v } });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Max Value</label>
+              <input
+                type="number"
+                value={field.max ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                  handleChange({ max: v, validation: { ...(field.validation || {}), max: v } });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Decimals</label>
+              <input
+                type="number"
+                value={field.precision ?? ''}
+                onChange={(e) => handleChange({ precision: e.target.value === '' ? undefined : parseInt(e.target.value) })}
+                min={0}
+                max={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          <label className="flex items-center text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={field.mode === 'bp'}
+              onChange={(e) => handleChange({ mode: e.target.checked ? 'bp' : undefined })}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mr-2"
+            />
+            Blood Pressure (split systolic / diastolic)
+          </label>
+          <p className="text-xs text-gray-500">
+            BP mode stores the value as "systolic/diastolic" (e.g. 120/80).
+          </p>
+        </div>
+      )}
 
       {/* Min/Max and Validation for numeric fields */}
       {

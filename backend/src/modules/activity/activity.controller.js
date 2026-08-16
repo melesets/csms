@@ -12,7 +12,7 @@ export const getDepartmentActivity = asyncHandler(async (req, res) => {
   const isNonAdmin = req.user.role !== 'admin' && req.user.role !== 'superadmin';
   const activity = await activityService.getDepartmentActivity(
     req.params.department,
-    isNonAdmin ? req.user.id : undefined
+    isNonAdmin && req.params.department === 'All' ? req.user.id : undefined
   );
   res.json(activity);
 });
@@ -21,4 +21,29 @@ export const getAdminActivity = asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 200);
   const rows = await adminAudit.getRecentActivity(limit);
   res.json(rows);
+});
+
+export const getAdminAll = asyncHandler(async (req, res) => {
+  const { from, to, type, department, person, search } = req.query;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+  const offset = Math.max(parseInt(req.query.offset) || 0, 0);
+  const result = await adminAudit.getAllRecords({ from, to, type, department, person, search, limit, offset });
+  res.json(result);
+});
+
+export const getAdminStats = asyncHandler(async (req, res) => {
+  const { from, to, type, department, person } = req.query;
+  const result = await adminAudit.getStats({ from, to, type, department, person });
+  res.json(result);
+});
+
+export const deleteAdminRecords = asyncHandler(async (req, res) => {
+  const { from, to, type, department, person } = req.body || {};
+  const result = await adminAudit.deleteRecords({
+    from, to, type, department, person,
+    performedBy: req.user?.username || 'admin',
+    ip: req.ip,
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({ deleted: result.deleted, total: result.total });
 });

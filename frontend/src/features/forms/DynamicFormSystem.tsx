@@ -6,7 +6,6 @@ import { DynamicFormRenderer } from '../form-builder';
 import { FileText, Clock, User, ChevronRight, CheckCircle, ArrowLeft, ClipboardList } from 'lucide-react';
 import { useShift } from '../../hooks/useShift';
 
-
 interface DynamicFormSystemProps {
   onFormSubmit?: (data: any) => void;
 }
@@ -19,40 +18,22 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  
-  const [activeStaffList, setActiveStaffList] = useState<any[]>([]);
-  const [selectedReporterId, setSelectedReporterId] = useState<string>('');
+
+  // Reporter is passed via URL when coming from an active staff card.
+  // Read it into state immediately and clear the URL so a refresh returns to dashboard.
+  const [reporterId] = useState(() => new URLSearchParams(window.location.search).get('reporter') || '');
+  const [reporterName] = useState(() => new URLSearchParams(window.location.search).get('reporterName') || '');
+  const [reporterUsernameParam] = useState(() => new URLSearchParams(window.location.search).get('reporterUsername') || '');
+
+  useEffect(() => {
+    if (reporterId && window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [reporterId]);
 
   useEffect(() => {
     fetchTemplates();
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch('/api/users');
-        if (res.ok) {
-          const users = await res.json();
-        }
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-    fetchUsers();
   }, [user]);
-
-  useEffect(() => {
-    if (user?.department && user.role !== 'admin') {
-      import('../../api').then(({ apiGet }) => {
-        apiGet(`/shifts/active-staff/${encodeURIComponent(user.department)}`)
-          .then(data => {
-              const onlineStaff = data.filter((s: any) => s.session_id);
-              setActiveStaffList(onlineStaff);
-              if (onlineStaff.length > 0 && !selectedReporterId) {
-                  setSelectedReporterId(onlineStaff[0].id.toString());
-              }
-          })
-          .catch(err => console.error("Failed to fetch active staff", err));
-      });
-    }
-  }, [user, activeSession]);
 
   const fetchTemplates = async () => {
     try {
@@ -72,6 +53,7 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
       const qs: string[] = [];
       if (departmentFilter) qs.push(`department=${encodeURIComponent(departmentFilter)}`);
       if (user?.profession) qs.push(`profession=${encodeURIComponent(user.profession)}`);
+      qs.push('requiresReporter=true');
       if (qs.length) url += `?${qs.join('&')}`;
 
       const res = await fetch(url);
@@ -111,21 +93,16 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
     try {
       setSubmitting(true);
 
-      const selectedStaff = activeStaffList.find(s => s.id.toString() === selectedReporterId);
-      const reporterUsername = selectedStaff ? selectedStaff.username : user.username;
-      const reporterName = selectedStaff ? selectedStaff.name : user.name;
-      const reporterDepartment = selectedStaff ? selectedStaff.department : user.department;
-      const reporterProfession = selectedStaff ? selectedStaff.profession : user.profession;
-
+      const reporterUsername = reporterUsernameParam || user.username;
       const submissionData = {
         template_id: selectedTemplate.id,
         template_name: selectedTemplate.name,
         template_department: selectedTemplate.department,
         form_data: formData,
         submitted_by: reporterUsername,
-        submitted_by_name: reporterName,
-        submitted_by_department: reporterDepartment,
-        submitted_by_profession: reporterProfession,
+        submitted_by_name: reporterName || reporterUsername,
+        submitted_by_department: user.department,
+        submitted_by_profession: user.profession,
         submitted_at: new Date().toISOString(),
         shift_session_id: activeSession?.id || null
       };
@@ -139,8 +116,8 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
       if (response.ok) {
         setSubmitSuccess(true);
         setTimeout(() => {
-          setSubmitSuccess(false);
-          setSelectedTemplate(null);
+          // Return to dashboard after successful submit
+          window.location.href = '/csms/';
         }, 2000);
 
         if (onFormSubmit) {
@@ -215,21 +192,9 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
                 <p className="text-sm text-gray-500">{selectedTemplate.department}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl">
-              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Reporting As</span>
-              {activeStaffList.length > 0 ? (
-                <select
-                  className="text-sm font-semibold text-blue-700 bg-transparent outline-none cursor-pointer truncate max-w-[160px]"
-                  value={selectedReporterId}
-                  onChange={e => setSelectedReporterId(e.target.value)}
-                >
-                  {activeStaffList.map(staff => (
-                    <option key={staff.id} value={staff.id}>{staff.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <span className="text-sm font-semibold text-red-600 italic">No active staff</span>
-              )}
+            <div className="flex items-center gap-2 bg-[#003153]/5 border border-[#003153]/10 px-4 py-2 rounded-xl">
+              <span className="text-[10px] font-bold text-[#003153] uppercase tracking-wider">Reporting As</span>
+              <span className="text-sm font-semibold text-[#002640]">{reporterName || 'Staff'}</span>
             </div>
           </div>
         </div>
@@ -270,33 +235,22 @@ export const DynamicFormSystem: React.FC<DynamicFormSystemProps> = ({ onFormSubm
         </div>
       </div>
 
-      {activeStaffList.length === 0 && user?.role !== 'admin' && (
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
-          <p className="text-sm text-amber-700 font-medium">Form submission is locked — no staff members are checked into an active shift session.</p>
-        </div>
-      )}
-
       {templates.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FileText className="w-7 h-7 text-gray-400" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-1">No Forms Available</h3>
-          <p className="text-sm text-gray-500">No forms are available for your department yet.</p>
+          <p className="text-sm text-gray-500">No report forms are available for your department yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((template) => {
-            const canOpen = activeStaffList.length > 0 || user?.role === 'admin';
             return (
               <button
                 key={template.id}
-                disabled={!canOpen}
-                onClick={() => canOpen && setSelectedTemplate(template)}
-                className={`bg-white rounded-2xl border border-gray-100 p-5 text-left transition-all ${
-                  canOpen ? 'hover:shadow-lg hover:shadow-gray-100/80 hover:border-gray-200 cursor-pointer' : 'opacity-50 cursor-not-allowed'
-                }`}
+                onClick={() => setSelectedTemplate(template)}
+                className={`bg-white rounded-2xl border border-gray-100 p-5 text-left transition-all hover:shadow-lg hover:shadow-gray-100/80 hover:border-gray-200 cursor-pointer`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-10 h-10 bg-[#003153]/10 rounded-xl flex items-center justify-center">

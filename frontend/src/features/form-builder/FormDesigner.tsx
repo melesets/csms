@@ -42,6 +42,7 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
       description: '',
       version: 1,
       isActive: false,
+      requiresReporter: true,
       fields: [],
       sections: [],
       createdBy: 'admin',
@@ -63,11 +64,13 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
   );
 
   const handleAddField = useCallback((fieldType: any) => {
+    const defaultProps = (fieldType.defaultProps as any) || {};
+    const namePrefix = defaultProps.name || fieldType.type;
     const newField: FormField = {
       id: `field-${Date.now()}`,
-      ...fieldType.defaultProps,
+      ...defaultProps,
       type: fieldType.type,
-      name: `${fieldType.type}_${Date.now()}`,
+      name: defaultProps.preserveName ? namePrefix : `${namePrefix}_${Date.now()}`,
       section: selectedSectionId || undefined
     };
 
@@ -338,6 +341,18 @@ export const FormDesigner: React.FC<FormDesignerProps> = ({ template, onSave, on
                   className="w-3.5 h-3.5 text-[#003153] rounded border-gray-300 focus:ring-[#003153]" />
                 <label className="text-xs text-gray-700 font-medium">Active Template</label>
               </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={!Boolean((currentTemplate as any).requiresReporter)}
+                  onChange={(e) => handleTemplateChange({ requiresReporter: !e.target.checked } as any)}
+                  className="w-3.5 h-3.5 text-[#003153] rounded border-gray-300 focus:ring-[#003153]" />
+                <label className="text-xs text-gray-700 font-medium">Assign to Documentation Page</label>
+                <span className="text-[10px] text-gray-400 ml-auto">unchecked = Report</span>
+              </div>
+              {Boolean((currentTemplate as any).requiresReporter) ? (
+                <p className="text-[10px] text-gray-400">Report form — appears on the hidden Report page (accessed via active staff) and tracks the reporter.</p>
+              ) : (
+                <p className="text-[10px] text-gray-400">Documentation form — appears on the Documentation page in the sidebar; no staff reporter required.</p>
+              )}
             </div>
           )}
         </div>

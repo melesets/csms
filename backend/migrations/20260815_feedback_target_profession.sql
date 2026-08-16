@@ -1,0 +1,1 @@
+ALTER TABLE feedback ADD COLUMN IF NOT EXISTS target_profession text;

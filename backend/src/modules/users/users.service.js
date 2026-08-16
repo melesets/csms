@@ -72,7 +72,7 @@ export async function createUser(data) {
     `INSERT INTO users (username, password, pin_hash, has_pin, name, email, role, department, isactive, permissions, profession, created_by, shift_type, parent_user_id, created_at) 
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW()) 
      RETURNING id, username, name, email, role, department, isactive AS "isActive", has_pin, permissions, profession, shift_type AS "shiftType", created_by AS "createdBy", parent_user_id AS "parentUserId", created_at AS "createdAt"`,
-    [username, hashedPassword, pinHash, hasPin, name, email ?? null, role, department, isActive ?? true, permissions ? JSON.stringify(permissions) : null, profession ?? null, createdBy ?? null, shiftType ?? 'TID', parentUserId ?? null]
+    [username, hashedPassword, pinHash, hasPin, name, email ?? null, role, department, isActive ?? true, permissions ? JSON.stringify(permissions) : null, profession ?? null, createdBy ?? null, shiftType ?? '8H', parentUserId ?? null]
   );
 
   const user = result.rows[0];

@@ -29,6 +29,7 @@ export const FormBuilder = () => {
           ...t,
           id: t.id?.toString?.() ?? '',
           isActive: (t as any).is_active ?? (t as any).isActive ?? false,
+          requiresReporter: (t as any).requires_reporter === true || (t as any).requires_reporter === 'true' || Boolean((t as any).requiresReporter),
           createdAt: (t as any).created_at ?? (t as any).createdAt ?? null,
           updatedAt: (t as any).updated_at ?? (t as any).updatedAt ?? null,
           fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
@@ -77,6 +78,7 @@ export const FormBuilder = () => {
       description: 'A new dynamic form template',
       version: 1,
       isActive: false,
+      requiresReporter: true,
       fields: [
         { id: 'patient-name', type: 'text', label: 'Patient Name', name: 'patientName', required: true, placeholder: 'Enter patient full name', width: 'half' },
         { id: 'mrn', type: 'text', label: 'MRN', name: 'mrn', required: true, placeholder: 'Medical Record Number', width: 'half' },
@@ -233,7 +235,8 @@ export const FormBuilder = () => {
       if (t === 'textarea') return 'text';
       if (t === 'date') return 'date';
       if (t === 'time') return 'time';
-      if (t === 'multiselect' || t === 'checkbox') return `select_multiple list_${slug(f.id || f.name || 'opt')}`;
+      if (t === 'measurement') return f.mode === 'bp' ? 'text' : 'decimal';
+      if (t === 'multiselect' || t === 'checkbox') return `${f.selectionMode === 'single' ? 'select_one' : 'select_multiple'} list_${slug(f.id || f.name || 'opt')}`;
       if (t === 'select' || t === 'dropdown' || t === 'radio' || t === 'stability') return `select_one list_${slug(f.id || f.name || 'opt')}`;
       return 'text';
     };
@@ -344,6 +347,7 @@ export const FormBuilder = () => {
     fetch('/api/form-templates').then(res => res.json()).then(data => setTemplates(Array.isArray(data) ? data.map(t => ({
       ...t, id: t.id?.toString?.() ?? '',
       isActive: (t as any).is_active ?? (t as any).isActive ?? false,
+      requiresReporter: (t as any).requires_reporter === true || (t as any).requires_reporter === 'true' || Boolean((t as any).requiresReporter),
       createdAt: (t as any).created_at ?? (t as any).createdAt ?? null,
       updatedAt: (t as any).updated_at ?? (t as any).updatedAt ?? null,
       fields: typeof t.fields === 'string' ? JSON.parse(t.fields) : (t.fields || []),
@@ -447,6 +451,11 @@ export const FormBuilder = () => {
                                   <FileText className="w-3.5 h-3.5 text-gray-500" />
                                 </div>
                                 <span className="text-sm font-medium text-gray-900">{t.name}</span>
+                                {(t as any).requiresReporter ? (
+                                  <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-bold rounded border border-blue-100">Report</span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 bg-teal-50 text-teal-600 text-[9px] font-bold rounded border border-teal-100">Documentation</span>
+                                )}
                               </div>
                             </td>
                             <td className="px-4 py-2.5 text-sm text-gray-600">{t.department}</td>

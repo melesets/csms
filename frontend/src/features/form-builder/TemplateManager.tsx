@@ -131,7 +131,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
         if (t === 'textarea') return 'text';
         if (t === 'date') return 'date';
         if (t === 'time') return 'time';
-        if (t === 'multiselect' || t === 'checkbox') return `select_multiple list_${slug(f.id || f.name || 'opt')} `;
+        if (t === 'measurement') return f.mode === 'bp' ? 'text' : 'decimal';
+        if (t === 'multiselect' || t === 'checkbox') return `${f.selectionMode === 'single' ? 'select_one' : 'select_multiple'} list_${slug(f.id || f.name || 'opt')} `;
         if (t === 'select' || t === 'dropdown' || t === 'radio' || t === 'stability') return `select_one list_${slug(f.id || f.name || 'opt')} `;
         return 'text';
       };

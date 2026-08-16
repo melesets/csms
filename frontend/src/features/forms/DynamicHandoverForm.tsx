@@ -150,12 +150,12 @@ export const DynamicHandoverForm: React.FC<DynamicHandoverFormProps> = ({
 
     return (
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 max-w-3xl w-full mx-auto max-h-[90vh] flex flex-col relative">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between shadow-md">
+            <div className="bg-gradient-to-r from-[#003153] to-[#004a7c] px-6 py-4 flex items-center justify-between shadow-md">
                 <div className="flex items-center gap-3 text-white">
                     <Shield className="w-6 h-6" />
                     <div>
                         <h2 className="text-xl font-bold">{title}</h2>
-                        <p className="text-blue-100 text-[10px] uppercase tracking-wider font-bold">
+                        <p className="text-white/70 text-[10px] uppercase tracking-wider font-bold">
                             {ward} • {profession} • {currentShiftName} Shift
                         </p>
                     </div>

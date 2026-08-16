@@ -56,6 +56,7 @@ export const DashboardFormMapping: React.FC = () => {
   const [mappingSearch, setMappingSearch] = useState('');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [customTabNames, setCustomTabNames] = useState<string[]>([]);
   const { departments: remoteDepartments, loading: departmentsLoading } = useDepartments();
 
   const addToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -94,13 +95,16 @@ export const DashboardFormMapping: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [templatesRes, mappingsRes] = await Promise.all([
+      const [templatesRes, mappingsRes, customTabsRes] = await Promise.all([
         fetch('/api/form-templates'),
         fetch('/api/dashboard-mappings'),
+        fetch('/api/custom-tabs'),
       ]);
 
       const templatesData = templatesRes.ok ? await templatesRes.json() : [];
       const mappingsData = mappingsRes.ok ? await mappingsRes.json() : [];
+      const customTabsData = customTabsRes.ok ? await customTabsRes.json() : [];
+      setCustomTabNames((customTabsData || []).map((t: any) => (t.name || '').toLowerCase()));
 
       const parsedTemplates = templatesData.map((template: any) => ({
         ...template,
@@ -486,9 +490,7 @@ export const DashboardFormMapping: React.FC = () => {
                     <datalist id="identifier-suggestions">
                       {[...new Set([
                         ...mappings.map(m => m.identifier).filter(Boolean),
-                        ...(() => {
-                          try { return JSON.parse(localStorage.getItem('isbar_custom_tabs') || '[]').map((t: any) => t.name?.toLowerCase()); } catch { return []; }
-                        })()
+                        ...customTabNames,
                       ])].sort().map(ident => (
                         <option key={ident} value={ident} />
                       ))}

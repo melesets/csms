@@ -3,28 +3,60 @@ import pool from '../../config/database.js';
 import bcrypt from 'bcryptjs';
 
 // Max hours per shift type before auto-checkout
+// Canonical shift bases: 4H, 8H, 12H, 24H, 36H, 48H, 72H
+// Legacy aliases TID (8h) and BID (12h) still resolve for existing records.
 const SHIFT_MAX_HOURS = {
   TID: 8,
   BID: 12,
+  '4H': 4,
+  '8H': 8,
+  '12H': 12,
   '24H': 24,
   '36H': 36,
   '48H': 48,
+  '72H': 72,
 };
 
-export function getShiftName(date, shiftType = 'TID') {
+const FOUR_HOUR_SHIFT_NAMES = ['Morning', 'Midday', 'Afternoon', 'Evening', 'Night', 'Late Night'];
+
+export function getShiftName(date, shiftType = '8H') {
   const eatTime = new Date(date.getTime() + (3 * 3600 * 1000));
   const hour = eatTime.getUTCHours();
 
-  if (shiftType === 'BID') {
+  // 4-hour base: six fixed 4-hour windows starting at 06:00
+  if (shiftType === '4H') {
+    const block = Math.floor(((hour - 6 + 24) % 24) / 4);
+    return `${FOUR_HOUR_SHIFT_NAMES[block]} (4H)`;
+  }
+  // 12-hour base (legacy BID)
+  if (shiftType === 'BID' || shiftType === '12H') {
     if (hour >= 7 && hour < 19) return 'Day Shift (BID)';
     return 'Night Shift (BID)';
   }
-  if (shiftType === '24H' || shiftType === '36H' || shiftType === '48H') {
+  // 8-hour base (legacy TID)
+  if (shiftType === 'TID' || shiftType === '8H') {
+    if (hour >= 7 && hour < 13) return 'Morning (TID)';
+    if (hour >= 13 && hour < 19) return 'Afternoon (TID)';
+    return 'Night (TID)';
+  }
+  // 24H and multi-day on-call bases
+  if (shiftType === '24H' || shiftType === '36H' || shiftType === '48H' || shiftType === '72H') {
     return `${shiftType} On-Call`;
   }
+  // Unknown/legacy fallback
   if (hour >= 7 && hour < 13) return 'Morning (TID)';
   if (hour >= 13 && hour < 19) return 'Afternoon (TID)';
   return 'Night (TID)';
+}
+
+// Resolve a department's shift base from its role='user' account, defaulting to 8H
+export async function getDepartmentShiftType(department) {
+  if (!department) return '8H';
+  const deptConfig = await pool.query(
+    "SELECT shift_type FROM users WHERE role = 'user' AND department = $1 LIMIT 1",
+    [department]
+  );
+  return deptConfig.rows[0]?.shift_type || '8H';
 }
 
 /**
@@ -55,11 +87,7 @@ export async function autoCheckoutExpiredSessions() {
 
     for (const session of activeSessions.rows) {
       // Get the department's shift type from the parent user (role='user') in the same department
-      const deptConfig = await pool.query(
-        "SELECT shift_type FROM users WHERE role = 'user' AND department = $1 LIMIT 1",
-        [session.department]
-      );
-      const shiftType = deptConfig.rows[0]?.shift_type || 'TID';
+      const shiftType = await getDepartmentShiftType(session.department);
       const maxHours = SHIFT_MAX_HOURS[shiftType] || 8;
 
       // Calculate session duration in hours
@@ -89,15 +117,18 @@ export async function autoCheckoutExpiredSessions() {
   }
 }
 
-export async function getShiftContext() {
+export async function getShiftContext(department) {
   const now = new Date();
-  return { current: getShiftName(now), isHandoverWindow: false, minutesToHandover: null };
+  const shiftType = await getDepartmentShiftType(department);
+  return { current: getShiftName(now, shiftType), shiftType, isHandoverWindow: false, minutesToHandover: null };
 }
 
 export async function checkIn(data) {
   const { userId, username, profession, ward } = data;
   const now = new Date();
-  const shiftName = getShiftName(now);
+  const userResult = await pool.query('SELECT department FROM users WHERE id = $1', [userId]);
+  const shiftType = await getDepartmentShiftType(userResult.rows[0]?.department);
+  const shiftName = getShiftName(now, shiftType);
 
   const existingSession = await pool.query(
     'SELECT id FROM shift_sessions WHERE user_id = $1 AND is_active = TRUE LIMIT 1',
@@ -274,6 +305,7 @@ export async function getAttendanceReport(filters = {}) {
 export async function getActiveStaff(department) {
   let query = `
     SELECT u.id, u.username, u.name, u.profession, u.department, u.has_pin, u.profile_picture,
+           u.parent_user_id,
            ss.id AS session_id, ss.shift_name, ss.start_time
     FROM users u
     LEFT JOIN shift_sessions ss ON u.id = ss.user_id AND ss.is_active = TRUE
@@ -297,11 +329,7 @@ export async function staffAction(data) {
 
   const { pin_hash: pinHash, department: userDept } = userResult.rows[0];
 
-  const deptConfigResult = await pool.query(
-    "SELECT shift_type FROM users WHERE role = 'user' AND department = $1 LIMIT 1",
-    [userDept]
-  );
-  const deptShiftType = deptConfigResult.rows[0]?.shift_type || 'TID';
+  const deptShiftType = await getDepartmentShiftType(userDept);
 
   if (!bypassPin) {
     if (!pinHash) return { error: 'No PIN set for this staff member and PIN bypass is off.', status: 403 };

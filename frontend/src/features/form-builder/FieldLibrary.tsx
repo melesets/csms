@@ -20,6 +20,8 @@ export const FieldLibrary: React.FC<FieldLibraryProps> = ({ onAddField }) => {
     { id: 'basic', name: 'Basic Fields', color: 'text-blue-600' },
     { id: 'medical', name: 'Medical Fields', color: 'text-red-600' },
     { id: 'isbar', name: 'ISBAR Fields', color: 'text-green-600' },
+    { id: 'clinical', name: 'Clinical Measurements', color: 'text-teal-600' },
+    { id: 'patient', name: 'Patient Identification', color: 'text-sky-600' },
     { id: 'advanced', name: 'Advanced Fields', color: 'text-purple-600' }
   ];
 
@@ -117,9 +119,10 @@ export const FieldLibrary: React.FC<FieldLibraryProps> = ({ onAddField }) => {
                   <div className="space-y-2">
                     {fields.map((field) => {
                       const IconComponent = (LucideIcons as any)[field.icon];
+                      const fieldKey = `${field.type}-${(field.defaultProps as any)?.name || field.type}`;
                       return (
                         <button
-                          key={field.type}
+                          key={fieldKey}
                           onClick={() => onAddField(field)}
                           className="w-full flex items-center p-3 text-left border border-gray-200 rounded-lg hover:border-blue-300 hover:ring-1 hover:ring-blue-300 hover:bg-blue-50 transition-all group"
                         >

@@ -22,7 +22,7 @@ export const getPatientByMrn = asyncHandler(async (req, res) => {
   };
 
   res.json({
-    patientName: findVal(['Patient Name', 'patientName', 'Patient name', 'patient_name', 'PatientName', 'name', 'Name', 'Full Name', 'fullName', 'patient', 'Patient']),
+    patientName: findVal(['Patient Name', 'patientName', 'Patient name', 'patient_name', 'PatientName', 'name', 'Name', 'Full Name', 'fullName', 'patient', 'Patient', 'Client Name', 'clientName', 'Client name']),
     mrn: findVal(['MRN', 'mrn', 'patient_mrn', 'patientMrn', '_mrn', 'Patient MRN', 'Medical Record Number']),
     age: findVal(['Age', 'age', 'AGE', 'Patient Age', 'patientAge']),
     gender: findVal(['Gender', 'gender', 'GENDER', 'sex', 'Sex', 'SEX']),

@@ -211,7 +211,6 @@ export const DatabaseRecords = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [viewRecord, setViewRecord] = useState<any | null>(null);
-  const [rawRecord, setRawRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -478,26 +477,9 @@ export const DatabaseRecords = () => {
       return next;
     });
   };
-  // Always show these columns for dynamic records:
-  // id, template_name, template_department, submitted_by, submitted_at, ...form_data fields
-  // Get all unique keys from form_data fields for dynamic records
-  let allKeys: string[] = [];
-  const formDataKeys = Array.from(
-    records.reduce((set: Set<string>, rec: any) => {
-      if (rec.form_data && typeof rec.form_data === 'object') {
-        Object.keys(rec.form_data).forEach(k => set.add(k));
-      }
-      return set;
-    }, new Set<string>())
-  );
-  allKeys = [
-    'id',
-    'template_name',
-    'template_department',
-    'submitted_by',
-    'submitted_at',
-    ...formDataKeys
-  ];
+  // Core table columns only — full form answers are available via the View modal.
+  // (Previously every form_data key was a column, producing an unwieldy header.)
+  let allKeys: string[] = ['id', 'template_name', 'template_department', 'submitted_by', 'submitted_at'];
 
   // Server-side pagination: backend handles date/search/MRN filtering
   const totalAfterFilter = totalServerRecords || filteredRecords.length;
@@ -997,9 +979,9 @@ export const DatabaseRecords = () => {
           </div>
         ) : (
           <table className="min-w-full border text-xs">
-            <thead className="bg-gray-100">
+            <thead className="bg-[#003153]">
               <tr>
-                <th className="px-2 py-1 border w-8">
+                <th className="px-2 py-2 border-b border-[#003153]/60 w-8">
                   <input type="checkbox" checked={isAllSelected} onChange={toggleSelectAll} />
                 </th>
                 {allKeys.map(key => {
@@ -1010,15 +992,15 @@ export const DatabaseRecords = () => {
                     'template_department': 'Department',
                     'id': 'ID'
                   };
-                  return <th key={key} className="px-2 py-1 border">{labelMap[key] || escape(key)}</th>;
+                  return <th key={key} className="px-2 py-2 border-b border-[#003153]/60 text-left text-[10px] font-bold uppercase tracking-wider text-white/80 whitespace-nowrap">{labelMap[key] || escape(key)}</th>;
                 })}
-                <th className="px-2 py-1 border">Actions</th>
+                <th className="px-2 py-2 border-b border-[#003153]/60 text-left text-[10px] font-bold uppercase tracking-wider text-white/80">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {displayedRecords.map((record, idx) => (
-                <tr key={record.id || idx} className="hover:bg-blue-50">
-                  <td className="px-2 py-1 border text-center">
+                <tr key={record.id || idx} className="hover:bg-blue-50/50 transition-colors">
+                  <td className="px-2 py-2 border-b border-gray-100 text-center">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(getRecordId(record, idx))}
@@ -1058,14 +1040,13 @@ export const DatabaseRecords = () => {
                             ? JSON.stringify(value)
                             : escape(value);
                     return (
-                      <td key={key} className="px-2 py-1 border truncate max-w-xs" title={titleText as any}>
+                      <td key={key} className="px-2 py-2 border-b border-gray-100 truncate max-w-xs" title={titleText as any}>
                         {cellContent}
                       </td>
                     );
                   })}
-                  <td className="px-2 py-1 border whitespace-nowrap">
+                  <td className="px-2 py-2 border-b border-gray-100 whitespace-nowrap">
                     <button className="text-blue-600 hover:underline mr-2" onClick={() => setViewRecord(record)}>View</button>
-                    <button className="text-purple-600 hover:underline mr-2" onClick={() => setRawRecord(record)}>Raw</button>
                     <button className="text-red-600 hover:underline" onClick={() => handleDelete(record.id)}>Delete</button>
                   </td>
                 </tr>
@@ -1142,29 +1123,6 @@ export const DatabaseRecords = () => {
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Raw JSON Modal */}
-      {rawRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4 sm:p-6">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl relative max-h-[90vh] flex flex-col">
-            <div className="sticky top-0 bg-white border-b rounded-t-lg pl-6 pr-12 py-3">
-              <h3 className="text-xl font-bold">Raw JSON</h3>
-              <button
-                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl"
-                onClick={() => setRawRecord(null)}
-                aria-label="Close"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="p-6 overflow-auto">
-              <pre className="bg-gray-100 rounded p-4 text-xs overflow-x-auto">
-                {JSON.stringify(rawRecord, null, 2)}
-              </pre>
             </div>
           </div>
         </div>

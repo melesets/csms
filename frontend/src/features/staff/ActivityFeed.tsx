@@ -1,8 +1,7 @@
-// Activity feed - chronological list of staff actions and submissions
+// Activity feed - session-based timeline of staff actions within check-in sessions
 import React, { useState, useEffect } from 'react';
-import { FileText, Package, UserPlus, Clock, ChevronDown, ChevronRight } from 'lucide-react';
-import { EthiopianDateTimeDisplay, EthiopianDateDisplay } from '../../components/shared';
-import { getEthiopianRelativeTime } from '../../utils/timeUtils';
+import { FileText, Package, Clock, ChevronDown, ChevronRight, Calendar, Users, Activity, ArrowRight, UserCheck } from 'lucide-react';
+import { EthiopianDateTimeDisplay } from '../../components/shared';
 
 interface ActivityFeedProps {
     username?: string;
@@ -12,7 +11,7 @@ interface ActivityFeedProps {
 interface ActivityData {
     submissions: any[];
     resourceUpdates: any[];
-    staffCreated: any[];
+    inventoryReports: any[];
 }
 
 interface ActivityEvent {
@@ -28,305 +27,468 @@ interface ActivityEvent {
     shiftName?: string;
 }
 
+interface SessionRecord {
+    id: string;
+    person: string;
+    shiftName: string;
+    lastDate: string;
+    reports: ActivityEvent[];
+    edits: ActivityEvent[];
+    submissions: ActivityEvent[];
+}
+
 interface ActivityGroup {
-    title: string;
-    events: ActivityEvent[];
+    id: string;
+    label: string;
     icon: any;
     color: string;
+    sessions: SessionRecord[];
 }
+
+type ViewMode = 'daily' | 'individual' | 'activity';
+
+// API timestamps are stored as UTC; the app header displays Ethiopian time
+// from the browser's local clock (EAT). Shift UTC values to EAT wall time so
+// the feed matches the header logic.
+const toEAT = (value: string): string => {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return new Date(d.getTime() + 3 * 3600 * 1000).toISOString();
+};
+
+const getDayKey = (date: string): string => {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'unknown';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
+const PAGE_SIZE = 50;
+
+const TYPE_BADGES: Record<string, string> = {
+    submission: 'bg-blue-50 text-blue-600',
+    resource: 'bg-indigo-50 text-indigo-600',
+    inventory: 'bg-emerald-50 text-emerald-600',
+};
 
 export const ActivityFeed: React.FC<ActivityFeedProps> = ({ username, department }) => {
     const [activities, setActivities] = useState<ActivityData>({
-        submissions: [],
-        resourceUpdates: [],
-        staffCreated: []
+        submissions: [], resourceUpdates: [], inventoryReports: [],
     });
     const [loading, setLoading] = useState(true);
-    const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
-    const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<ViewMode>('daily');
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const [paginationPage, setPaginationPage] = useState(1);
+
+    const fetchData = async () => {
+        if (!username && !department) return;
+        setLoading(true);
+        try {
+            const url = username
+                ? `/api/activity/user/${encodeURIComponent(username)}`
+                : `/api/activity/department/${encodeURIComponent(department as string)}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Activity fetch failed');
+            const data = await res.json();
+            setActivities(data);
+        } catch (err) {
+            console.error('Failed to load activity:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchActivity = async () => {
-            setLoading(true);
-            try {
-                let url = '';
-                if (username) url = `/api/activity/user/${username}`;
-                else if (department) url = `/api/activity/department/${department === 'All' ? 'All' : department}`;
-
-                if (!url) return;
-
-                const res = await fetch(url);
-                if (res.ok) {
-                    const data = await res.json();
-                    setActivities(data);
-                }
-            } catch (err) {
-                console.error('Error loading activity:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchActivity();
+        fetchData();
+        const interval = setInterval(fetchData, 60000);
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [username, department]);
 
-    if (loading) {
-        return (
-            <div className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="h-4 bg-gray-100 rounded w-1/3 mb-3" />
-                <div className="h-3 bg-gray-50 rounded w-full mb-2" />
-                <div className="h-3 bg-gray-50 rounded w-2/3" />
-            </div>
-        );
-    }
-
-    const allEvents: ActivityEvent[] = [
-        ...(activities.submissions || []).map(s => ({
+    // ── Build events from all data sources ─────────────────────────────
+    const events: ActivityEvent[] = [
+        ...(activities.submissions || []).map((s: any) => ({
             id: `sub-${s.id}`,
             type: 'submission',
             title: s.template_name || 'Report Submitted',
-            description: `Patient: ${s.patient_name || 'N/A'} (MRN: ${s.mrn || 'N/A'})`,
-            date: s.submitted_at,
-            submittedBy: s.submitted_by || 'Unknown',
+            description: `Submitted report${s.patient_name && s.patient_name !== 'N/A' ? ` for ${s.patient_name}` : ''}${s.mrn && s.mrn !== 'N/A' ? ` (MRN ${s.mrn})` : ''}`,
+            date: toEAT(s.submitted_at),
+            submittedBy: s.submitted_by_name || s.submitted_by || 'Unknown',
             icon: FileText,
             color: 'blue',
-            details: s.form_data,
-            shiftName: s.shift_name
+            details: s,
+            shiftName: s.shift_name,
         })),
-        ...(activities.resourceUpdates || []).map(r => ({
-            id: `res-${r.id}`,
+        ...(activities.resourceUpdates || []).map((r: any) => ({
+            id: `res-${r.id}-${r.updated_at}`,
             type: 'resource',
-            title: `Inventory Update: ${r.name}`,
-            description: `Updated quantity to ${r.quantity} ${r.unit}`,
-            date: r.updated_at,
-            submittedBy: r.submitted_by || 'Unknown',
+            title: `Inventory: ${r.name}`,
+            description: `Stock updated to ${r.quantity} ${r.unit}${r.expiry_date ? ` · Expiry ${String(r.expiry_date).slice(0, 10)}` : ''}`,
+            date: r.updated_at || r.date,
+            submittedBy: r.last_updated_by_name || r.last_updated_by || 'Unknown',
             icon: Package,
-            color: 'emerald',
+            color: 'indigo',
             details: r,
-            shiftName: r.shift_name
-        })),
-        ...(activities.staffCreated || []).map(st => ({
-            id: `staff-${st.id}`,
-            type: 'staff',
-            title: 'Added Staff Member',
-            description: `${st.name} as ${st.role} in ${st.department}`,
-            date: st.created_at,
-            submittedBy: st.submitted_by || 'Unknown',
-            icon: UserPlus,
-            color: 'purple',
-            details: st,
-            shiftName: st.shift_name
+            shiftName: r.shift_name,
         })),
         ...((activities as any).inventoryReports || []).map((ir: any) => ({
-            id: `inv-${ir.id}`,
+            id: `ir-${ir.id}`,
             type: 'inventory',
-            title: 'Inventory Report Saved',
-            description: `Shift end inventory reconciliation`,
-            date: ir.date,
-            submittedBy: ir.submitted_by || 'Unknown',
+            title: 'Inventory Report',
+            description: `${Array.isArray(ir.changes) ? ir.changes.length : 0} item(s) updated`,
+            date: toEAT(ir.date),
+            submittedBy: ir.submitted_by || ir.staffName || ir.staffname || 'Unknown',
             icon: Package,
-            color: 'amber',
+            color: 'emerald',
             details: ir,
-            shiftName: ir.shift_name
-        }))
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            shiftName: ir.shift_name || ir.shift,
+        })),
+    ];
 
+    // Last 14 days only, newest first
+    const filteredEvents = events
+        .filter(e => {
+            const t = new Date(e.date).getTime();
+            return !isNaN(t) && t >= Date.now() - TWO_WEEKS_MS;
+        })
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    if (allEvents.length === 0) {
+    // ── Group events into check-in sessions ────────────────────────────
+    const getSessionKey = (e: ActivityEvent): string | null => {
+        const sid = e.details?.shift_session_id;
+        if (sid) return `sess-${sid}`;
+        // No session link: only track records by real staff members
+        if (!e.details?.staff_username) return null;
+        return `flat-${e.details.staff_username}|${e.shiftName || ''}|${getDayKey(e.date)}`;
+    };
+
+    // Resource edits already reflected in a saved report's changes should not
+    // appear as separate standalone entries (no fragmentation under a report).
+    // `r.updated_at` is stored as EAT wall time (DB `now()`), while report
+    // dates are UTC wall, so `toEAT` has already normalized them to the same
+    // instant space before this comparison.
+    const isCapturedInReport = (e: ActivityEvent): boolean => {
+        if (e.type !== 'resource' || !e.details) return false;
+        const resTime = new Date(e.date).getTime();
+        return filteredEvents.some(rep => {
+            if (rep.type !== 'inventory') return false;
+            const changes = rep.details?.changes || [];
+            if (!changes.some((c: any) => String(c.id) === String(e.details.id))) return false;
+            return new Date(rep.date).getTime() >= resTime;
+        });
+    };
+
+    const sessions: SessionRecord[] = (() => {
+        const map = new Map<string, SessionRecord>();
+        filteredEvents.forEach(e => {
+            if (isCapturedInReport(e)) return;
+            const key = getSessionKey(e);
+            // Only records tied to an actual check-in session are tracked
+            if (!key) return;
+            let rec = map.get(key);
+            if (!rec) {
+                rec = { id: key, person: e.submittedBy || 'Unknown', shiftName: e.shiftName || '', lastDate: e.date, reports: [], edits: [], submissions: [] };
+                map.set(key, rec);
+            }
+            if (new Date(e.date).getTime() > new Date(rec.lastDate).getTime()) rec.lastDate = e.date;
+            if (e.type === 'inventory') rec.reports.push(e);
+            else if (e.type === 'resource') rec.edits.push(e);
+            else if (e.type === 'submission') rec.submissions.push(e);
+        });
+        return [...map.values()].sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime());
+    })();
+
+    // ── Grouping by view mode ──────────────────────────────────────────
+    const groups: ActivityGroup[] = (() => {
+        if (viewMode === 'daily') {
+            const byDay = new Map<string, SessionRecord[]>();
+            sessions.forEach(s => {
+                const key = getDayKey(s.lastDate);
+                if (!byDay.has(key)) byDay.set(key, []);
+                byDay.get(key)!.push(s);
+            });
+            return [...byDay.entries()].map(([key, sess]) => ({
+                id: `day-${key}`,
+                label: key,
+                icon: Calendar,
+                color: 'blue',
+                sessions: sess,
+            }));
+        }
+        if (viewMode === 'individual') {
+            const byPerson = new Map<string, SessionRecord[]>();
+            sessions.forEach(s => {
+                const person = s.person || 'Unknown';
+                if (!byPerson.has(person)) byPerson.set(person, []);
+                byPerson.get(person)!.push(s);
+            });
+            return [...byPerson.entries()].map(([key, sess]) => ({
+                id: `person-${key}`,
+                label: key,
+                icon: Users,
+                color: 'teal',
+                sessions: sess,
+            }));
+        }
+        const byShift = new Map<string, SessionRecord[]>();
+        sessions.forEach(s => {
+            const shift = s.shiftName || 'General';
+            if (!byShift.has(shift)) byShift.set(shift, []);
+            byShift.get(shift)!.push(s);
+        });
+        return [...byShift.entries()].map(([key, sess]) => ({
+            id: `shift-${key}`,
+            label: key,
+            icon: Activity,
+            color: 'purple',
+            sessions: sess,
+        }));
+    })();
+
+    const displayedGroups = groups.slice(0, paginationPage * PAGE_SIZE);
+    const hasMore = displayedGroups.length < groups.length;
+
+    const toggleGroup = (id: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const isGroupExpanded = (id: string) => expandedGroups.has(id);
+
+    const scopeLabel = username ? username : department === 'All' ? 'All departments' : department || 'This department';
+
+    const renderInventoryChanges = (e: ActivityEvent) => {
+        const d = e.details;
+        if (!d) return null;
+        const changes = Array.isArray(d.changes) ? d.changes : [];
+        if (changes.length === 0) return null;
         return (
-            <div className="p-10 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <Clock className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-gray-600">No activity found for this {username ? 'user' : 'department'}.</p>
-                <p className="text-xs text-gray-400 mt-1">Actions will appear here once performed.</p>
+            <div className="mt-2 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden">
+                <div className="max-h-40 overflow-y-auto divide-y divide-gray-100">
+                    {changes.map((r: any, i: number) => {
+                        const name = r.name || 'Item';
+                        const unit = r.unit || '';
+                        const type = r.type || '';
+                        const qtyBefore = r.qtyBefore;
+                        const qtyAfter = r.qtyAfter;
+                        const expBefore = r.expBefore ? String(r.expBefore).slice(0, 10) : null;
+                        const expAfter = r.expAfter ? String(r.expAfter).slice(0, 10) : null;
+                        const qtyDiff = (Number(qtyBefore) || 0) - (Number(qtyAfter) || 0);
+                        return (
+                            <div key={i} className="px-3 py-1.5 text-xs">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="font-medium text-gray-700 capitalize truncate">{name}</span>
+                                        {type && (
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${type.toLowerCase() === 'drug' ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                {type.toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {qtyBefore !== undefined && qtyBefore !== null && (
+                                        <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                                            <span className="text-gray-400">{qtyBefore} {unit}</span>
+                                            <ArrowRight className="w-3 h-3 text-gray-300" />
+                                            <span className={`font-bold ${qtyDiff < 0 ? 'text-emerald-600' : qtyDiff > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                                {qtyAfter} {unit}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                {expBefore && expAfter && (
+                                    <div className="flex items-center gap-1.5 mt-0.5 text-[11px]">
+                                        <span className="text-gray-400">Expiry {expBefore}</span>
+                                        <ArrowRight className="w-3 h-3 text-gray-300" />
+                                        <span className="font-semibold text-amber-600">{expAfter}</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         );
-    }
+    };
 
-    // Group events by title
-    const groupedActivities: ActivityGroup[] = [];
-    const groupMap = new Map<string, ActivityEvent[]>();
+    const renderCoSigners = (e: ActivityEvent) => {
+        const co = e.details?.co_signers;
+        if (!Array.isArray(co) || co.length === 0) return null;
+        return (
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">
+                    <UserCheck className="w-3 h-3" />Co-signer(s): {co.join(', ')}
+                </span>
+            </div>
+        );
+    };
 
-    allEvents.forEach(event => {
-        if (!groupMap.has(event.title)) {
-            groupMap.set(event.title, []);
-        }
-        groupMap.get(event.title)!.push(event);
-    });
+    const renderEvent = (e: ActivityEvent, showPerson: boolean) => {
+        const EventIcon = e.icon;
+        const badge = TYPE_BADGES[e.type] || 'bg-gray-50 text-gray-500';
+        return (
+            <div key={e.id} className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                <div className={`p-2 rounded-lg shrink-0 ${badge}`}>
+                    <EventIcon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-gray-800 truncate">{e.title}</span>
+                        <span className="text-[11px] text-gray-400 shrink-0">
+                            <EthiopianDateTimeDisplay date={e.date} showTime format="long" size="xs" />
+                        </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{e.description}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                        {showPerson && (
+                            <span className="text-[10px] font-semibold text-gray-500 bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded">
+                                {e.submittedBy}
+                            </span>
+                        )}
+                        {e.shiftName && e.shiftName !== 'Unknown' && (
+                            <span className="text-[10px] font-semibold text-[#003153] bg-[#003153]/5 border border-[#003153]/10 px-1.5 py-0.5 rounded">
+                                {e.shiftName}
+                            </span>
+                        )}
+                    </div>
+                    {e.type === 'inventory' && renderCoSigners(e)}
+                    {e.type === 'inventory' && renderInventoryChanges(e)}
+                </div>
+            </div>
+        );
+    };
 
-    groupMap.forEach((events, title) => {
-        groupedActivities.push({
-            title,
-            events,
-            icon: events[0].icon,
-            color: events[0].color
-        });
-    });
+    const renderSession = (s: SessionRecord) => {
+        const recordCount = s.reports.length + s.submissions.length + (s.reports.length === 0 ? s.edits.length : 0);
+        return (
+            <div key={s.id} className="border-t border-gray-100 first:border-t-0">
+                <div className="px-5 py-2.5 bg-gray-50/70 flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-gray-600 bg-white border border-gray-100 px-1.5 py-0.5 rounded">
+                        {s.person}
+                    </span>
+                    {s.shiftName && s.shiftName !== 'Unknown' && (
+                        <span className="text-[10px] font-semibold text-[#003153] bg-[#003153]/5 border border-[#003153]/10 px-1.5 py-0.5 rounded">
+                            {s.shiftName}
+                        </span>
+                    )}
+                    <span className="text-[11px] text-gray-400">
+                        <EthiopianDateTimeDisplay date={s.lastDate} showTime format="long" size="xs" />
+                    </span>
+                    <span className="ml-auto text-[10px] font-semibold text-gray-400">{recordCount} record(s)</span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                    {s.reports.map(rep => renderEvent(rep, false))}
+                    {s.submissions.map(sub => renderEvent(sub, true))}
+                    {s.reports.length === 0 && s.edits.map(edit => renderEvent(edit, true))}
+                </div>
+            </div>
+        );
+    };
 
-    // Sort groups by most recent activity
-    groupedActivities.sort((a, b) =>
-        new Date(b.events[0].date).getTime() - new Date(a.events[0].date).getTime()
-    );
+    const renderGroup = (g: ActivityGroup) => {
+        const expanded = isGroupExpanded(g.id);
+        const Icon = g.icon;
+        return (
+            <div key={g.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:shadow-gray-100/60 transition-shadow duration-300">
+                <button onClick={() => toggleGroup(g.id)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-1 h-3 bg-[#003153] rounded-full" />
+                        <div className={`p-2 rounded-lg bg-gray-50 shrink-0`}>
+                            <Icon className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <div className="min-w-0">
+                            {viewMode === 'daily' ? (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <EthiopianDateTimeDisplay date={g.sessions[0].lastDate} showTime format="long" size="sm" />
+                                    </div>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">{g.sessions.length} session{g.sessions.length === 1 ? '' : 's'}</p>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-bold text-gray-900">{g.label}</span>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">{g.sessions.length} session{g.sessions.length === 1 ? '' : 's'}</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">{g.sessions.length}</span>
+                        {expanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                    </div>
+                </button>
+                {expanded && (
+                    <div>
+                        {g.sessions.map(renderSession)}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const modes: { id: ViewMode; label: string; icon: any }[] = [
+        { id: 'daily', label: 'Day', icon: Calendar },
+        { id: 'individual', label: 'Individual', icon: Users },
+        { id: 'activity', label: 'Activity', icon: Activity },
+    ];
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between px-2 mb-4">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                    <div className="w-1 h-3 bg-[#003153] rounded-full" />
-                    Detailed Activity Log
-                </h4>
-                <div className="text-[10px] text-gray-400 font-medium">
-                    {allEvents.length} Recent Action{allEvents.length !== 1 ? 's' : ''} · {groupedActivities.length} Group{groupedActivities.length !== 1 ? 's' : ''}
+        <div className="space-y-4">
+            {/* Header */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-[#003153] rounded-xl">
+                        <Activity className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900">Recent Activity</h2>
+                        <p className="text-sm text-gray-400 mt-0.5">
+                            {scopeLabel} · last 14 days
+                            {sessions.length > 0 && (
+                                <span className="ml-2 text-xs font-semibold text-[#003153]">{sessions.length} session{sessions.length === 1 ? '' : 's'}</span>
+                            )}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex bg-gray-100 rounded-lg p-0.5">
+                    {modes.map(m => (
+                        <button key={m.id} onClick={() => { setViewMode(m.id); setPaginationPage(1); }}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${viewMode === m.id ? 'bg-[#003153] text-white shadow-sm' : 'text-gray-500 hover:bg-white hover:text-gray-700'}`}>
+                            <m.icon className="w-3.5 h-3.5" />{m.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            <div className="space-y-3">
-                {groupedActivities.map((group, groupIndex) => {
-                    const groupId = `group-${groupIndex}`;
-                    const isGroupExpanded = expandedGroupId === groupId;
-                    const Icon = group.icon;
-                    const colorClasses =
-                        group.color === 'blue' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                            group.color === 'emerald' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                group.color === 'amber' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                    group.color === 'purple' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                                        'bg-gray-50 text-gray-600 border-gray-100';
-
-                    return (
-                        <div
-                            key={groupId}
-                            className={`border rounded-xl transition-all duration-300 ${isGroupExpanded ? 'bg-white shadow-md border-gray-200' : 'bg-white hover:shadow-sm border-gray-200'}`}
-                        >
-                            <div
-                                onClick={() => setExpandedGroupId(isGroupExpanded ? null : groupId)}
-                                className="p-4 cursor-pointer flex gap-4 items-center hover:bg-gray-50 rounded-t-xl transition-colors"
-                            >
-                                <div className={`p-2 rounded-lg border shadow-sm ${colorClasses}`}>
-                                    <Icon className="w-4 h-4" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="min-w-0 flex-1">
-                                            <h5 className="text-sm font-semibold text-gray-900 leading-tight truncate">
-                                                {group.title}
-                                            </h5>
-                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                <span className="text-xs text-gray-500">
-                                                    {getEthiopianRelativeTime(group.events[0].date)}
-                                                </span>
-                                                <span className="text-[10px] text-gray-400">·</span>
-                                                <span className="text-[10px] text-gray-400">
-                                                    <EthiopianDateDisplay date={group.events[0].date} format="long" />
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-                                                {group.events.length} {group.events.length === 1 ? 'entry' : 'entries'}
-                                            </span>
-                                            <div className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${isGroupExpanded ? 'bg-gray-200 text-gray-600 rotate-90' : 'bg-gray-100 text-gray-500'}`}>
-                                                <ChevronRight className="w-4 h-4" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isGroupExpanded ? 'max-h-[2000px]' : 'max-h-0'}`}>
-                                <div className="px-4 pb-4 pt-2 space-y-2 border-t border-gray-100">
-                                    {group.events.map((event) => {
-                                        const isEventExpanded = expandedEventId === event.id;
-
-                                        return (
-                                            <div
-                                                key={event.id}
-                                                className={`border rounded-lg transition-all duration-200 ${isEventExpanded ? 'bg-gray-50 border-gray-200 shadow-sm' : 'bg-white hover:bg-gray-50 border-gray-200'}`}
-                                            >
-                                                <div
-                                                    onClick={() => setExpandedEventId(isEventExpanded ? null : event.id)}
-                                                    className="p-3 cursor-pointer flex gap-3 items-start"
-                                                >
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-start justify-between gap-4">
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
-                                                                        By: {event.submittedBy}
-                                                                    </span>
-                                                                    {event.shiftName && (
-                                                                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${event.shiftName === 'Morning' ? 'text-amber-600 bg-amber-50 border-amber-200' :
-                                                                                event.shiftName === 'Afternoon' ? 'text-blue-600 bg-blue-50 border-blue-200' :
-                                                                                    event.shiftName === 'Night' ? 'text-purple-600 bg-purple-50 border-purple-200' :
-                                                                                        'text-gray-600 bg-gray-50 border-gray-200'
-                                                                            }`}>
-                                                                            {event.shiftName}
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-[10px] text-gray-400">
-                                                                        {getEthiopianRelativeTime(event.date)}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-gray-400">·</span>
-                                                                    <span className="text-[10px] text-gray-400">
-                                                                        <EthiopianDateDisplay date={event.date} format="long" />
-                                                                    </span>
-                                                                </div>
-                                                                {!isEventExpanded && (
-                                                                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-1">
-                                                                        {event.description}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                            <div className={`shrink-0 h-6 w-6 rounded-full flex items-center justify-center transition-all ${isEventExpanded ? 'bg-gray-200 text-gray-600 rotate-180' : 'bg-gray-100 text-gray-500'}`}>
-                                                                <ChevronDown className="w-4 h-4" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isEventExpanded ? 'max-h-[500px] border-t border-gray-200' : 'max-h-0'}`}>
-                                                    <div className="p-3 bg-white">
-                                                        <div className="mb-3 flex items-center justify-between">
-                                                            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Record Details</span>
-                                                            <span className="text-[10px] text-gray-400">#{event.id.split('-')[1]}</span>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                            {event.description && (
-                                                                <div className="col-span-full bg-white p-2.5 rounded-lg border border-gray-200">
-                                                                    <div className="text-[10px] text-gray-400 mb-0.5 uppercase font-semibold">Summary</div>
-                                                                    <div className="text-xs text-gray-700">{event.description}</div>
-                                                                </div>
-                                                            )}
-
-                                                            {event.details && Object.entries(event.details).map(([key, value]) => {
-                                                                if (['form_data', 'id', 'submitted_by', 'submitted_by_name', 'template_department', 'updated_at', 'created_at', 'submitted_at', 'last_updated_by', 'created_by'].includes(key)) return null;
-                                                                if (value === null || value === undefined || value === '') return null;
-
-                                                                let displayValue = String(value);
-                                                                if (typeof value === 'object') displayValue = JSON.stringify(value);
-
-                                                                return (
-                                                                    <div key={key} className="bg-white p-2.5 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-                                                                        <div className="text-[10px] text-gray-400 mb-0.5 uppercase font-semibold truncate" title={key}>
-                                                                            {key.replace(/[_-]+/g, ' ')}
-                                                                        </div>
-                                                                        <div className="text-xs text-gray-800 font-medium break-words">
-                                                                            {displayValue}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            {/* Loading */}
+            {loading ? (
+                <div className="space-y-3">
+                    {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-2xl animate-pulse" />)}
+                </div>
+            ) : displayedGroups.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
+                    <div className="mx-auto w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-3">
+                        <Activity className="w-6 h-6 text-gray-300" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-500">No activity recorded in the last 14 days</p>
+                    <p className="text-xs text-gray-400 mt-1">Check-in sessions with reports, handovers and inventory updates will appear here.</p>
+                </div>
+            ) : (
+                <>
+                    <div className="space-y-3">
+                        {displayedGroups.map(renderGroup)}
+                    </div>
+                    {hasMore && (
+                        <button onClick={() => setPaginationPage(p => p + 1)}
+                            className="w-full mt-4 py-3 rounded-xl bg-[#003153] text-white font-bold hover:bg-[#002640] transition-all shadow-md shadow-[#003153]/20">
+                            Load More Activities
+                        </button>
+                    )}
+                </>
+            )}
         </div>
     );
 };

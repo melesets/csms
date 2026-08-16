@@ -138,7 +138,7 @@ export const deleteSchedule = async (req, res) => {
   const deleted = await schedulingService.deleteSchedule(parseInt(id));
   if (!deleted) return res.status(404).json({ error: 'Schedule not found' });
   await schedulingService.logScheduleChange({
-    scheduleId: deleted.id, staffUserId: deleted.staff_user_id,
+    scheduleId: null, staffUserId: deleted.staff_user_id,
     shiftTypeId: deleted.shift_type_id, scheduleDate: deleted.schedule_date,
     department: deleted.department, action: 'delete',
     oldShiftTypeId: deleted.shift_type_id, changedBy: req.user.id

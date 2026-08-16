@@ -62,13 +62,46 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [refreshShiftContext]);
 
   useEffect(() => {
-    // Backwards compatibility for activeSession
-    const stored = localStorage.getItem('active_shift_session');
-    if (stored) {
-      setActiveSession(JSON.parse(stored));
-    }
+    const loadActiveSession = async () => {
+      if (!user || user.role === 'admin' || user.role === 'superadmin') {
+        setActiveSession(null);
+        return;
+      }
+      try {
+        const data = await apiGet(`/shifts/active-staff/${encodeURIComponent(user.department || '')}`);
+        const mine = (data || []).find(
+          (s: any) => s.session_id && String(s.username).toLowerCase() === String(user.username).toLowerCase()
+        );
+        if (mine) {
+          const session = {
+            id: mine.session_id,
+            ward: mine.department,
+            shiftName: mine.shift_name,
+            username: mine.username,
+            name: mine.name,
+            profession: mine.profession,
+          };
+          setActiveSession(session);
+          localStorage.setItem('active_shift_session', JSON.stringify(session));
+        } else {
+          setActiveSession(null);
+          localStorage.removeItem('active_shift_session');
+        }
+      } catch (err) {
+        console.error('Failed to load active shift session:', err);
+      }
+    };
+
+    loadActiveSession();
+    // Re-sync when admin checks staff in/out or when user changes
+    window.addEventListener('staff-updated', loadActiveSession);
+    const timer = setInterval(loadActiveSession, 30000);
     setLoading(false);
-  }, []);
+    return () => {
+      window.removeEventListener('staff-updated', loadActiveSession);
+      clearInterval(timer);
+    };
+  }, [user]);
 
   return (
     <ShiftContext.Provider value={{ 

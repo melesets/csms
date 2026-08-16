@@ -16,6 +16,8 @@ export interface FormField {
   readonly?: boolean;            // New: prevent manual editing (e.g., for calculated fields)
   terminology?: TerminologyConfig; // New: for clinical coding (ICD-11, LOINC, etc.)
   width?: 'full' | 'half' | 'third' | 'quarter';
+  selectionMode?: 'multiple' | 'single';  // checkbox: allow multiple or single selection
+  optionsLayout?: 'vertical' | 'horizontal'; // checkbox: option stack direction
   section?: string;
   color?: string;
   align?: TextAlign;
@@ -31,7 +33,13 @@ export interface FormField {
     min?: number;
     max?: number;
     options?: Array<{ value: string; label: string }>;
+    unit?: string;
+    precision?: number;
+    mode?: 'bp';
   }>;
+  unit?: string;
+  precision?: number;
+  mode?: 'bp';
   acceptedTypes?: string[];
   maxSize?: number;
   style?: string;
@@ -48,6 +56,8 @@ export interface FormTemplate {
   description: string;
   version: number;
   isActive: boolean;
+  /** True = requires a staff reporter (Report page); false = general survey (Survey page) */
+  requiresReporter: boolean;
   fields: FormField[];
   sections: FormSection[];
   createdBy: string;
@@ -151,12 +161,13 @@ export type FieldType =
   | 'file-upload'
   | 'signature'
   | 'rating'
+  | 'measurement'
   | 'divider';
 
 export interface FieldTemplate {
   type: FieldType;
   label: string;
   icon: string;
-  category: 'basic' | 'medical' | 'isbar' | 'advanced';
+  category: 'basic' | 'medical' | 'isbar' | 'advanced' | 'clinical' | 'patient';
   defaultProps: Partial<FormField>;
 }

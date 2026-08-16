@@ -59,6 +59,16 @@ export const UserList: React.FC<UserListProps> = ({
   // Check if a user is the hardcoded limited admin
   const isLimitedAdmin = (user: User) => user.id === 'limited-admin-local';
 
+  const getShiftBaseLabel = (user: User) => {
+    if (user.role !== 'user') return null;
+    const base = user.shiftType || '8H';
+    const map: Record<string, string> = {
+      '4H': '4-Hour (6/day)', '8H': '8-Hour (3/day)', '12H': '12-Hour (2/day)',
+      '24H': '24-Hour', '36H': '36-Hour', '48H': '48-Hour', '72H': '72-Hour',
+    };
+    return map[base] || base;
+  };
+
   // Separate users by role for nested display
   // Parent users: role='user' (service units)
   // Staff: role='staff' with parentUserId
@@ -203,7 +213,7 @@ export const UserList: React.FC<UserListProps> = ({
             {user.department}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-            {user.profession || '—'}
+            {getShiftBaseLabel(user) || user.profession || '—'}
           </td>
           <td className="px-6 py-4 whitespace-nowrap">
             <div className="flex items-center">
@@ -271,7 +281,7 @@ export const UserList: React.FC<UserListProps> = ({
                 Department
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Professionals
+                Shift Base / Profession
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status

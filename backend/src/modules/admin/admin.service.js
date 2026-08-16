@@ -16,17 +16,10 @@ export async function logAudit(action, module, detail, performedBy, ipAddress) {
   } catch { /* silent */ }
 }
 
-// Auto-purge audit logs older than 24 hours (runs every hour)
+// Auto-purge disabled — activity records are retained until manually deleted
+// via the Activity Log admin page (frees memory on demand).
 export function startAuditCleanup() {
-  const purgeOldLogs = async () => {
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    await sequelize.query(
-      'DELETE FROM admin_activity_log WHERE created_at < $1',
-      { bind: [cutoff], type: QueryTypes.DELETE }
-    ).catch(() => {});
-  };
-  purgeOldLogs();
-  setInterval(purgeOldLogs, 60 * 60 * 1000);
+  // Intentionally a no-op: automatic deletion was removed by design.
 }
 
 export async function getSystemInfo() {
@@ -154,16 +147,9 @@ export async function clearAuditLogs() {
 }
 
 export async function getAuditLogs() {
-  // Auto-purge logs older than 24 hours
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  await sequelize.query(
-    'DELETE FROM admin_activity_log WHERE created_at < $1',
-    { bind: [cutoff], type: QueryTypes.DELETE }
-  ).catch(() => {});
-
   try {
     const rows = await sequelize.query(
-      'SELECT id, action, module, target_id, detail, performed_by, ip_address, created_at FROM admin_activity_log ORDER BY created_at DESC LIMIT 100',
+      'SELECT id, action, module, target_id, detail, performed_by, ip_address, created_at FROM admin_activity_log ORDER BY created_at DESC LIMIT 1000',
       { type: QueryTypes.SELECT }
     );
     return rows;

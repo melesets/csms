@@ -1,10 +1,13 @@
-// Resource management - inventory tracking with shift-based access control
+// Resource management - inventory tracking with shift-based access control.
+// Two modes:
+//  - Sidebar access (no reporter param): read-only viewer of stock/equipment/expiry.
+//  - Active staff card flow (?dest=inventory&reporter=...): editable — add/edit/delete,
+//    quantity updates, and co-signed inventory report submission.
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { apiPost, apiGet } from '../../api';
 import {
-  Package, Pen, AlertTriangle, MinusCircle, Clock, Search, Plus,
-  Download, Trash2, X, Check, AlertCircle,
-  PackageX, PackageCheck, PackageMinus, Eye
+  Package, Pen, Search, Plus, Download, Trash2, X, Check, AlertCircle,
+  PackageX, PackageCheck, PackageMinus, FileText
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useShift } from '../../hooks/useShift';
@@ -27,7 +30,6 @@ function ResourceManagement() {
   const [filterType, setFilterType] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [activeStaffList, setActiveStaffList] = useState<any[]>([]);
-  const [selectedReporterId, setSelectedReporterId] = useState<string>('');
   const [newResource, setNewResource] = useState({
     name: '', type: 'Drug', quantity: '', standardQuantity: '',
     unit: '', expiredDate: '', batchNumber: ''
@@ -39,24 +41,25 @@ function ResourceManagement() {
   const [editResourceId, setEditResourceId] = useState<string | number | null>(null);
   const [showCoSignModal, setShowCoSignModal] = useState(false);
   const [pendingReport, setPendingReport] = useState<any>(null);
-  const [showReporterDropdown, setShowReporterDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Reporter is passed via URL when coming from an active staff card (editable flow).
+  // Read it into state immediately and clear the URL so a refresh returns to dashboard.
+  const [reporterId] = useState(() => new URLSearchParams(window.location.search).get('reporter') || '');
+  const [reporterName] = useState(() => new URLSearchParams(window.location.search).get('reporterName') || '');
+  const [reporterUsername] = useState(() => new URLSearchParams(window.location.search).get('reporterUsername') || '');
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowReporterDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (reporterId && window.location.search) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [reporterId]);
 
   /* ─── Permissions ────────────────────────────────── */
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isCheckedIn = !!activeSession;
   const hasCheckedInStaff = activeStaffList.length > 0;
-  const canEdit = isAdmin || hasCheckedInStaff; // admin or ANY staff checked in
+  // Editable only through the staff card flow; sidebar access is read-only
+  const canEdit = !!reporterId && (isAdmin || hasCheckedInStaff);
 
   /* ─── Fetch data ─────────────────────────────────── */
   useEffect(() => {
@@ -80,6 +83,8 @@ function ResourceManagement() {
         .catch(() => {});
     }
   }, [user, activeSession]);
+
+  const [selectedReporterId, setSelectedReporterId] = useState<string>(() => new URLSearchParams(window.location.search).get('reporter') || '');
 
   useEffect(() => {
     const onSaved = () => {
@@ -127,7 +132,7 @@ function ResourceManagement() {
 
   const latestReportForUser = useMemo(() => {
     const dept = targetDepartment || user?.department || '';
-    const candidates = reports.filter((r: any) => (!dept || r.department === dept) && r.staffName?.toLowerCase() === userFilter.toLowerCase());
+    const candidates = reports.filter((r: any) => (!dept || r.department === dept) && (r.staffName || r.staffname || r.staff_name || '')?.toLowerCase() === userFilter.toLowerCase());
     if (!candidates.length) return null;
     candidates.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return candidates[0];
@@ -253,7 +258,7 @@ function ResourceManagement() {
       const exp = r.expiry_date ? new Date(r.expiry_date) : null;
       let expStr = '-';
       if (exp && !isNaN(exp.getTime())) { const eth = gregorianToEthiopian(exp); expStr = formatEthiopianDate(eth, 'amharic'); }
-      const updatedBy = userFilter && latestReportForUser ? latestReportForUser.staffName : (r.last_updated_by_name || r.last_updated_by || '-');
+      const updatedBy = userFilter && latestReportForUser ? (latestReportForUser.staffName || latestReportForUser.staffname || latestReportForUser.staff_name || '-') : (r.last_updated_by_name || r.last_updated_by || '-');
       const row = [i + 1, r.name, r.type, Number(r.quantity), Number(r.standard_quantity as any) || 0, r.unit, expStr, r.batch_number || '-', st.replace('-', ' ').toUpperCase(), updatedBy];
       const rowObj = ws.addRow(row);
       rowObj.eachCell(c => { c.border = bdrAll; c.alignment = { vertical: 'middle', wrapText: true }; });
@@ -272,6 +277,20 @@ function ResourceManagement() {
     const a = document.createElement('a'); a.href = url; a.download = `inventory_${targetDepartment || 'all'}.xlsx`; a.click();
     URL.revokeObjectURL(url);
   }, [filteredResources, targetDepartment, user]);
+
+  /* ─── Co-sign / report save (staff flow) ─────────── */
+  const handleSaveReport = () => {
+    if (!resources.length) { alert('No resources to save.'); return; }
+    const deptResources = resources.filter(r => r.department === user?.department);
+    const report = {
+      shift: currentGlobalShift || 'General', shift_session_id: activeSession?.id || null,
+      staffName: reporterName || reporterUsername || '', staffId: reporterId,
+      department: user?.department || '', date: new Date().toISOString(),
+      resources: deptResources.map(r => ({ ...r })),
+    };
+    setPendingReport(report);
+    setShowCoSignModal(true);
+  };
 
   /* ─── Status badge config ────────────────────────── */
   const statusConfig: Record<string, { bg: string; text: string; icon: any; label: string }> = {
@@ -293,12 +312,19 @@ function ResourceManagement() {
             <h2 className="text-lg font-bold text-gray-900">Inventory</h2>
             <p className="text-sm text-gray-400 mt-0.5">
               {isAdmin ? (targetDepartment || 'All departments') : user?.department} · {resources.length} items
+              {reporterId && !canEdit && <span className="ml-2 text-xs text-gray-400">· read-only</span>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {reporterId && (
+            <div className="hidden md:flex items-center gap-2 bg-[#003153]/5 border border-[#003153]/15 px-4 py-2 rounded-xl">
+              <span className="text-[10px] font-bold text-[#003153] uppercase tracking-wider">Reporting As</span>
+              <span className="text-sm font-semibold text-[#002640]">{reporterName || reporterUsername || 'Staff'}</span>
+            </div>
+          )}
           <button onClick={handleExport} disabled={!filteredResources.length}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-100 disabled:opacity-40 inline-flex items-center gap-1.5 transition-all duration-200">
+            className="px-4 py-2 bg-[#003153] text-white rounded-xl text-sm font-medium hover:bg-[#002640] disabled:opacity-40 inline-flex items-center gap-1.5 transition-all duration-200 shadow-sm">
             <Download className="w-4 h-4" />Export
           </button>
           {canEdit && (
@@ -307,80 +333,11 @@ function ResourceManagement() {
               <Plus className="w-4 h-4" />Add Resource
             </button>
           )}
-        </div>
-      </div>
-
-      {/* ── Reporter Card ───────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-        <div className="p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-[#003153]/5 flex items-center justify-center">
-              <Clock className="w-4.5 h-4.5 text-[#003153]" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-gray-900">Report Submission</h3>
-              <p className="text-[11px] text-gray-400">Select a reporter to start co-signing</p>
-            </div>
-          </div>
-
-          {hasCheckedInStaff ? (
-            <div className="relative" ref={dropdownRef}>
-              <label className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-1.5 block">Reporter</label>
-              <button
-                type="button"
-                onClick={() => setShowReporterDropdown(!showReporterDropdown)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-left bg-gray-50 hover:bg-white hover:border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 cursor-pointer flex items-center justify-between"
-              >
-                {selectedReporterId ? (
-                  <span className="text-gray-900">
-                    {activeStaffList.find(s => s.id.toString() === selectedReporterId)?.name}
-                  </span>
-                ) : (
-                  <span className="text-gray-400">Select reporter...</span>
-                )}
-                <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showReporterDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {showReporterDropdown && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                  <div className="max-h-48 overflow-y-auto">
-                    {activeStaffList.map(s => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedReporterId(s.id.toString());
-                          setShowReporterDropdown(false);
-                          if (!resources.length) { alert('No resources to save.'); return; }
-                          const deptResources = resources.filter(r => r.department === user?.department);
-                          const report = {
-                            shift: currentGlobalShift || 'General', shift_session_id: activeSession?.id || null,
-                            staffName: s.name, staffId: s.id,
-                            department: user?.department || '', date: new Date().toISOString(),
-                            resources: deptResources.map(r => ({ ...r })),
-                          };
-                          setPendingReport(report);
-                          setShowCoSignModal(true);
-                        }}
-                        className={`block w-full px-4 py-2.5 text-sm text-left transition-colors duration-150 ${
-                          selectedReporterId === s.id.toString()
-                            ? 'bg-gray-100 text-gray-900 font-semibold'
-                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                      >
-                        {s.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <span className="inline-flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2.5 rounded-lg text-xs font-medium border border-amber-200/60">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              Waiting for staff check-in...
-            </span>
+          {reporterId && canEdit && (
+            <button onClick={handleSaveReport} disabled={!resources.length}
+              className="px-4 py-2 bg-[#003153] text-white rounded-xl text-sm font-semibold hover:bg-[#002640] inline-flex items-center gap-1.5 transition-all duration-200 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+              <FileText className="w-4 h-4" />Save Inventory Report
+            </button>
           )}
         </div>
       </div>
@@ -451,7 +408,7 @@ function ResourceManagement() {
                 onChange={setUserFilter}
                 options={[
                   { value: '', label: 'Live Inventory' },
-                  ...Array.from(new Set(reports.map(r => r.staffName).filter(Boolean))).map(n => ({
+                  ...Array.from(new Set(reports.map(r => (r.staffName || r.staffname || r.staff_name || '')).filter(Boolean))).map(n => ({
                     value: String(n), label: String(n)
                   })),
                 ]}
@@ -555,7 +512,7 @@ function ResourceManagement() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs font-medium text-gray-600">
-                        {userFilter && latestReportForUser ? latestReportForUser.staffName : (resource.last_updated_by_name || resource.last_updated_by || '-')}
+                        {userFilter && latestReportForUser ? (latestReportForUser.staffName || latestReportForUser.staffname || latestReportForUser.staff_name || '-') : (resource.last_updated_by_name || resource.last_updated_by || '-')}
                       </span>
                     </td>
                     {canEdit && (
@@ -676,7 +633,7 @@ function ResourceManagement() {
           setPendingReport(null);
         }}
         staffList={activeStaffList}
-        currentStaffName={activeStaffList.find(s => s.id.toString() === selectedReporterId)?.name || user?.name || ''}
+        currentStaffName={activeStaffList.find(s => s.id.toString() === selectedReporterId)?.name || reporterName || user?.name || ''}
       />
     </div>
   );

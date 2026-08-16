@@ -16,11 +16,26 @@ async function hasDepartmentsColumn() {
   }
 }
 
-export async function findAllTemplates(department, profession) {
+let hasRequiresReporterColCache = null;
+async function hasRequiresReporterColumn() {
+  if (hasRequiresReporterColCache !== null) return hasRequiresReporterColCache;
+  try {
+    const q = `SELECT 1 FROM information_schema.columns WHERE table_name = 'form_templates' AND column_name = 'requires_reporter' LIMIT 1`;
+    const r = await pool.query(q);
+    hasRequiresReporterColCache = r.rowCount > 0;
+    return hasRequiresReporterColCache;
+  } catch {
+    hasRequiresReporterColCache = false;
+    return false;
+  }
+}
+
+export async function findAllTemplates(department, profession, requiresReporter) {
   let query = 'SELECT * FROM form_templates';
   const conditions = [];
   const params = [];
   const hasDepts = await hasDepartmentsColumn();
+  const hasReqReporter = await hasRequiresReporterColumn();
 
   if (department) {
     if (hasDepts) {
@@ -44,6 +59,10 @@ export async function findAllTemplates(department, profession) {
     }
     conditions.push(`LOWER(profession) = ANY($${params.length + 1})`);
     params.push(aliases);
+  }
+  if (hasReqReporter && requiresReporter !== undefined && requiresReporter !== null) {
+    conditions.push(`requires_reporter = $${params.length + 1}`);
+    params.push(requiresReporter === true || requiresReporter === 'true' || requiresReporter === 1);
   }
   if (conditions.length > 0) query += ' WHERE ' + conditions.join(' AND ');
   query += ' ORDER BY created_at DESC';
@@ -78,11 +97,18 @@ export async function findActiveTemplate(department, profession) {
 
 export async function createTemplate(data) {
   const hasDepts = await hasDepartmentsColumn();
+  const hasReqReporter = await hasRequiresReporterColumn();
   const departments = Array.isArray(data.departments) ? data.departments.filter(d => !!d) : (data.department ? [data.department] : null);
   const primaryDepartment = departments?.[0] || data.department || null;
 
   let result;
-  if (hasDepts) {
+  if (hasDepts && hasReqReporter) {
+    result = await pool.query(
+      `INSERT INTO form_templates (name, department, departments, profession, description, fields, sections, is_active, created_by, version, requires_reporter)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [data.name, primaryDepartment, departments, data.profession ?? null, data.description || '', JSON.stringify(data.fields || []), JSON.stringify(data.sections || []), data.isActive !== undefined ? data.isActive : true, data.createdBy || 'admin', data.version || 1, data.requiresReporter === true]
+    );
+  } else if (hasDepts) {
     result = await pool.query(
       `INSERT INTO form_templates (name, department, departments, profession, description, fields, sections, is_active, created_by, version)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
@@ -100,11 +126,24 @@ export async function createTemplate(data) {
 
 export async function updateTemplate(id, data) {
   const hasDepts = await hasDepartmentsColumn();
+  const hasReqReporter = await hasRequiresReporterColumn();
   const departments = Array.isArray(data.departments) ? data.departments.filter(d => !!d) : (data.department ? [data.department] : null);
   const primaryDepartment = (departments && departments[0]) || data.department || null;
 
   let result;
-  if (hasDepts) {
+  if (hasDepts && hasReqReporter) {
+    result = await pool.query(
+      `UPDATE form_templates SET name = COALESCE($1, name), department = COALESCE($2, department), departments = COALESCE($3, departments),
+       profession = COALESCE($4, profession), description = COALESCE($5, description), fields = COALESCE($6, fields),
+       sections = COALESCE($7, sections), is_active = COALESCE($8, is_active), version = COALESCE($9, version),
+       requires_reporter = COALESCE($10, requires_reporter), updated_at = NOW()
+       WHERE id = $11 RETURNING *`,
+      [data.name ?? null, primaryDepartment, departments ?? null, data.profession ?? null, data.description ?? null,
+       data.fields !== undefined ? JSON.stringify(data.fields) : null, data.sections !== undefined ? JSON.stringify(data.sections) : null,
+       data.isActive !== undefined ? data.isActive : null, data.version !== undefined ? data.version : null,
+       data.requiresReporter !== undefined ? data.requiresReporter === true : null, id]
+    );
+  } else if (hasDepts) {
     result = await pool.query(
       `UPDATE form_templates SET name = COALESCE($1, name), department = COALESCE($2, department), departments = COALESCE($3, departments),
        profession = COALESCE($4, profession), description = COALESCE($5, description), fields = COALESCE($6, fields),

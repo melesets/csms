@@ -5,7 +5,7 @@ import * as ftService from './formTemplates.service.js';
 import { logAdminAction } from '../activity/adminAudit.service.js';
 
 export const getTemplates = asyncHandler(async (req, res) => {
-  const templates = await ftService.findAllTemplates(req.query.department, req.query.profession);
+  const templates = await ftService.findAllTemplates(req.query.department, req.query.profession, req.query.requiresReporter);
   res.json(templates);
 });
 

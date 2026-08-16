@@ -4,6 +4,24 @@ import { User, PROFESSIONS } from '../../types/auth';
 import { X } from 'lucide-react';
 import { getUniqueModules } from '../../config/pages';
 
+// Normalize legacy shift types (TID=8h, BID=12h) to canonical shift base values
+const normalizeShiftType = (value?: string): string => {
+  if (!value) return '8H';
+  if (value === 'TID') return '8H';
+  if (value === 'BID') return '12H';
+  return value;
+};
+
+const SHIFT_BASE_OPTIONS = [
+  { value: '4H', label: '4-Hour / 6 Shifts per day' },
+  { value: '8H', label: '8-Hour / 3 Shifts per day' },
+  { value: '12H', label: '12-Hour / 2 Shifts per day' },
+  { value: '24H', label: '24-Hour Shift' },
+  { value: '36H', label: '36-Hour On-Call' },
+  { value: '48H', label: '48-Hour On-Call' },
+  { value: '72H', label: '72-Hour On-Call' },
+];
+
 interface UserFormProps {
   user: User | null;
   onSave: (userData: Omit<User, 'id' | 'lastLogin'>) => void;
@@ -33,7 +51,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
     profession: user?.profession || 'Nurse',
     isActive: user?.isActive ?? true,
     permissions: user?.permissions || [],
-    shiftType: (user as any)?.shiftType || 'TID',
+    shiftType: normalizeShiftType((user as any)?.shiftType),
     pin: '',
     removePin: false,
     parentUserId: user?.parentUserId || null,
@@ -272,7 +290,7 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
           {formData.role === 'user' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Shift Configuration (Cycle) *
+                Shift Base (Cycle) *
               </label>
               <select
                 name="shiftType"
@@ -281,14 +299,12 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel, allU
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
-                <option value="TID">TID (8-Hour / 3 Shifts per day)</option>
-                <option value="BID">BID (12-Hour / 2 Shifts per day)</option>
-                <option value="24H">24-Hour Shift</option>
-                <option value="36H">36-Hour On-Call</option>
-                <option value="48H">48-Hour On-Call</option>
+                {SHIFT_BASE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
               <p className="text-[10px] text-gray-500 mt-1 italic">
-                Determines how the system calculates the shift name and duration for all staff in this department.
+                Determines how the system calculates the shift name, duration, and auto check-out for all staff in this department.
               </p>
             </div>
           )}

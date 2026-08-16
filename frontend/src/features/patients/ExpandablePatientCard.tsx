@@ -95,10 +95,11 @@ export const ExpandablePatientCard: React.FC<ExpandablePatientCardProps> = ({
             mrn: patient.mrn,
             bedNumber: patient.bedNumber
           },
-          submitted_by: reporterInfo?.username || user?.id,
+          submitted_by: reporterInfo?.username || user?.username,
           submitted_by_name: reporterInfo?.name || user?.name || user?.username,
           submitted_by_department: reporterInfo?.department || activeSession?.ward || '',
-          submitted_by_profession: reporterInfo?.profession || user?.profession || user?.role
+          submitted_by_profession: reporterInfo?.profession || user?.profession || user?.role,
+          shift_session_id: activeSession?.id || null
         })
       });
 

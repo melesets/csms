@@ -1,6 +1,7 @@
 // Department staff management - staff list with activity feed and shift status
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit2, Search, CheckCircle, Trash2, ChevronDown, ChevronRight, Activity, Clock, X, Camera } from 'lucide-react';
+import { Users, Plus, Edit2, Search, CheckCircle, Trash2, ChevronDown, ChevronRight, Activity, Clock, X, Camera, Phone, MapPin, GraduationCap, Briefcase, UserPlus, Calendar } from 'lucide-react';
+import EthiopianDatePicker from '../scheduling/EthiopianDatePicker';
 
 const AVATAR_COLORS = [
   'bg-blue-500',
@@ -16,6 +17,27 @@ const AVATAR_COLORS = [
 const getAvatarColor = (name: string) => {
   const idx = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length;
   return AVATAR_COLORS[idx];
+};
+
+const getServiceYears = (startDate?: string): string => {
+  if (!startDate) return '—';
+  const start = new Date(startDate);
+  if (isNaN(start.getTime())) return '—';
+  const years = (Date.now() - start.getTime()) / (365.25 * 24 * 3600 * 1000);
+  if (years < 1) {
+    const months = Math.max(1, Math.floor(years * 12));
+    return `${months} month${months !== 1 ? 's' : ''}`;
+  }
+  const wholeYears = Math.floor(years);
+  const remainingMonths = Math.floor((years - wholeYears) * 12);
+  return remainingMonths > 0
+    ? `${wholeYears} yr${wholeYears !== 1 ? 's' : ''} ${remainingMonths} mo`
+    : `${wholeYears} yr${wholeYears !== 1 ? 's' : ''}`;
+};
+
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const compressImage = (file: File): Promise<File> =>
@@ -114,7 +136,25 @@ export const DepartmentStaffManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     role: '',
-    department: user?.department || 'General'
+    department: user?.department || 'General',
+    email: '',
+    address: '',
+    phone: '',
+    qualification: '',
+    serviceStartDate: '',
+    hospitalStartDate: ''
+  });
+
+  const emptyForm = () => ({
+    name: '',
+    role: '',
+    department: user?.department || 'General',
+    email: '',
+    address: '',
+    phone: '',
+    qualification: '',
+    serviceStartDate: '',
+    hospitalStartDate: ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -138,6 +178,12 @@ export const DepartmentStaffManagement = () => {
     fd.append('role', formData.role);
     fd.append('department', user?.department || 'General');
     fd.append('createdBy', user?.username || '');
+    fd.append('email', formData.email);
+    fd.append('address', formData.address);
+    fd.append('phone', formData.phone);
+    fd.append('qualification', formData.qualification);
+    fd.append('serviceStartDate', formData.serviceStartDate);
+    fd.append('hospitalStartDate', formData.hospitalStartDate);
     if (photoFile) fd.append('photo', photoFile);
 
     if (editingStaff) {
@@ -157,7 +203,7 @@ export const DepartmentStaffManagement = () => {
         window.dispatchEvent(new Event('staff-updated'));
       }
     }
-    setFormData({ name: '', role: '', department: user?.department || 'General' });
+    setFormData(emptyForm());
     setPhotoFile(null);
     setPhotoPreview(null);
     setShowForm(false);
@@ -168,7 +214,17 @@ export const DepartmentStaffManagement = () => {
 
   const handleEdit = (staffMember: Staff) => {
     setEditingStaff(staffMember);
-    setFormData({ name: staffMember.name, role: staffMember.role, department: staffMember.department });
+    setFormData({
+      name: staffMember.name,
+      role: staffMember.role,
+      department: staffMember.department,
+      email: staffMember.email || '',
+      address: staffMember.address || '',
+      phone: staffMember.phone || '',
+      qualification: staffMember.qualification || '',
+      serviceStartDate: (staffMember as any).serviceStartDate ? String((staffMember as any).serviceStartDate).slice(0, 10) : '',
+      hospitalStartDate: (staffMember as any).hospitalStartDate ? String((staffMember as any).hospitalStartDate).slice(0, 10) : ''
+    });
     setPhotoPreview((staffMember as any).profile_picture || null);
     setPhotoFile(null);
     setShowForm(true);
@@ -206,13 +262,13 @@ export const DepartmentStaffManagement = () => {
       {/* Add/Edit Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-gray-900">
                 {editingStaff ? 'Edit Staff Member' : 'Add New Staff Member'}
               </h2>
               <button
-                onClick={() => { setShowForm(false); setEditingStaff(null); setPhotoFile(null); setPhotoPreview(null); }}
+                onClick={() => { setShowForm(false); setEditingStaff(null); setPhotoFile(null); setPhotoPreview(null); setFormData(emptyForm()); }}
                 className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-400"
               >
                 <X className="w-5 h-5" />
@@ -298,10 +354,64 @@ export const DepartmentStaffManagement = () => {
                 </div>
               )}
 
+              <div className="border-t border-gray-100 pt-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3 bg-[#003153] rounded-full" />
+                  Additional Profile Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                    <input
+                      type="email" name="email" value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003153] focus:border-transparent transition"
+                      placeholder="e.g. name@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
+                    <input
+                      type="tel" name="phone" value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003153] focus:border-transparent transition"
+                      placeholder="e.g. +251 9XX XXX XXX"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+                    <input
+                      type="text" name="address" value={formData.address}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003153] focus:border-transparent transition"
+                      placeholder="e.g. Bole, Addis Ababa"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Academic Level / Qualification</label>
+                    <input
+                      type="text" name="qualification" value={formData.qualification}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#003153] focus:border-transparent transition"
+                      placeholder="e.g. BSc in Nursing, MSc in Critical Care"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Service Start Date (Unit)</label>
+                    <EthiopianDatePicker value={formData.serviceStartDate || todayStr()} onChange={v => setFormData(f => ({ ...f, serviceStartDate: v }))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Hospital Start Date (Total Service)</label>
+                    <EthiopianDatePicker value={formData.hospitalStartDate || todayStr()} onChange={v => setFormData(f => ({ ...f, hospitalStartDate: v }))} />
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-2">Service years are calculated automatically from these dates.</p>
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setEditingStaff(null); setPhotoFile(null); setPhotoPreview(null); }}
+                  onClick={() => { setShowForm(false); setEditingStaff(null); setPhotoFile(null); setPhotoPreview(null); setFormData(emptyForm()); }}
                   className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
                 >
                   Cancel
@@ -390,8 +500,7 @@ export const DepartmentStaffManagement = () => {
                   setPhotoFile(null);
                   setPhotoPreview(null);
                   setFormData({
-                    name: '',
-                    role: '',
+                    ...emptyForm(),
                     department: targetDept === 'All' ? 'General' : targetDept
                   });
                 }}
@@ -489,12 +598,141 @@ export const DepartmentStaffManagement = () => {
                       </div>
 
                       {isExpanded && (
-                        <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-                          <div className="text-xs text-gray-400 mb-2">
-                            <span className="font-medium">{member.department}</span>
-                            {member.createdBy && <span className="ml-2">· Created by {member.createdBy}</span>}
+                        <div className="px-5 pb-5 border-t border-gray-100 pt-5 space-y-5">
+                          {/* Profile Card - postcard style */}
+                          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                            <div className="flex flex-col sm:flex-row">
+                              {/* Photo side */}
+                              <div className="sm:w-80 shrink-0 bg-gradient-to-br from-[#003153] to-[#005a8d] flex flex-col items-center justify-center p-6 sm:min-h-[380px] relative overflow-hidden">
+                                <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/5 rounded-full" />
+                                <div className="absolute -bottom-10 -left-6 w-36 h-36 bg-white/5 rounded-full" />
+                                {(() => {
+                                  const hasPhoto = member.profile_picture && member.profile_picture !== 'null' && member.profile_picture !== 'undefined' && member.profile_picture.length > 5;
+                                  return (
+                                    <div className={`w-48 h-48 sm:w-60 sm:h-60 rounded-2xl ${getAvatarColor(member.name)} flex items-center justify-center text-white font-bold text-6xl shrink-0 border-4 border-white/40 shadow-2xl overflow-hidden relative`}>
+                                      {hasPhoto ? (
+                                        <img
+                                          src={getMediaUrl(member.profile_picture)}
+                                          alt={member.name}
+                                          className="w-full h-full object-cover"
+                                          loading="lazy"
+                                          decoding="async"
+                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                                        />
+                                      ) : null}
+                                      <span className={hasPhoto ? 'hidden' : ''}>{member.name.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                  );
+                                })()}
+                                <span className={`mt-5 px-3 py-1 text-[10px] font-bold rounded-full ${
+                                  member.currentShift ? (member.currentShift === 'Morning' ? 'bg-amber-400/20 text-amber-200 border border-amber-300/30' :
+                                    member.currentShift === 'Afternoon' ? 'bg-blue-400/20 text-blue-200 border border-blue-300/30' :
+                                      'bg-purple-400/20 text-purple-200 border border-purple-300/30') :
+                                    'bg-white/10 text-white/70 border border-white/20'
+                                }`}>
+                                  {member.currentShift ? `On ${member.currentShift} Shift` : 'Off Duty'}
+                                </span>
+                              </div>
+
+                              {/* Info side */}
+                              <div className="flex-1 min-w-0 p-5 sm:p-6">
+                                <div className="border-b border-gray-100 pb-4 mb-4">
+                                  <h3 className="text-xl font-bold text-gray-900">{member.name}</h3>
+                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span className="text-xs font-semibold text-[#003153] bg-[#003153]/8 px-2.5 py-1 rounded-full">{member.role}</span>
+                                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                                      <MapPin className="w-3.5 h-3.5" /> {member.department}
+                                    </span>
+                                    {member.isSystemUser && <span className="text-[10px] text-gray-400 italic">(App User)</span>}
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#003153]/8 text-[#003153] flex items-center justify-center shrink-0">
+                                      <Briefcase className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Role</div>
+                                      <div className="text-sm text-gray-800 font-medium">{member.role || 'Not provided'}</div>
+                                    </div>
+                                  </div>
+                                  {member.address && (
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-8 h-8 rounded-lg bg-[#003153]/8 text-[#003153] flex items-center justify-center shrink-0">
+                                        <MapPin className="w-4 h-4" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Address</div>
+                                        <div className="text-sm text-gray-800 font-medium break-words">{member.address}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#003153]/8 text-[#003153] flex items-center justify-center shrink-0">
+                                      <Phone className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Phone</div>
+                                      <div className="text-sm text-gray-800 font-medium">{member.phone || 'Not provided'}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#003153]/8 text-[#003153] flex items-center justify-center shrink-0">
+                                      <GraduationCap className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Academic Level</div>
+                                      <div className="text-sm text-gray-800 font-medium">{member.qualification || 'Not provided'}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#003153]/8 text-[#003153] flex items-center justify-center shrink-0">
+                                      <Clock className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Length of Stay (Unit)</div>
+                                      <div className="text-sm text-gray-800 font-medium">{getServiceYears(member.serviceStartDate)}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#003153]/8 text-[#003153] flex items-center justify-center shrink-0">
+                                      <Calendar className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Hospital Service</div>
+                                      <div className="text-sm text-gray-800 font-medium">{getServiceYears(member.hospitalStartDate || member.memberSince)}</div>
+                                    </div>
+                                  </div>
+                                  {member.createdBy && (
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-8 h-8 rounded-lg bg-[#003153]/8 text-[#003153] flex items-center justify-center shrink-0">
+                                        <UserPlus className="w-4 h-4" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Registered By</div>
+                                        <div className="text-sm text-gray-800 font-medium truncate">{member.createdBy}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <ActivityFeed username={member.username || member.name} />
+
+                          {/* Activity Feed */}
+                          <div>
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-8 h-8 bg-[#003153]/10 rounded-lg flex items-center justify-center">
+                                <Activity className="w-4 h-4 text-[#003153]" />
+                              </div>
+                              <div>
+                                <h2 className="text-sm font-bold text-gray-900">Recent Activity</h2>
+                                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Actions by {member.name}</p>
+                              </div>
+                            </div>
+                            <ActivityFeed username={member.username || member.name} />
+                          </div>
                         </div>
                       )}
                     </div>

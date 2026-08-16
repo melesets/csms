@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ShiftProvider } from './hooks/useShift';
 import { SearchProvider } from './hooks/useSearch';
-import { 
+import {
   Dashboard, 
   DynamicISBARForm, 
+  DynamicSurveyForm,
   DepartmentStaffManagement, 
   ResourceManagement, 
   DatabaseRecords, 
@@ -19,6 +20,8 @@ import {
   ShiftManager,
   IntegrationPage,
   AdminSettings,
+  AdminAuditLog,
+  FeedbackPage,
   LoginForm
 } from './features';
 import StaffScheduling from './features/scheduling/StaffScheduling';
@@ -26,7 +29,16 @@ import { Layout, IsbarLoader, ErrorBoundary } from './components/shared';
 
 const AppContent = () => {
   const { user, loading } = useAuth();
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState(() => {
+    // If arriving with a reporter param (from an active staff card), open the
+    // Report page (or Inventory for dest=inventory). The params are cleared by
+    // the page after it reads them, so a refresh afterwards returns to the dashboard.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reporter')) {
+      return params.get('dest') === 'inventory' ? 'resources' : 'isbar';
+    }
+    return 'dashboard';
+  });
 
   const { hasPermission } = useAuth();
 
@@ -51,6 +63,8 @@ const AppContent = () => {
           return canView('dashboard') ? <Dashboard onNavigate={setCurrentPage} /> : deny;
         case 'isbar':
           return canView('isbar') ? <DynamicISBARForm /> : deny;
+        case 'survey':
+          return canView('survey') ? <DynamicSurveyForm /> : deny;
         case 'staff':
           return canView('staff') ? <DepartmentStaffManagement /> : deny;
         case 'resources':
@@ -69,6 +83,8 @@ const AppContent = () => {
           return canView('staff') ? <CheckInLogs /> : deny;
         case 'attendance-reports':
           return canView('staff') ? <AttendanceReports /> : deny;
+        case 'activity-log':
+          return canView('activity-log') ? <AdminAuditLog /> : deny;
         case 'integrations':
           return canView('form-builder') ? <IntegrationPage /> : deny;
         case 'user-management':
@@ -77,6 +93,8 @@ const AppContent = () => {
           return canView('user-management') ? <AdminSettings /> : deny;
         case 'scheduling':
           return canView('scheduling') ? <StaffScheduling /> : deny;
+        case 'feedback':
+          return canView('feedback') ? <FeedbackPage /> : deny;
         default:
           return canView('dashboard') ? <Dashboard /> : deny;
       }

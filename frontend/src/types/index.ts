@@ -48,6 +48,16 @@ export interface Staff {
   hireDate: string;
   shift: 'Day' | 'Evening' | 'Night';
   createdBy?: string;
+  username?: string;
+  profile_picture?: string;
+  currentShift?: string;
+  email?: string;
+  address?: string;
+  phone?: string;
+  qualification?: string;
+  serviceStartDate?: string;
+  hospitalStartDate?: string;
+  memberSince?: string;
 }
 
 export interface Resource {

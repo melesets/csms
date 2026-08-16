@@ -24,7 +24,7 @@ export async function createResource(data) {
 export async function updateResource(id, data) {
   const { name, type, quantity, standard_quantity, unit, expiry_date, batch_number, last_updated_by, last_updated_by_name, shift_session_id, last_updated_by_id } = data;
   const result = await pool.query(
-    'UPDATE resources SET name=$1, type=$2, quantity=$3, standard_quantity=$4, unit=$5, expiry_date=$6, batch_number=$7, last_updated_by=$8, last_updated_by_name=$9, shift_session_id=$10, last_updated_by_id=$11 WHERE id=$12 RETURNING *',
+    'UPDATE resources SET name=$1, type=$2, quantity=$3, standard_quantity=$4, unit=$5, expiry_date=$6, batch_number=$7, last_updated_by=$8, last_updated_by_name=$9, shift_session_id=$10, last_updated_by_id=$11, updated_at=NOW() WHERE id=$12 RETURNING *',
     [name, type, quantity, standard_quantity, unit, expiry_date, batch_number, last_updated_by || null, last_updated_by_name || null, shift_session_id || null, last_updated_by_id || null, id]
   );
   return result.rows[0] || null;

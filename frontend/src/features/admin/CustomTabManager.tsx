@@ -8,7 +8,7 @@ import {
   LayoutGrid,
   List,
   TableProperties,
-  Rows3,
+  SquareStack,
   Clock,
   ChevronDown,
   ChevronRight,
@@ -33,9 +33,10 @@ interface CustomTab {
   department: string;
   departments: string[];
   profession: string;
+  professions: string[];
   dashboardType: 'patient' | 'resource';
   groupByField: string;
-  viewStyle: 'card' | 'table' | 'list' | 'compact';
+  viewStyle: 'card' | 'table' | 'list' | 'stack';
   retention: 'forever' | '24h' | '12h' | '8h';
   cardFields: {
     primary: string;
@@ -72,9 +73,7 @@ const prettifyLabel = (key: string): string => {
 };
 
 export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }> = ({ onNavigate }) => {
-  const [customTabs, setCustomTabs] = useState<CustomTab[]>(() => {
-    try { return JSON.parse(localStorage.getItem('isbar_custom_tabs') || '[]'); } catch { return []; }
-  });
+  const [customTabs, setCustomTabs] = useState<CustomTab[]>([]);
   const [availableTemplates, setAvailableTemplates] = useState<FormTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -84,9 +83,44 @@ export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }>
 
   const [formData, setFormData] = useState<Partial<CustomTab>>({});
 
+  const sanitizeTabs = (tabs: any[]): CustomTab[] =>
+    (Array.isArray(tabs) ? tabs : []).map((t: any) => ({
+      ...t,
+      id: String(t.id),
+      templateId: t.templateId != null ? String(t.templateId) : '',
+      viewStyle: ['card', 'table', 'list', 'stack'].includes(t.viewStyle) ? t.viewStyle : 'card',
+    }));
+
+  // Load tabs from the backend (shared across all browsers/accounts).
+  // One-time migration: if the server has no tabs but localStorage does, push them up.
   useEffect(() => {
-    localStorage.setItem('isbar_custom_tabs', JSON.stringify(customTabs));
-  }, [customTabs]);
+    const load = async () => {
+      try {
+        const res = await fetch('/api/custom-tabs');
+        if (!res.ok) return;
+        let tabs = sanitizeTabs(await res.json());
+        let localTabs: any[] = [];
+        try {
+          localTabs = JSON.parse(localStorage.getItem('isbar_custom_tabs') || '[]');
+        } catch { localTabs = []; }
+        if (tabs.length === 0 && localTabs.length > 0) {
+          for (const t of localTabs) {
+            try {
+              const created = await fetch('/api/custom-tabs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(t),
+              });
+              if (created.ok) tabs = [...tabs, sanitizeTabs([await created.json()])[0]];
+            } catch { /* keep going */ }
+          }
+          try { localStorage.removeItem('isbar_custom_tabs'); } catch { /* silent */ }
+        }
+        setCustomTabs(tabs);
+      } catch { /* silent */ }
+    };
+    load();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -151,6 +185,7 @@ export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }>
       department: '',
       departments: [],
       profession: '',
+      professions: [],
       dashboardType: 'patient',
       groupByField: '',
       viewStyle: 'card',
@@ -168,57 +203,68 @@ export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }>
     setShowForm(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name?.trim() || !formData.templateId) return;
     const tpl = availableTemplates.find(t => t.id === formData.templateId);
+    const payload = {
+      name: formData.name!.trim(),
+      displayName: formData.displayName?.trim() || formData.name!.trim(),
+      templateId: formData.templateId!,
+      templateName: tpl?.name || '',
+      department: formData.department || tpl?.department || '',
+      departments: formData.departments || [],
+      profession: formData.profession || '',
+      professions: formData.professions || (formData.profession ? [formData.profession] : []),
+      dashboardType: formData.dashboardType || 'patient',
+      groupByField: formData.groupByField || '',
+      viewStyle: formData.viewStyle || 'card',
+      retention: formData.retention || 'forever',
+      cardFields: formData.cardFields || { primary: '', secondary: '', status: '', identifier: '', nurse: '', extraFields: [] },
+    };
 
-    if (editingTab) {
-      setCustomTabs(prev => prev.map(t => t.id === editingTab.id ? {
-        ...t,
-        name: formData.name!.trim(),
-        displayName: formData.displayName?.trim() || formData.name!.trim(),
-        templateId: formData.templateId!,
-        templateName: tpl?.name || '',
-        department: formData.department || tpl?.department || '',
-        departments: formData.departments || [],
-        profession: formData.profession || '',
-        dashboardType: formData.dashboardType || 'patient',
-        groupByField: formData.groupByField || '',
-        viewStyle: formData.viewStyle || 'card',
-        retention: formData.retention || 'forever',
-        cardFields: formData.cardFields || { primary: '', secondary: '', status: '', identifier: '', nurse: '', extraFields: [] },
-      } : t));
-      addToast('Tab updated successfully');
-    } else {
-      const tab: CustomTab = {
-        id: `custom-${Date.now()}`,
-        name: formData.name!.trim(),
-        displayName: formData.displayName?.trim() || formData.name!.trim(),
-        templateId: formData.templateId!,
-        templateName: tpl?.name || '',
-        department: formData.department || tpl?.department || '',
-        departments: formData.departments || [],
-        profession: formData.profession || '',
-        dashboardType: formData.dashboardType || 'patient',
-        groupByField: formData.groupByField || '',
-        viewStyle: formData.viewStyle || 'card',
-        retention: formData.retention || 'forever',
-        cardFields: formData.cardFields || { primary: '', secondary: '', status: '', identifier: '', nurse: '', extraFields: [] },
-      };
-      setCustomTabs(prev => [...prev, tab]);
-      addToast('Tab created successfully');
+    try {
+      if (editingTab) {
+        const res = await fetch(`/api/custom-tabs/${editingTab.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('Failed to update tab');
+        const updated = sanitizeTabs([await res.json()])[0];
+        setCustomTabs(prev => prev.map(t => t.id === editingTab.id ? updated : t));
+        addToast('Tab updated successfully');
+      } else {
+        const res = await fetch('/api/custom-tabs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('Failed to create tab');
+        const created = sanitizeTabs([await res.json()])[0];
+        setCustomTabs(prev => [...prev, created]);
+        addToast('Tab created successfully');
+      }
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+      return;
     }
     setShowForm(false);
     setEditingTab(null);
   };
 
-  const handleDelete = (tabId: string) => {
-    setCustomTabs(prev => prev.filter(t => t.id !== tabId));
-    addToast('Tab deleted');
+  const handleDelete = async (tabId: string) => {
+    try {
+      const res = await fetch(`/api/custom-tabs/${tabId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete tab');
+      setCustomTabs(prev => prev.filter(t => t.id !== tabId));
+      addToast('Tab deleted');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : 'Something went wrong', 'error');
+    }
   };
 
-  const viewStyleIcons = { card: LayoutGrid, table: TableProperties, list: List, compact: Rows3 };
-  const viewStyleLabels = { card: 'Card', table: 'Table', list: 'List', compact: 'Compact' };
+  const viewStyleIcons = { card: LayoutGrid, table: TableProperties, list: List, stack: SquareStack };
+  const viewStyleLabels = { card: 'Card', table: 'Table', list: 'List', stack: 'Stack' };
   const retentionLabels = { forever: 'Forever', '24h': '24 Hours', '12h': '12 Hours', '8h': '8 Hours' };
 
   return (
@@ -396,14 +442,26 @@ export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }>
                   {/* Profession */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">Profession</label>
-                    <select
-                      value={formData.profession || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, profession: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#003153] focus:border-transparent text-sm bg-gray-50"
-                    >
-                      <option value="">All Professions</option>
-                      {PROFESSIONS.map(p => (<option key={p} value={p}>{p}</option>))}
-                    </select>
+                    {PROFESSIONS.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {PROFESSIONS.map(p => {
+                          const checked = (formData.professions || []).includes(p);
+                          return (
+                            <label key={p} className={`inline-flex items-center px-2.5 py-1 rounded-md border text-[11px] font-medium cursor-pointer transition-colors ${checked ? 'bg-[#003153] border-[#003153] text-white' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+                              <input type="checkbox" className="sr-only" checked={checked}
+                                onChange={() => {
+                                  const current = formData.professions || [];
+                                  const next = checked ? current.filter(x => x !== p) : [...current, p];
+                                  setFormData(prev => ({ ...prev, professions: next }));
+                                }}
+                              />
+                              {p}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <p className="text-[11px] text-gray-400 mt-1">Leave empty for all professions. Tab will only appear for users in the selected departments and professions.</p>
                   </div>
 
                   {/* View Style */}
@@ -414,7 +472,7 @@ export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }>
                         { value: 'card' as const, icon: LayoutGrid, desc: 'Grid of cards' },
                         { value: 'table' as const, icon: TableProperties, desc: 'Rows & columns' },
                         { value: 'list' as const, icon: List, desc: 'Horizontal rows' },
-                        { value: 'compact' as const, icon: Rows3, desc: 'Minimal one-line' },
+                        { value: 'stack' as const, icon: SquareStack, desc: 'Full-width stacked' },
                       ]).map(vs => {
                         const Icon = vs.icon;
                         return (
@@ -633,7 +691,7 @@ export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {customTabs.map(tab => {
-                  const ViewIcon = viewStyleIcons[tab.viewStyle || 'card'];
+                  const ViewIcon = viewStyleIcons[tab.viewStyle || 'card'] || LayoutGrid;
                   return (
                     <div key={tab.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between mb-3">
@@ -660,8 +718,13 @@ export const CustomTabManager: React.FC<{ onNavigate?: (page: string) => void }>
                         {tab.department && (
                           <div className="text-xs text-gray-500">Dept: {tab.department}</div>
                         )}
-                        {tab.profession && (
-                          <div className="text-xs text-gray-500">Role: {tab.profession}</div>
+                        {(tab.professions?.length > 0 || tab.profession) && (
+                          <div className="flex flex-wrap items-center gap-1 text-xs text-gray-500">
+                            <span>Role:</span>
+                            {(tab.professions?.length ? tab.professions : [tab.profession]).map(p => (
+                              <span key={p} className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[10px] font-semibold">{p}</span>
+                            ))}
+                          </div>
                         )}
                       </div>
 
