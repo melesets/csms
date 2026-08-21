@@ -321,6 +321,46 @@ export async function getActiveStaff(department) {
   return result.rows;
 }
 
+const BIOMETRICS_URL = process.env.BIOMETRICS_URL || 'https://192.168.1.250';
+import https from 'https';
+const biometricsAgent = BIOMETRICS_URL.startsWith('https')
+  ? new https.Agent({ rejectUnauthorized: false })
+  : undefined;
+
+export async function biometricLookup(name, department) {
+  try {
+    const url = `${BIOMETRICS_URL}/attendance/api/staff?search=${encodeURIComponent(name)}`;
+    const res = await fetch(url, { agent: biometricsAgent });
+    if (!res.ok) return null;
+    const staff = await res.json();
+    const match = staff.find(s =>
+      s.name?.toLowerCase() === name.toLowerCase() &&
+      s.department?.toLowerCase() === department?.toLowerCase()
+    );
+    return match ? { id: match.id, name: match.name, staff_number: match.staff_number, department: match.department } : null;
+  } catch (err) {
+    console.error('[Biometric] Lookup failed:', err.message);
+    return null;
+  }
+}
+
+export async function biometricLastEvent(biometricStaffId) {
+  try {
+    const url = `${BIOMETRICS_URL}/attendance/api/attendance/last-today/${biometricStaffId}`;
+    const res = await fetch(url, { agent: biometricsAgent });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.log || null;
+  } catch (err) {
+    console.error('[Biometric] Last event fetch failed:', err.message);
+    return null;
+  }
+}
+
+export function getBiometricKioskUrl() {
+  return `${BIOMETRICS_URL}/attendance/kiosk`;
+}
+
 export async function staffAction(data) {
   const { userId, pin, action, ward, shiftName, bypassPin } = data;
 

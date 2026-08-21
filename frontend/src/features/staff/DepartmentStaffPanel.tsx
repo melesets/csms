@@ -55,6 +55,8 @@ export const DepartmentStaffPanel = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filterDept, setFilterDept] = useState('');
   const [modalAction, setModalAction] = useState<'choose' | 'checkin' | 'checkout'>('choose');
+  const [biometricPolling, setBiometricPolling] = useState(false);
+  const [biometricStatus, setBiometricStatus] = useState('');
 
   const fetchStaff = async () => {
     if (!user) return;
@@ -127,6 +129,76 @@ export const DepartmentStaffPanel = () => {
       setError(err?.message || 'Invalid PIN or server error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleBiometricCheckIn = async () => {
+    if (!selectedStaff) return;
+    setBiometricPolling(true);
+    setBiometricStatus('Looking up staff in biometrics system...');
+    setError('');
+
+    try {
+      const lookup = await apiGet(`/shifts/biometric-lookup?name=${encodeURIComponent(selectedStaff.name)}&department=${encodeURIComponent(selectedStaff.department)}`);
+      if (!lookup || !lookup.id) {
+        setBiometricStatus('');
+        setBiometricPolling(false);
+        setError('Staff not found in biometrics system.');
+        return;
+      }
+
+      const kioskData = await apiGet('/shifts/biometric-kiosk-url');
+      window.open(kioskData.url, '_blank');
+
+      setBiometricStatus('Kiosk opened — waiting for face/fingerprint scan...');
+      let lastEvent = null;
+      let attempts = 0;
+      const maxAttempts = 90;
+
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        try {
+          const event = await apiGet(`/shifts/biometric-last-event/${lookup.id}`);
+          if (event && (!lastEvent || event.timestamp !== lastEvent.timestamp)) {
+            if (!lastEvent) { lastEvent = event; return; }
+            clearInterval(pollInterval);
+            const action = event.type === 'in' ? 'check-in' : 'check-out';
+            setBiometricStatus(`Biometric verified! Processing ${action}...`);
+            await apiPost('/shifts/staff-action', {
+              userId: selectedStaff.id, bypassPin: true, action,
+              ward: user!.department, shiftName: shiftContext?.current || 'Day'
+            });
+            if (action === 'check-in' && setActiveOperator) {
+              setActiveOperator({ id: selectedStaff.id, username: selectedStaff.username,
+                name: selectedStaff.name, profession: selectedStaff.profession, department: selectedStaff.department });
+            } else if (action === 'check-out' && setActiveOperator) {
+              setActiveOperator(null);
+            }
+            setBiometricStatus(action === 'check-in' ? '✅ Check-in complete!' : '✅ Check-out complete!');
+            setTimeout(() => {
+              setSelectedStaff(null);
+              setBiometricPolling(false);
+              setBiometricStatus('');
+              fetchStaff();
+              refreshShiftContext();
+              window.dispatchEvent(new Event('staff-updated'));
+            }, 1500);
+          } else if (!lastEvent && event) {
+            lastEvent = event;
+          }
+        } catch { /* biometrics may be temporarily unreachable */ }
+        if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          setBiometricPolling(false);
+          setBiometricStatus('');
+          setError('Timed out waiting for biometric verification.');
+        }
+      }, 2000);
+      (window as any).__biometricPollInterval = pollInterval;
+    } catch (err: any) {
+      setBiometricPolling(false);
+      setBiometricStatus('');
+      setError(err?.message || 'Failed to connect to biometrics system');
     }
   };
 
@@ -379,6 +451,21 @@ export const DepartmentStaffPanel = () => {
                     </button>
                     <button
                       type="button"
+                      onClick={handleBiometricCheckIn}
+                      disabled={biometricPolling}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-200 transition-all transform active:scale-[0.98] group disabled:opacity-60"
+                    >
+                      <span className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /></svg>
+                      </span>
+                      <span className="flex-1 text-left min-w-0">
+                        <span className="block text-sm font-bold">Biometric</span>
+                        <span className="block text-[11px] text-white/75 font-medium truncate">Scan face or fingerprint on kiosk</span>
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         window.location.href = `/csms/?dest=inventory&reporter=${selectedStaff.id}&reporterName=${encodeURIComponent(selectedStaff.name)}&reporterUsername=${encodeURIComponent(selectedStaff.username)}`;
                       }}
@@ -408,6 +495,30 @@ export const DepartmentStaffPanel = () => {
                       <ChevronRight className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform shrink-0" />
                     </button>
                   </div>
+                </div>
+              ) : biometricPolling ? (
+                <div className="p-5 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-emerald-600 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4" /><path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /></svg>
+                  </div>
+                  <p className="text-sm font-bold text-gray-900 mb-1">Biometric Verification</p>
+                  <p className="text-xs text-gray-500 mb-4">{biometricStatus || 'Waiting for scan...'}</p>
+                  <div className="flex justify-center">
+                    <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full animate-pulse" style={{width: '60%'}} />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if ((window as any).__biometricPollInterval) clearInterval((window as any).__biometricPollInterval);
+                      setBiometricPolling(false);
+                      setBiometricStatus('');
+                    }}
+                    className="mt-4 px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
               ) : (
                 <form onSubmit={handleAction} className="p-5">
@@ -483,6 +594,25 @@ export const DepartmentStaffPanel = () => {
                   >
                     {isSubmitting ? 'Verifying...' : isCheckOut ? 'Clock Out' : 'Clock In'}
                   </button>
+
+                  {!isCheckOut && (
+                    <>
+                      <div className="flex items-center gap-3 my-3">
+                        <div className="flex-1 h-px bg-gray-200" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">or</span>
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleBiometricCheckIn}
+                        disabled={biometricPolling}
+                        className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 transition-all transform active:scale-95 shadow-md shadow-emerald-200 disabled:opacity-60 flex items-center justify-center gap-2"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /></svg>
+                        Scan Face / Fingerprint
+                      </button>
+                    </>
+                  )}
                 </form>
               )}
             </div>

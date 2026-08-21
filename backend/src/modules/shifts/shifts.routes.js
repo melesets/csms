@@ -14,5 +14,8 @@ router.get('/check-in-logs', shiftsController.getCheckInLogs);
 router.get('/attendance-report', shiftsController.getAttendanceReport);
 router.post('/staff-action', shiftsController.staffAction);
 router.post('/auto-checkout', shiftsController.triggerAutoCheckout);
+router.get('/biometric-lookup', shiftsController.biometricLookup);
+router.get('/biometric-last-event/:staffId', shiftsController.biometricLastEvent);
+router.get('/biometric-kiosk-url', shiftsController.biometricKioskUrl);
 
 export default router;

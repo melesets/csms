@@ -69,3 +69,22 @@ export const triggerAutoCheckout = asyncHandler(async (req, res) => {
   const result = await shiftsService.autoCheckoutExpiredSessions();
   res.json({ message: `Auto-checkout complete: ${result.checkedOut} session(s) ended`, ...result });
 });
+
+export const biometricLookup = asyncHandler(async (req, res) => {
+  const { name, department } = req.query;
+  if (!name || !department) return res.status(400).json({ error: 'Missing name or department' });
+  const result = await shiftsService.biometricLookup(name, department);
+  if (!result) return res.status(404).json({ error: 'Staff not found in biometrics system' });
+  res.json(result);
+});
+
+export const biometricLastEvent = asyncHandler(async (req, res) => {
+  const { staffId } = req.params;
+  if (!staffId) return res.status(400).json({ error: 'Missing staffId' });
+  const result = await shiftsService.biometricLastEvent(parseInt(staffId));
+  res.json(result);
+});
+
+export const biometricKioskUrl = asyncHandler(async (req, res) => {
+  res.json({ url: shiftsService.getBiometricKioskUrl() });
+});
