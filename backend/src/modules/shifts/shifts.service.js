@@ -322,16 +322,18 @@ export async function getActiveStaff(department) {
 }
 
 const BIOMETRICS_URL = process.env.BIOMETRICS_URL || 'https://192.168.1.250';
+const BIOMETRICS_TOKEN = process.env.BIOMETRICS_TOKEN || '';
 import https from 'https';
 const biometricsAgent = BIOMETRICS_URL.startsWith('https')
   ? new https.Agent({ rejectUnauthorized: false })
   : undefined;
+const biometricsHeaders = BIOMETRICS_TOKEN ? { 'Authorization': `Bearer ${BIOMETRICS_TOKEN}` } : {};
 
 export async function biometricLookup(name, department) {
   try {
     const url = `${BIOMETRICS_URL}/attendance/api/staff?search=${encodeURIComponent(name)}`;
     console.log(`[Biometric] Looking up: name=${name}, dept=${department}, url=${url}`);
-    const res = await fetch(url, { agent: biometricsAgent });
+    const res = await fetch(url, { agent: biometricsAgent, headers: biometricsHeaders });
     if (!res.ok) { console.log(`[Biometric] API returned ${res.status}`); return null; }
     const staff = await res.json();
     console.log(`[Biometric] Found ${staff.length} result(s):`, JSON.stringify(staff.map(s => ({ id: s.id, name: s.name, department: s.department }))));
@@ -343,9 +345,10 @@ export async function biometricLookup(name, department) {
     // 2) Fall back to name-only match
     if (!match && staff.length === 1) match = staff[0];
     if (!match) match = staff.find(s => s.name?.toLowerCase() === name.toLowerCase());
+    if (!match) console.log(`[Biometric] No match for name=${name}, dept=${department} among ${staff.length} results:`);
     return match ? { id: match.id, name: match.name, staff_number: match.staff_number, department: match.department } : null;
   } catch (err) {
-    console.error('[Biometric] Lookup failed:', err.message);
+    console.error('[Biometric] Lookup failed:', err.message, err.stack);
     return null;
   }
 }
@@ -353,7 +356,7 @@ export async function biometricLookup(name, department) {
 export async function biometricLastEvent(biometricStaffId) {
   try {
     const url = `${BIOMETRICS_URL}/attendance/api/attendance/last-today/${biometricStaffId}`;
-    const res = await fetch(url, { agent: biometricsAgent });
+    const res = await fetch(url, { agent: biometricsAgent, headers: biometricsHeaders });
     if (!res.ok) return null;
     const data = await res.json();
     return data.log || null;
