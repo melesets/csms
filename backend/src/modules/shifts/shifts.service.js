@@ -330,13 +330,19 @@ const biometricsAgent = BIOMETRICS_URL.startsWith('https')
 export async function biometricLookup(name, department) {
   try {
     const url = `${BIOMETRICS_URL}/attendance/api/staff?search=${encodeURIComponent(name)}`;
+    console.log(`[Biometric] Looking up: name=${name}, dept=${department}, url=${url}`);
     const res = await fetch(url, { agent: biometricsAgent });
-    if (!res.ok) return null;
+    if (!res.ok) { console.log(`[Biometric] API returned ${res.status}`); return null; }
     const staff = await res.json();
-    const match = staff.find(s =>
+    console.log(`[Biometric] Found ${staff.length} result(s):`, JSON.stringify(staff.map(s => ({ id: s.id, name: s.name, department: s.department }))));
+    // 1) Try exact match (name + department)
+    let match = staff.find(s =>
       s.name?.toLowerCase() === name.toLowerCase() &&
       s.department?.toLowerCase() === department?.toLowerCase()
     );
+    // 2) Fall back to name-only match
+    if (!match && staff.length === 1) match = staff[0];
+    if (!match) match = staff.find(s => s.name?.toLowerCase() === name.toLowerCase());
     return match ? { id: match.id, name: match.name, staff_number: match.staff_number, department: match.department } : null;
   } catch (err) {
     console.error('[Biometric] Lookup failed:', err.message);
