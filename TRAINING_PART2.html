@@ -3,400 +3,371 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ISBAR Training Part II - Administration, Analytics, AI & Advanced Features</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<title>ISBAR Training Part II — Administration &amp; Management</title>
+<link rel="stylesheet" href="frontend/public/fonts/fonts.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
---primary:#003153;--brand-green:#09B8A0;
---status-green:#059669;--status-amber:#d97706;--status-red:#dc2626;
---radius-card:16px;--radius-btn:12px;
+  --navy:#003153;--teal:#09B8A0;--teal2:#2ee6c6;--blue:#38bdf8;--indigo:#818cf8;
+  --green:#34d399;--amber:#fbbf24;--red:#fb7185;--purple:#c4b5fd;--pink:#f472b6;
+  --text:#f0f5fb;--muted:rgba(240,245,251,.62);--faint:rgba(240,245,251,.36);
+  --border:rgba(255,255,255,.09);
+  --font:'Plus Jakarta Sans','Outfit',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 }
 html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0a;color:#e5e7eb;overflow:hidden;height:100vh}
+body{font-family:var(--font);background:#05080f;color:var(--text);height:100vh;overflow:hidden}
+::selection{background:rgba(9,184,160,.35)}
 
-.slide{display:none;width:100vw;height:100vh;background:#0a0a0a;padding:32px 40px 70px;overflow-y:auto;position:relative}
+/* backdrop */
+.bg-orbs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:
+  radial-gradient(1100px 620px at 10% -12%,rgba(0,49,83,.65),transparent 62%),
+  radial-gradient(1000px 560px at 112% 116%,rgba(9,184,160,.14),transparent 62%),
+  radial-gradient(820px 460px at 60% -8%,rgba(56,189,248,.05),transparent 60%),#05080f}
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(1200px 700px at 50% 30%,#000 25%,transparent 75%);
+  mask-image:radial-gradient(1200px 700px at 50% 30%,#000 25%,transparent 75%)}
+.bg-orbs::before,.bg-orbs::after{content:'';position:absolute;border-radius:50%;filter:blur(90px);animation:drift 16s ease-in-out infinite alternate}
+.bg-orbs::before{width:480px;height:480px;background:rgba(9,184,160,.16);top:-140px;left:-120px}
+.bg-orbs::after{width:540px;height:540px;background:rgba(0,49,83,.6);bottom:-190px;right:-150px;animation-delay:-8s}
+@keyframes drift{to{transform:translate(70px,45px) scale(1.18)}}
+
+/* progress */
+.progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:80;background:rgba(255,255,255,.06)}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--blue));box-shadow:0 0 16px rgba(9,184,160,.7);transition:width .35s ease}
+
+/* chrome */
+.brand{position:fixed;top:16px;left:24px;z-index:90;display:flex;align-items:center;gap:9px;font-size:10px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);background:rgba(6,12,22,.6);border:1px solid var(--border);padding:8px 15px;border-radius:999px;backdrop-filter:blur(14px)}
+.brand::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 12px rgba(9,184,160,.9);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.slabel{position:fixed;bottom:20px;left:24px;z-index:90;font-size:9px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;font-weight:700}
+.kbd-hint{position:fixed;bottom:20px;right:24px;z-index:100;font-size:9px;letter-spacing:.1em;color:var(--faint);background:rgba(6,12,22,.6);border:1px solid var(--border);padding:5px 12px;border-radius:999px}
+@media(max-width:760px){.brand,.slabel,.kbd-hint{display:none}}
+
+/* slide base */
+.slide{position:relative;z-index:1;display:none;width:100vw;height:100vh;padding:58px 48px 92px;overflow-y:auto}
 .slide.active{display:flex;flex-direction:column}
-.slide-number{position:absolute;top:20px;right:30px;font-size:13px;color:#6b7280;font-weight:500}
-.slide-header{text-align:center;margin-bottom:20px;flex-shrink:0}
-.slide-title{font-size:28px;font-weight:800;color:#fff;margin-bottom:4px}
-.slide-title span{color:var(--brand-green)}
-.slide-sub{font-size:13px;color:#9ca3af;max-width:500px;margin:0 auto}
+.anim{opacity:0;animation:rise .6s cubic-bezier(.22,.68,.32,1) forwards;animation-delay:calc(var(--i,0)*80ms)}
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.ghost{position:absolute;top:-8px;right:34px;font-size:200px;font-weight:900;line-height:1;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.055);letter-spacing:-10px;user-select:none;pointer-events:none;font-family:var(--font)}
+@media(max-width:900px){.ghost{font-size:120px;top:2px}}
 
-.side-by-side{display:grid;grid-template-columns:1fr 340px;gap:24px;flex:1;min-height:0;align-items:start}
-.screenshot-panel{position:relative;overflow:hidden;border-radius:12px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.08);box-shadow:0 20px 60px rgba(0,0,0,0.4)}
-.screenshot-panel img{width:100%;display:block}
-.text-panel{display:flex;flex-direction:column;gap:14px}
-.text-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px}
-.text-card h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.text-card h3 .icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
-.text-card ul{list-style:none;margin:0}
-.text-card li{font-size:12px;color:rgba(255,255,255,0.6);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
-.text-card li:last-child{border-bottom:none}
-.text-card li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:11px;flex-shrink:0;margin-top:1px}
-.text-card p{font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6}
+/* header */
+.hdr{position:relative;z-index:2;text-align:left;margin-bottom:24px}
+.kick{display:flex;align-items:center;gap:10px;font-size:10.5px;font-weight:800;letter-spacing:.32em;text-transform:uppercase;color:var(--teal2);margin-bottom:11px}
+.kick::before{content:'';width:26px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--teal),var(--blue));box-shadow:0 0 10px rgba(9,184,160,.6)}
+.h-title{font-size:clamp(30px,4vw,42px);font-weight:900;letter-spacing:-1px;line-height:1.04}
+.h-title em{font-style:normal;background:linear-gradient(120deg,var(--teal2),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.h-sub{margin-top:10px;font-size:13px;color:var(--muted);max-width:620px;line-height:1.6}
+.h-rule{margin-top:18px;height:1px;border:none;max-width:640px;background:linear-gradient(90deg,rgba(9,184,160,.4),rgba(255,255,255,.06) 40%,transparent)}
 
-.kp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.kp{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center}
-.kp .kp-i{font-size:20px;margin-bottom:4px}
-.kp h4{font-size:12px;font-weight:700;color:#fff;margin-bottom:2px}
-.kp p{font-size:10px;color:rgba(255,255,255,0.4);line-height:1.4}
+/* bento grid */
+.bento{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:1040px;margin:0 auto;width:100%}
+@media(max-width:860px){.bento{grid-template-columns:1fr}}
+.b-w2{grid-column:1/-1}
+.cell{position:relative;overflow:hidden;border-radius:18px;padding:20px 20px 16px;background:linear-gradient(150deg,rgba(255,255,255,.06),rgba(255,255,255,.015));border:1px solid var(--border);backdrop-filter:blur(10px);transition:transform .25s,border-color .25s,box-shadow .25s}
+.cell::before{content:'';position:absolute;inset:0;background:radial-gradient(340px 120px at 12% 0%,rgba(9,184,160,.1),transparent 65%);opacity:0;transition:opacity .3s;pointer-events:none}
+.cell:hover{transform:translateY(-3px);border-color:rgba(9,184,160,.4);box-shadow:0 24px 50px -26px rgba(9,184,160,.35)}
+.cell:hover::before{opacity:1}
+.cell-top{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:15px;color:#fff;box-shadow:0 10px 22px -9px rgba(0,0,0,.65);flex-shrink:0}
+.cell h4{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.1px}
+.cell .tag{margin-left:auto;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:999px;color:var(--teal2);background:rgba(9,184,160,.1);border:1px solid rgba(9,184,160,.32)}
+.cell ul{list-style:none}
+.cell li{display:flex;gap:9px;font-size:12.5px;line-height:1.55;color:var(--muted);padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.cell li:last-child{border-bottom:none}
+.cell li::before{content:'✓';color:var(--teal2);font-weight:900;font-size:11px;margin-top:1px;flex-shrink:0}
+.cell li strong{color:#fff;font-weight:700}
+.cell p{font-size:12.5px;color:var(--muted);line-height:1.65}
+.cell.note{text-align:center}
+.cell.note p{font-size:13px;max-width:660px;margin:0 auto;line-height:1.7}
+.cell.note p strong{color:var(--teal2)}
 
-.role-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:1050px;margin:0 auto}
-.role-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;text-align:center}
-.role-card .ri{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:18px}
-.role-card h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:2px}
-.role-card .rd{font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px}
-.role-card ul{text-align:left;list-style:none}
-.role-card li{font-size:10px;color:rgba(255,255,255,0.6);padding:3px 0;display:flex;align-items:center;gap:5px}
-.role-card li::before{content:'✓';color:var(--brand-green);font-weight:800;font-size:9px}
+/* step flow */
+.flow{display:flex;align-items:stretch;gap:12px;justify-content:center;max-width:920px;margin:0 auto 18px;position:relative;z-index:2}
+.fstep{flex:1;position:relative;background:linear-gradient(150deg,rgba(255,255,255,.055),rgba(255,255,255,.015));border:1px solid var(--border);border-radius:16px;padding:18px 14px;text-align:center;transition:transform .25s,border-color .25s}
+.fstep:hover{transform:translateY(-3px);border-color:rgba(9,184,160,.4)}
+.fstep .n{width:38px;height:38px;margin:0 auto 10px;border-radius:12px;display:grid;place-items:center;font-weight:900;color:#fff;font-size:15px;background:linear-gradient(135deg,var(--teal),var(--blue));box-shadow:0 12px 26px -10px rgba(9,184,160,.6)}
+.fstep h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:4px}
+.fstep p{font-size:11px;color:var(--muted);line-height:1.55}
+.fstep::after{content:'→';position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--teal2);font-size:16px;font-weight:900;z-index:2;text-shadow:0 0 14px rgba(9,184,160,.9)}
+.fstep:last-child::after{display:none}
+@media(max-width:760px){.flow{flex-direction:column;max-width:360px}.fstep::after{content:'↓';right:auto;left:50%;top:auto;bottom:-13px;transform:translateX(-50%)}}
 
-.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px;margin:0 auto}
-.sec-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center}
-.sec-card .sci{font-size:24px;margin-bottom:6px}
-.sec-card h4{font-size:12px;font-weight:700;color:#fff;margin-bottom:3px}
-.sec-card p{font-size:10px;color:rgba(255,255,255,0.5);line-height:1.4}
+/* role badges */
+.bdg{font-size:9.5px;font-weight:800;padding:3px 10px;border-radius:999px;letter-spacing:.06em;flex-shrink:0;margin-top:1px}
+.bdg-red{color:#fda4af;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.32)}
+.bdg-purple{color:#c4b5fd;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.32)}
+.bdg-blue{color:#93c5fd;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.32)}
+.bdg-green{color:#6ee7b7;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.32)}
+.bdg-amber{color:#fcd34d;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.32)}
 
-.nav-bar{position:fixed;bottom:0;left:0;right:0;height:52px;background:rgba(0,49,83,0.95);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;gap:20px;z-index:1000;border-top:1px solid rgba(255,255,255,0.1)}
-.nav-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:7px 18px;border-radius:var(--radius-btn);cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;transition:all 0.2s}
-.nav-btn:hover{background:rgba(255,255,255,0.2)}
-.nav-btn:disabled{opacity:0.3;cursor:not-allowed}
+/* title slide */
+.title-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;z-index:2;padding:10px}
+.logo-badge{width:86px;height:86px;border-radius:26px;background:linear-gradient(135deg,#00436e,#0a8f80);display:grid;place-items:center;margin-bottom:24px;box-shadow:0 24px 60px -16px rgba(9,184,160,.55),inset 0 1px 0 rgba(255,255,255,.28);position:relative}
+.logo-badge::after{content:'';position:absolute;inset:-14px;border-radius:34px;border:1px dashed rgba(9,184,160,.4);animation:spin 24s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.kicker{font-size:11px;letter-spacing:.4em;text-transform:uppercase;font-weight:800;color:var(--teal2);margin-bottom:12px}
+.hero{font-size:clamp(38px,5.6vw,56px);font-weight:900;letter-spacing:-1.6px;line-height:1.04}
+.hero em{font-style:normal;background:linear-gradient(120deg,#fff 20%,var(--teal2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.chip{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(150deg,rgba(9,184,160,.18),rgba(9,184,160,.05));border:1px solid rgba(9,184,160,.45);color:var(--teal2);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;padding:9px 26px;border-radius:999px;margin-top:22px;box-shadow:0 12px 30px -14px rgba(9,184,160,.5)}
+.hero-sub{font-size:13.5px;color:var(--muted);margin-top:14px;max-width:520px;line-height:1.7}
+.stats{display:flex;gap:12px;justify-content:center;margin-top:36px;flex-wrap:wrap}
+.stat{min-width:150px;padding:16px 22px;border-radius:16px;background:linear-gradient(150deg,rgba(255,255,255,.06),rgba(255,255,255,.015));border:1px solid var(--border);text-align:center;transition:transform .25s,border-color .25s}
+.stat:hover{transform:translateY(-3px);border-color:rgba(9,184,160,.4)}
+.stat .v{font-size:26px;font-weight:900;background:linear-gradient(120deg,#fff,var(--teal2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .lb{font-size:9.5px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:4px;font-weight:700}
+
+/* nav */
+.navbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:10px;background:rgba(6,12,22,.82);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 9px;box-shadow:0 26px 60px -16px rgba(0,0,0,.9)}
+.nav-btn{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(150deg,rgba(255,255,255,.12),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);color:#fff;padding:8px 15px;border-radius:999px;cursor:pointer;font:inherit;font-size:12px;font-weight:700;transition:all .2s}
+.nav-btn:hover{background:linear-gradient(135deg,rgba(9,184,160,.38),rgba(9,184,160,.1));border-color:rgba(9,184,160,.6);transform:translateY(-1px)}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed;transform:none}
 .nav-dots{display:flex;gap:5px;align-items:center}
-.nav-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.25);cursor:pointer;transition:all 0.2s}
-.nav-dot.active{background:var(--brand-green);width:20px;border-radius:3px}
-.nav-counter{color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;min-width:50px;text-align:center}
+.nav-dot{width:7px;height:7px;border-radius:99px;background:rgba(255,255,255,.22);cursor:pointer;transition:all .3s}
+.nav-dot:hover{background:rgba(255,255,255,.5)}
+.nav-dot.active{width:24px;background:linear-gradient(90deg,var(--teal),var(--blue));box-shadow:0 0 14px rgba(9,184,160,.6)}
+.nav-counter{font-size:10.5px;font-weight:800;color:var(--muted);min-width:52px;text-align:center;letter-spacing:.12em;padding:6px 10px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.04)}
+.nav-icon{width:34px;height:34px;border-radius:999px;display:grid;place-items:center;background:linear-gradient(150deg,rgba(255,255,255,.09),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.15);color:#fff;cursor:pointer;transition:all .2s}
+.nav-icon:hover{border-color:rgba(9,184,160,.6);color:var(--teal2)}
 
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:2px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+@media(max-width:700px){.nav-counter{display:none}.slide{padding:52px 18px 92px}.ghost{display:none}}
 </style>
 </head>
 <body>
+<div class="bg-orbs"></div>
+<div class="bg-grid"></div>
+<div class="progress"><i id="bar"></i></div>
+<div class="brand">AGH · CSMS Training</div>
 
 <!-- SLIDE 1: Title -->
 <div class="slide active" id="slide-1">
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1">
-<div style="font-size:48px;margin-bottom:12px">&#x1F3E5;</div>
-<p style="color:var(--brand-green);font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">ISBAR Clinical Documentation System</p>
-<h1 style="font-size:40px;font-weight:900;color:#fff;margin-bottom:6px;letter-spacing:-1px">Part II</h1>
-<div style="width:60px;height:3px;background:linear-gradient(90deg,var(--brand-green),var(--primary));border-radius:2px;margin:16px auto"></div>
-<h2 style="font-size:18px;font-weight:400;color:var(--brand-green);margin-bottom:6px">Administration, Analytics, AI & Advanced Features</h2>
-<p style="font-size:13px;color:#9ca3af">Training for System Administrators, Department Heads, and Power Users</p>
-<p style="margin-top:20px;font-size:12px;color:#4b5563">v2.0 &bull; Built for Ethiopian Healthcare</p>
-</div>
-<span class="slide-number">1 / 11</span>
+  <div class="title-wrap">
+    <div class="logo-badge anim" style="--i:0">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6h0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6h0a6 6 0 0 0 6-6v-4"/><line x1="2" y1="12" x2="22" y2="12" stroke="#2ee6c6" stroke-width="2.2"/></svg>
+    </div>
+    <p class="kicker anim" style="--i:1">Adare General Hospital</p>
+    <h1 class="hero anim" style="--i:2">ISBAR <em>Clinical System</em></h1>
+    <div class="chip anim" style="--i:3">Part II · Administration &amp; Management</div>
+    <p class="hero-sub anim" style="--i:4">Training for administrators, supervisors, and department heads</p>
+    <div class="stats anim" style="--i:5">
+      <div class="stat"><div class="v">9</div><div class="lb">Admin Tools</div></div>
+      <div class="stat"><div class="v">3</div><div class="lb">Security Layers</div></div>
+      <div class="stat"><div class="v">4</div><div class="lb">Shift Bases</div></div>
+      <div class="stat"><div class="v">24/7</div><div class="lb">Access</div></div>
+    </div>
+  </div>
+  <span class="ghost">01</span>
 </div>
 
-<!-- SLIDE 2: Staff Schedule -->
+<!-- SLIDE 2: Staff Schedule & Bed Allocation -->
 <div class="slide" id="slide-2">
-<div class="slide-header">
-<div class="slide-title">Staff <span>Schedule</span></div>
-<p class="slide-sub">Visual shift scheduling with export capabilities</p>
-</div>
-<div class="side-by-side">
-<div class="screenshot-panel"><img src="screenshots/images/10-staff-schedule.png" alt="Staff Schedule"></div>
-<div class="text-panel">
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">📅</span> Schedule Features</h3>
-<ul>
-<li>View staff assignments across <strong>Morning</strong>, <strong>Afternoon</strong>, and <strong>Night</strong> shifts</li>
-<li>Click any cell to assign or update a shift</li>
-<li>Use <strong>PNG/Excel export</strong> for distribution</li>
-<li>Navigate by week using date arrows</li>
-</ul>
-</div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">🎨</span> Shift Types</h3>
-<ul>
-<li><span style="color:#3b82f6;font-weight:700">Morning</span> — Day shift coverage</li>
-<li><span style="color:#d97706;font-weight:700">Afternoon</span> — Evening shift</li>
-<li><span style="color:#7c3aed;font-weight:700">Night</span> — Overnight shift</li>
-<li><span style="color:#6b7280;font-weight:700">Off</span> — Rest day</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">2 / 11</span>
+  <span class="ghost">02</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Plan the ward</p>
+    <div class="h-title anim" style="--i:1">Staff Schedule <em>&amp; Bed Allocation</em></div>
+    <p class="h-sub anim" style="--i:2">Two tabs: "Shift Schedule" (weekly rostering) and "Bed Allocation" (staff-to-bed assignments).</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#09B8A0,#059669)">🗓️</span><h4>Shift Schedule</h4><span class="tag">Roster</span></div><ul><li>Pick a week + department; grid of staff × days</li><li>Shift types follow the department's base: <strong>8H</strong> Morning/Afternoon/Night · <strong>12H</strong> Day/Night · <strong>4H</strong> six windows · On-Call (24–72H)</li><li>Assign: arm a shift button, then click empty cells (or use the cell dropdown)</li><li>Click an assigned cell to change or <strong>Remove Shift</strong></li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">🛏️</span><h4>Bed Allocation</h4><span class="tag">Wards</span></div><ul><li>Assign staff to beds per day across a 30-day window</li><li>Today highlighted · weekends shaded</li><li><strong>Manage Beds</strong> — add, activate / deactivate, delete beds</li><li>Filter by department, staff, or profession</li></ul></div>
+    <div class="cell b-w2 anim" style="--i:6"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#f59e0b,#b45309)">📤</span><h4>Export &amp; Controls</h4><span class="tag">Handover</span></div><ul><li><strong>Export as PNG image</strong> or <strong>Export as Excel spreadsheet</strong></li><li><strong>Lock</strong> the schedule to disable editing (applies to both tabs)</li><li><strong>Change History</strong> — assigned / removed / changed with old → new shift</li><li>Legend: Today / Weekend / Holiday + shift color codes</li></ul></div>
+  </div>
 </div>
 
 <!-- SLIDE 3: Form Builder -->
 <div class="slide" id="slide-3">
-<div class="slide-header">
-<div class="slide-title">Form <span>Builder</span></div>
-<p class="slide-sub">Visual drag-and-drop form designer for custom clinical templates</p>
-</div>
-<div class="side-by-side">
-<div class="screenshot-panel"><img src="screenshots/images/11-form-builder.png" alt="Form Builder"></div>
-<div class="text-panel">
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(124,58,237,0.2);color:#a78bfa">🔧</span> Building Forms</h3>
-<ul>
-<li>Select a template to edit or create new</li>
-<li>Drag fields from library into canvas</li>
-<li>Configure validation, options, layout</li>
-<li>Save and publish for clinical staff</li>
-</ul>
-</div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(5,150,105,0.2);color:#34d399">📋</span> Field Types</h3>
-<ul>
-<li><strong>Basic</strong> — Text, Number, Textarea, Select</li>
-<li><strong>Medical</strong> — Vital Signs, Patient Info, Coded Text</li>
-<li><strong>ISBAR</strong> — Identification, Situation, Background, Assessment, Recommendation</li>
-<li><strong>Advanced</strong> — Divider, Rating</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">3 / 11</span>
+  <span class="ghost">03</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Customize clinical forms</p>
+    <div class="h-title anim" style="--i:1">Form <em>Builder</em></div>
+    <p class="h-sub anim" style="--i:2">Design templates that power the Report, Documentation, and Handover forms.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="flow">
+    <div class="fstep anim" style="--i:4"><div class="n">1</div><h4>Create Template</h4><p>Name it (e.g. "ISBAR MEDICAL WARD")</p></div>
+    <div class="fstep anim" style="--i:5"><div class="n">2</div><h4>Add Sections &amp; Fields</h4><p>From the field library</p></div>
+    <div class="fstep anim" style="--i:6"><div class="n">3</div><h4>Preview &amp; Activate</h4><p>Versioned and published to staff</p></div>
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:7"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">🧩</span><h4>Field Library</h4><span class="tag">Components</span></div><ul><li><strong>Basic</strong> — text, textarea, number, dropdown, multi-select, radio, checkboxes, date, time</li><li><strong>Medical</strong> — vital signs group, patient information, medication, clinical concepts (ICD-11, LOINC)</li><li><strong>ISBAR</strong> — situation / background / assessment / recommendation + patient stability</li><li><strong>Patient ID</strong> — MRN, patient name, age, sex, bed number · <strong>Measurements</strong> — temp, BP, HR, SpO2, GCS, weight…</li></ul></div>
+    <div class="cell anim" style="--i:8"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">⚙️</span><h4>Features</h4><span class="tag">Power</span></div><ul><li><strong>Required / min / max / pattern</strong> validation</li><li><strong>Formulas</strong> — auto-calculated read-only fields</li><li><strong>Skip logic</strong> — show / hide fields by conditions</li><li>Collapsible colored sections with error badges</li><li>Templates are <strong>versioned</strong>; handover forms need "Handover" in the name</li></ul></div>
+  </div>
 </div>
 
 <!-- SLIDE 4: Custom Tabs & Dashboard Mapping -->
 <div class="slide" id="slide-4">
-<div class="slide-header">
-<div class="slide-title">Custom Tabs <span>& Dashboard Mapping</span></div>
-<p class="slide-sub">Department-specific workflows and dashboard configuration</p>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1100px;margin:0 auto">
-<div>
-<div class="screenshot-panel" style="margin-bottom:12px"><img src="screenshots/images/12-custom-tabs.png" alt="Custom Tabs"></div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">🏷</span> Custom Tabs</h3>
-<ul>
-<li>Create additional navigation tabs</li>
-<li>Link to custom forms, external URLs, or embedded content</li>
-<li>Tabs stored locally, persist across sessions</li>
-</ul>
-</div>
-</div>
-<div>
-<div class="screenshot-panel" style="margin-bottom:12px"><img src="screenshots/images/13-dashboard-mapping.png" alt="Dashboard Mapping"></div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">📊</span> Dashboard Mapping</h3>
-<ul>
-<li>Map ISBAR forms to dashboard cards</li>
-<li>Control what staff see on login</li>
-<li>Prioritize relevant info per department</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">4 / 11</span>
+  <span class="ghost">04</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Personalize the dashboard</p>
+    <div class="h-title anim" style="--i:1">Custom Tabs <em>&amp; Dashboard Mapping</em></div>
+    <p class="h-sub anim" style="--i:2">Build your own dashboard tabs and connect form data to live cards.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#09B8A0,#059669)">📑</span><h4>Custom Tabs</h4><span class="tag">Tailored</span></div><ul><li>Create tabs with a <strong>display name</strong> that appear on the Dashboard</li><li>View styles: <strong>Card · Table · List · Stack</strong> (compliance score ring, Yes/No/N-A chips)</li><li>Group records by a field; set <strong>retention</strong> — forever / 24h / 12h / 8h</li><li>Visible by department / profession; admins can remove tabs</li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">🧭</span><h4>Dashboard Mapping</h4><span class="tag">Live Data</span></div><ul><li>Map form fields to dashboard cards (display name, departments)</li><li>Map the <strong>status indicator</strong> field — values normalize to <strong>Stable / Subcritical / Critical</strong></li><li>Supports code words: code green / yellow / red, stable, unstable…</li><li>Resource and Nursing Round mappings feed the Inventory &amp; Round tabs</li></ul></div>
+    <div class="cell note b-w2 anim" style="--i:6"><p>Mapping keeps the dashboard <strong>driven by real submitted data</strong> — no manual entry, everything reflects the latest reports.</p></div>
+  </div>
 </div>
 
 <!-- SLIDE 5: Integrations -->
 <div class="slide" id="slide-5">
-<div class="slide-header">
-<div class="slide-title"><span>Integrations</span></div>
-<p class="slide-sub">Connect ISBAR with external systems and third-party services</p>
-</div>
-<div class="side-by-side">
-<div class="screenshot-panel"><img src="screenshots/images/14-integrations.png" alt="Integrations"></div>
-<div class="text-panel">
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">🔌</span> External Connections</h3>
-<ul>
-<li>Connect with hospital information systems</li>
-<li>Laboratory system integration</li>
-<li>Pharmacy database connections</li>
-</ul>
-</div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">⚙️</span> Configuration</h3>
-<ul>
-<li>API endpoint setup</li>
-<li>Authentication configuration</li>
-<li>Data sync intervals</li>
-<li>Connection status monitoring</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">5 / 11</span>
+  <span class="ghost">05</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Connect external systems</p>
+    <div class="h-title anim" style="--i:1">Integrations</div>
+    <p class="h-sub anim" style="--i:2">Manage external system connections — EMR, lab systems, and more.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">🤖</span><h4>External Connections</h4><span class="tag">Ecosystem</span></div><ul><li>Presets: <strong>Bahmni EMR · OpenMRS · HL7 FHIR Server · Custom REST API</strong></li><li>Fetch and sync patient data (name, gender, age, MRN, DOB…)</li><li><strong>Field mapping</strong> — source field → target field</li><li>Sync settings: fetch patients, auto-sync, interval</li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">🔧</span><h4>Configuration</h4><span class="tag">Setup</span></div><ul><li>Base URL + auth type (<strong>basic / bearer</strong>)</li><li><strong>Test connection</strong> before saving</li><li>Enable / disable with <strong>last sync status</strong> and time</li><li>Each connection keeps its own API key — AI features need internet, everything else works offline</li></ul></div>
+    <div class="cell note b-w2 anim" style="--i:6"><p>Integrations keep the system <strong>extensible</strong> — new hospital tools plug in without rebuilding the platform.</p></div>
+  </div>
 </div>
 
 <!-- SLIDE 6: Check-In Logs -->
 <div class="slide" id="slide-6">
-<div class="slide-header">
-<div class="slide-title">Check-In <span>Logs</span></div>
-<p class="slide-sub">Complete audit trail of all staff check-in/out activity</p>
-</div>
-<div class="side-by-side">
-<div class="screenshot-panel"><img src="screenshots/images/15-checkin-logs.png" alt="Check-In Logs"></div>
-<div class="text-panel">
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">📋</span> Log Information</h3>
-<ul>
-<li><strong>Staff Name</strong> — Who checked in/out</li>
-<li><strong>Timestamp</strong> — Exact date and time</li>
-<li><strong>Ward/Station</strong> — Location assigned</li>
-<li><strong>Shift</strong> — Morning/Afternoon/Night</li>
-<li><strong>Duration</strong> — Time spent on shift</li>
-<li><strong>Status</strong> — Completed/Active</li>
-</ul>
-</div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(124,58,237,0.2);color:#a78bfa">🎯</span> Use Cases</h3>
-<ul>
-<li>Attendance tracking and reporting</li>
-<li>Shift handover verification</li>
-<li>Compliance auditing</li>
-<li>Staff accountability</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">6 / 11</span>
+  <span class="ghost">06</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Who's on duty</p>
+    <div class="h-title anim" style="--i:1">Check-In <em>Logs</em></div>
+    <p class="h-sub anim" style="--i:2">"Staff attendance history" — every clock-in and clock-out, searchable.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#10b981,#047857)">✅</span><h4>Log Table</h4><span class="tag">Record</span></div><ul><li>Columns: <strong>Staff, Department, Shift, Check In, Check Out, Duration, Status</strong></li><li>Check-in / check-out with Ethiopian date &amp; time</li><li>Duration as "5h 30m"</li><li>Status: <strong style="color:#34d399">Active</strong> (pulsing) or <strong>Completed</strong></li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#f59e0b,#b45309)">🎯</span><h4>Filters</h4><span class="tag">Search</span></div><ul><li>Search by staff name, profession, or ward</li><li>Department selector</li><li>Start &amp; end date range</li><li><strong>Clear Filters</strong> · 50 records per page</li></ul></div>
+    <div class="cell note b-w2 anim" style="--i:6"><p>Check-In Logs are the <strong>source of truth</strong> behind Attendance Reports — accurate clock-ins make attendance trustworthy.</p></div>
+  </div>
 </div>
 
 <!-- SLIDE 7: Attendance Reports -->
 <div class="slide" id="slide-7">
-<div class="slide-header">
-<div class="slide-title">Attendance <span>Reports</span></div>
-<p class="slide-sub">Generate and export staff attendance summaries</p>
-</div>
-<div class="side-by-side">
-<div class="screenshot-panel"><img src="screenshots/images/16-attendance.png" alt="Attendance Reports"></div>
-<div class="text-panel">
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">📊</span> Generating Reports</h3>
-<ul>
-<li>Select <strong>department</strong>, <strong>date range</strong>, and <strong>shift type</strong></li>
-<li>Generate attendance summaries</li>
-<li>Export to PDF for HR records</li>
-<li>Export to Excel for analysis</li>
-</ul>
-</div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">📈</span> What It Tracks</h3>
-<ul>
-<li>Check-in compliance rates</li>
-<li>Coverage gaps by shift</li>
-<li>Average shift duration</li>
-<li>Staff attendance patterns</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">7 / 11</span>
+  <span class="ghost">07</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Track presence</p>
+    <div class="h-title anim" style="--i:1">Attendance <em>Reports</em></div>
+    <p class="h-sub anim" style="--i:2">"Staff attendance summaries" — compiled automatically from shift sessions.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#09B8A0,#059669)">📊</span><h4>Period &amp; Scope</h4><span class="tag">Automated</span></div><ul><li>Period toggle: <strong>Daily · Weekly · Monthly</strong></li><li>Custom <strong>date range</strong> + department selector</li><li>Summary cards: <strong>Staff</strong> (count + active), <strong>Total Shifts</strong>, <strong>Total Hours</strong></li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">🧮</span><h4>Breakdown</h4><span class="tag">Metrics</span></div><ul><li><strong>Department Breakdown</strong> — hours bars per department</li><li><strong>Individual Attendance</strong> table — Staff, Department, Shifts, Hours, Status</li><li>Status <strong style="color:#34d399">Active</strong> = currently clocked in</li></ul></div>
+    <div class="cell note b-w2 anim" style="--i:6"><p>Shifts and hours are <strong>counted from check-in sessions</strong> — remind your team to check in every shift.</p></div>
+  </div>
 </div>
 
 <!-- SLIDE 8: User Management -->
 <div class="slide" id="slide-8">
-<div class="slide-header">
-<div class="slide-title">User <span>Management</span></div>
-<p class="slide-sub">Create, edit, and manage user accounts with role-based access</p>
-</div>
-<div class="side-by-side">
-<div class="screenshot-panel"><img src="screenshots/images/17-user-mgmt.png" alt="User Management"></div>
-<div class="text-panel">
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">👤</span> User Actions</h3>
-<ul>
-<li><strong>Create User</strong> — Add new staff accounts</li>
-<li><strong>Edit Profile</strong> — Update name, department, role</li>
-<li><strong>Toggle Status</strong> — Activate/deactivate accounts</li>
-<li><strong>Reset PIN</strong> — Reset 4-digit check-in PIN</li>
-<li><strong>Assign Role</strong> — Set permission level</li>
-</ul>
-</div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(124,58,237,0.2);color:#a78bfa">🏷</span> Role Badges</h3>
-<ul>
-<li><span style="color:#dc2626;font-weight:700">Superadmin</span> — Full system access</li>
-<li><span style="color:#7c3aed;font-weight:700">Admin</span> — Administrative access</li>
-<li><span style="color:#2563eb;font-weight:700">User</span> — Department head access</li>
-<li><span style="color:#059669;font-weight:700">Staff</span> — Basic clinical access</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">8 / 11</span>
+  <span class="ghost">08</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Manage access</p>
+    <div class="h-title anim" style="--i:1">User <em>Management</em></div>
+    <p class="h-sub anim" style="--i:2">Create accounts, assign roles and departments, and control permissions.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#09B8A0,#059669)">👤</span><h4>Create &amp; Manage</h4><span class="tag">Accounts</span></div><ul><li>Fields: username, password, name, email</li><li>Assign <strong>role, department, profession</strong></li><li>Shift base: <strong>4H · 8H · 12H · 24H · 36H · 48H · 72H</strong></li><li>4-digit check-in <strong>PIN</strong> · module permissions</li><li>Activate / deactivate, reset passwords</li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">🏷️</span><h4>Role Badges</h4><span class="tag">Access</span></div><ul><li><span class="bdg bdg-red">Admin / Superadmin</span><span>Full access + Admin section</span></li><li><span class="bdg bdg-purple">User</span><span>Department account</span></li><li><span class="bdg bdg-blue">Staff</span><span>Ward staff (check-in)</span></li><li><span class="bdg bdg-amber">Viewer</span><span>Read-only access</span></li></ul></div>
+    <div class="cell note b-w2 anim" style="--i:6"><p>Superadmins can <strong>"Log in as"</strong> any user — an "ADMIN MODE" banner appears with <strong>Return to Admin</strong> to switch back.</p></div>
+  </div>
 </div>
 
-<!-- SLIDE 9: Admin Settings -->
+<!-- SLIDE 9: Activity Log & Settings -->
 <div class="slide" id="slide-9">
-<div class="slide-header">
-<div class="slide-title">Admin <span>Settings</span></div>
-<p class="slide-sub">System-wide configuration and application preferences</p>
-</div>
-<div class="side-by-side">
-<div class="screenshot-panel"><img src="screenshots/images/18-admin-settings.png" alt="Admin Settings"></div>
-<div class="text-panel">
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(9,184,160,0.2);color:#09B8A0">⚙️</span> Configuration</h3>
-<ul>
-<li><strong>Hospital Info</strong> — Name, departments, address</li>
-<li><strong>Shift Times</strong> — Morning/Afternoon/Night hours</li>
-<li><strong>Notifications</strong> — Alert preferences</li>
-<li><strong>Backup</strong> — Schedule and data retention</li>
-</ul>
-</div>
-<div class="text-card">
-<h3><span class="icon" style="background:rgba(37,99,235,0.2);color:#60a5fa">🔧</span> System Maintenance</h3>
-<ul>
-<li>Data retention policies</li>
-<li>Maintenance windows</li>
-<li>System health monitoring</li>
-<li>Version updates</li>
-</ul>
-</div>
-</div>
-</div>
-<span class="slide-number">9 / 11</span>
+  <span class="ghost">09</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Keep the system healthy</p>
+    <div class="h-title anim" style="--i:1">Activity Log <em>&amp; Settings</em></div>
+    <p class="h-sub anim" style="--i:2">The complete hospital audit trail and system-wide configuration.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">📜</span><h4>Activity Log</h4><span class="tag">Audit</span></div><ul><li>All activity types: <strong>Reports · Inventory Updates · Inventory Reports · Admin Actions · Staff Registered</strong></li><li>Presets: <strong>7D · 1M · 3M · 6M · 1Y · All</strong></li><li>Stat cards, daily trend, top people &amp; departments</li><li>Cleanup: delete records in a date range</li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#f59e0b,#b45309)">🛠️</span><h4>Settings</h4><span class="tag">9 Tabs</span></div><ul><li>Overview · Migration · Backup · Theme · Data · Security · Notifications · Audit Trail · Maintenance</li><li>System info: Node version, uptime, database, users, reports, disk</li><li>Auto-backup with retention · password policy · session timeout</li><li>Brand color, dark / compact theme · low-stock, expiry &amp; shift alerts</li></ul></div>
+    <div class="cell note b-w2 anim" style="--i:6"><p>Only <strong>admins</strong> can change settings — changes take effect immediately for all users.</p></div>
+  </div>
 </div>
 
 <!-- SLIDE 10: Roles & Security -->
 <div class="slide" id="slide-10">
-<div class="slide-header">
-<div class="slide-title">Roles <span>& Security</span></div>
-<p class="slide-sub">Four-tier access control and enterprise security features</p>
-</div>
-<div class="role-grid" style="margin-bottom:20px">
-<div class="role-card"><div class="ri" style="background:rgba(220,38,38,0.15)">&#x1F6E1;</div><h4>Superadmin</h4><div class="rd">Full system access</div><ul><li>All admin functions</li><li>User management</li><li>System config</li><li>Data export</li><li>Audit logs</li></ul></div>
-<div class="role-card"><div class="ri" style="background:rgba(124,58,237,0.15)">&#x1F3DB;</div><h4>Admin</h4><div class="rd">Administrative access</div><ul><li>Form builder</li><li>Custom tabs</li><li>Check-in logs</li><li>Attendance</li><li>Scheduling</li></ul></div>
-<div class="role-card"><div class="ri" style="background:rgba(37,99,235,0.15)">&#x1FA7A;</div><h4>User</h4><div class="rd">Department head</div><ul><li>ISBAR submission</li><li>Dept activity</li><li>Patient mgmt</li><li>Resources</li><li>Analytics</li></ul></div>
-<div class="role-card"><div class="ri" style="background:rgba(5,150,105,0.15)">&#x1F464;</div><h4>Staff</h4><div class="rd">Basic clinical</div><ul><li>Check-in/out</li><li>View schedule</li><li>Dept activity</li><li>Read-only dash</li><li>No admin</li></ul></div>
-</div>
-<div class="sec-grid">
-<div class="sec-card"><div class="sci">&#x1F510;</div><h4>PIN Auth</h4><p>4-digit PIN with bcrypt hashing</p></div>
-<div class="sec-card"><div class="sci">&#x1F6E1;</div><h4>RBAC</h4><p>Four-tier permission system</p></div>
-<div class="sec-card"><div class="sci">&#x1F4CA;</div><h4>Audit Log</h4><p>Complete action trail</p></div>
-<div class="sec-card"><div class="sci">&#x1F512;</div><h4>Encryption</h4><p>HTTPS + AES-256 at rest</p></div>
-<div class="sec-card"><div class="sci">&#x23F0;</div><h4>Sessions</h4><p>Auto-timeout, secure tokens</p></div>
-<div class="sec-card"><div class="sci">&#x1F4DD;</div><h4>Compliance</h4><p>Ethiopian healthcare standards</p></div>
-</div>
-<span class="slide-number">10 / 11</span>
+  <span class="ghost">10</span>
+  <div class="hdr">
+    <p class="kick anim" style="--i:0">Safe by design</p>
+    <div class="h-title anim" style="--i:1">Roles <em>&amp; Security</em></div>
+    <p class="h-sub anim" style="--i:2">Role-based access with module permissions and a complete audit trail.</p>
+    <hr class="h-rule anim" style="--i:3">
+  </div>
+  <div class="bento">
+    <div class="cell anim" style="--i:4"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">🛡️</span><h4>Access Control</h4><span class="tag">Control</span></div><ul><li>Each role sees only its <strong>permitted modules</strong> (view actions)</li><li>Admin-only pages are hidden from other roles</li><li>Passwords stored <strong>securely hashed</strong></li><li>User sessions protected with <strong>tokens</strong></li></ul></div>
+    <div class="cell anim" style="--i:5"><div class="cell-top"><span class="ic" style="background:linear-gradient(135deg,#10b981,#047857)">🤝</span><h4>Shared Responsibility</h4><span class="tag">Everyone</span></div><ul><li>Never share accounts or passwords</li><li>Sign out on shared computers</li><li>Report lost credentials to IT immediately</li><li>Every report is traceable — reporter, shift &amp; timestamp are logged</li></ul></div>
+    <div class="cell note b-w2 anim" style="--i:6"><p>Security is a <strong>team effort</strong> — the audit trail protects staff and patients alike.</p></div>
+  </div>
 </div>
 
 <!-- SLIDE 11: Thank You -->
 <div class="slide" id="slide-11">
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center">
-<h1 style="font-size:40px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff,#09B8A0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px">Thank You!</h1>
-<p style="font-size:14px;color:rgba(255,255,255,0.5);max-width:500px;line-height:1.7">You've completed the ISBAR Clinical System training. You're now ready to use the system for patient care documentation, staff management, and clinical reporting.</p>
-<div class="kp-grid" style="max-width:600px;margin-top:28px">
-<div class="kp"><div class="kp-i">&#x1F4CB;</div><h4>Documentation</h4><p>User guides in Resources</p></div>
-<div class="kp"><div class="kp-i">&#x1F4E1;</div><h4>Support</h4><p>Contact IT helpdesk</p></div>
-<div class="kp"><div class="kp-i">&#x1F91D;</div><h4>Training</h4><p>Additional sessions on request</p></div>
-</div>
-<p style="margin-top:28px;font-size:11px;color:rgba(255,255,255,0.3)">ISBAR Clinical System v2.0 &bull; Adare General Hospital &bull; 2026</p>
-</div>
-<span class="slide-number">11 / 11</span>
+  <span class="ghost">11</span>
+  <div class="title-wrap">
+    <div class="logo-badge anim" style="--i:0">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6h0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6h0a6 6 0 0 0 6-6v-4"/><line x1="2" y1="12" x2="22" y2="12" stroke="#2ee6c6" stroke-width="2.2"/></svg>
+    </div>
+    <p class="kicker anim" style="--i:1">Adare General Hospital</p>
+    <h1 class="hero anim" style="--i:2">Training <em>Complete</em></h1>
+    <div class="chip anim" style="--i:3">Thank You</div>
+    <p class="hero-sub anim" style="--i:4">You've completed the ISBAR Clinical System training. You're now ready to use the system for patient care documentation, staff management, and clinical reporting.</p>
+  </div>
 </div>
 
+<div class="slabel">ISBAR Clinical System · Admin Training</div>
+<div class="kbd-hint">← → navigate · Space · F fullscreen</div>
+
 <!-- Navigation -->
-<div class="nav-bar" id="navbar">
-<button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
-<div class="nav-dots" id="navDots"></div>
-<span class="nav-counter" id="counter">1 / 11</span>
-<button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+<div class="navbar">
+  <button class="nav-btn" id="prevBtn">← Prev</button>
+  <div class="nav-dots" id="navDots"></div>
+  <span class="nav-counter" id="counter">1 / 11</span>
+  <button class="nav-btn" id="nextBtn">Next →</button>
+  <button class="nav-icon" id="fsBtn" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
-let current=1;const total=11;const slides=document.querySelectorAll('.slide');const dots=document.getElementById('navDots');const counter=document.getElementById('counter');const prevBtn=document.getElementById('prevBtn');const nextBtn=document.getElementById('nextBtn');
-for(let i=1;i<=total;i++){const d=document.createElement('div');d.className='nav-dot'+(i===1?' active':'');d.onclick=()=>goToSlide(i);dots.appendChild(d)}
-function goToSlide(n){slides[current-1].classList.remove('active');dots.children[current-1].classList.remove('active');current=n;slides[current-1].classList.add('active');dots.children[current-1].classList.add('active');counter.textContent=current+' / '+total;prevBtn.disabled=current===1;nextBtn.disabled=current===total}
-function changeSlide(dir){const next=current+dir;if(next>=1&&next<=total)goToSlide(next)}
-document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();changeSlide(1)}if(e.key==='ArrowLeft'){e.preventDefault();changeSlide(-1)}});
-goToSlide(1);
+const slides=[...document.querySelectorAll('.slide')],total=slides.length;
+const dots=document.getElementById('navDots'),counter=document.getElementById('counter');
+const prevBtn=document.getElementById('prevBtn'),nextBtn=document.getElementById('nextBtn');
+const bar=document.getElementById('bar'),fsBtn=document.getElementById('fsBtn');
+let cur=1;
+const names=['Title','Staff Schedule & Bed Allocation','Form Builder','Custom Tabs & Dashboard Mapping','Integrations','Check-In Logs','Attendance Reports','User Management','Activity Log & Settings','Roles & Security','Thank You'];
+for(let i=1;i<=total;i++){const d=document.createElement('div');d.className='nav-dot'+(i===1?' active':'');d.title=names[i-1];d.onclick=()=>go(i);dots.appendChild(d)}
+function go(n){
+  slides[cur-1].classList.remove('active');dots.children[cur-1].classList.remove('active');
+  cur=n;slides[cur-1].classList.add('active');dots.children[cur-1].classList.add('active');
+  counter.textContent=cur+' / '+total;prevBtn.disabled=cur===1;nextBtn.disabled=cur===total;
+  bar.style.width=(cur/total*100)+'%';
+  slides[cur-1].scrollTop=0;
+}
+function move(d){const n=cur+d;if(n>=1&&n<=total)go(n)}
+prevBtn.onclick=()=>move(-1);nextBtn.onclick=()=>move(1);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();move(1)}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();move(-1)}
+  else if(e.key==='Home'){e.preventDefault();go(1)}
+  else if(e.key==='End'){e.preventDefault();go(total)}
+  else if(e.key==='f'||e.key==='F'){toggleFs()}
+});
+fsBtn.onclick=toggleFs;
+function toggleFs(){if(document.fullscreenElement){document.exitFullscreen()}else{document.documentElement.requestFullscreen().catch(()=>{})}}
+let tx=0;document.addEventListener('touchstart',e=>{tx=e.changedTouches[0].clientX},{passive:true});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>60)move(dx<0?1:-1)},{passive:true});
+go(1);
 </script>
 </body>
 </html>

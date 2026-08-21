@@ -3,10 +3,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   Menu,
-  X,
   LogOut,
   User,
-  Stethoscope,
   UserCircle,
   Shield,
   ChevronsLeft,
@@ -80,19 +78,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
         onMouseLeave={handleSidebarLeave}
         className={`fixed inset-y-0 left-0 z-50 ${sidebarExpanded ? 'w-64' : 'w-20'} bg-[#003153] text-white shadow-lg transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}
       >
-        <div className="flex items-center justify-between h-16 px-6 bg-[#003153] text-white border-b border-white/10">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-xl bg-white/10 border-2 border-white/20 flex items-center justify-center mr-3 flex-shrink-0 transition-all duration-300 group-hover:border-white/40">
-              <Stethoscope className="w-6 h-6 text-white" />
-            </div>
-            <h1 className={`text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${sidebarExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>AGH-CSMS</h1>
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-white hover:text-gray-200"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        <div className="flex items-center h-16 px-6 border-b border-white/10">
+              <img src={`${import.meta.env.BASE_URL}applogo.png`} alt="CSMS" className="h-12 w-auto max-w-full object-contain" />
         </div>
 
         <nav className="mt-6 space-y-1">

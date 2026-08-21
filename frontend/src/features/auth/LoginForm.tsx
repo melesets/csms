@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn, Stethoscope, ShieldCheck, User, Lock } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ShieldCheck, User, Lock } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { apiGet } from '../../api';
 import { PROFESSIONS } from '../../types/auth';
@@ -179,8 +179,8 @@ export const LoginForm = () => {
 
         {/* Center welcome content */}
         <div className="relative z-10 text-center px-8 py-6 max-w-lg animate-in fade-in slide-in-from-right-8 duration-1000 ease-out my-auto">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-white/10 border-2 border-white mb-8 shadow-[0_0_40px_rgba(0,0,0,0.3)] backdrop-blur-md outline outline-2 outline-white/30 outline-offset-4 mx-auto">
-            <Stethoscope className="w-12 h-12 text-white animate-flip3d" />
+          <div className="mb-8 mx-auto">
+            <img src={`${import.meta.env.BASE_URL}applogo.png`} alt="CSMS Logo" className="h-20 w-auto mx-auto drop-shadow-lg" />
           </div>
 
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg uppercase whitespace-nowrap font-display">Adare General Hospital</h1>
